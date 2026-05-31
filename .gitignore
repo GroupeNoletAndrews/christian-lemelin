@@ -4,6 +4,8 @@
 /build
 /tmp
 
+.next
+
 # Logs
 logs
 *.log
@@ -18,6 +20,8 @@ lerna-debug.log*
 .env.development
 .env.test
 .env.production
+
+
 
 # temp directory
 .temp

@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Brand palette — light theme */
+  --color-background: #f3f3f1;
+  --color-foreground: #111113;
+  --color-foreground-muted: #71717a;
+  --color-accent: #f5a020;
+  --color-accent-hover: #d4881a;
+  --color-surface: #e8e8e6;
+  --color-surface-elevated: #dfdede;
+
+  /* Typography */
+  --font-display: var(--font-bebas-neue);
+  --font-sans: var(--font-barlow-condensed);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background-color: #f3f3f1;
+  color: #111113;
+  font-family: var(--font-barlow-condensed), system-ui, sans-serif;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Remove default outline, use focus-visible only */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid #f5a020;
+  outline-offset: 2px;
+}

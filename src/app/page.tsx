@@ -1,4 +1,4 @@
-import { HeroVideo } from "@/components/sections/HeroVideo"
+import { Hero } from "@/components/sections/Hero"
 import { SavoirFaire } from "@/components/sections/SavoirFaire"
 import { Materiaux } from "@/components/sections/Materiaux"
 import { Solutions } from "@/components/sections/Solutions"
@@ -9,7 +9,7 @@ import { ContactCTA } from "@/components/sections/ContactCTA"
 export default function HomePage() {
   return (
     <>
-      <HeroVideo />
+      <Hero />
       <SavoirFaire />
       <Materiaux />
       <Solutions />

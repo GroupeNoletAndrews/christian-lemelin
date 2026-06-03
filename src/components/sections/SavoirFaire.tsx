@@ -1,20 +1,11 @@
 "use client"
 
-import { useRef, useEffect } from "react"
-import dynamic from "next/dynamic"
-import { gsap } from "gsap"
-import { ScrollTrigger } from "gsap/ScrollTrigger"
-import { useReducedMotion } from "motion/react"
+import { useState } from "react"
 import Image from "next/image"
-import Link from "next/link"
-import { ArrowRight } from "@phosphor-icons/react"
-
-const ModelViewer = dynamic(
-  () => import("@/components/ui/ModelViewer").then((m) => m.ModelViewer),
-  { ssr: false }
-)
-
-gsap.registerPlugin(ScrollTrigger)
+import { Plus, Minus } from "@phosphor-icons/react"
+import { Eyebrow } from "@/components/ui/Eyebrow"
+import { ArrowLink } from "@/components/ui/ArrowLink"
+import { Tag } from "@/components/ui/Tag"
 
 const services = [
   {
@@ -23,7 +14,7 @@ const services = [
     description:
       "Pièces uniques ou en série, réalisées selon vos plans ou développées avec notre équipe technique.",
     tags: ["Inox", "Acier", "Aluminium"],
-    img: "https://picsum.photos/seed/ecl-fabrication-shop-metal/1600/900",
+    img: "https://picsum.photos/seed/ecl-fabrication-shop-metal/1200/1500",
     href: "/fabrication",
   },
   {
@@ -32,7 +23,7 @@ const services = [
     description:
       "Précision au dixième de millimètre sur toutes épaisseurs, du prototype à la grande série.",
     tags: ["Laser CO₂", "Plasma CNC", "Jet d'eau"],
-    img: "https://picsum.photos/seed/ecl-laser-cutting-industrial/1600/900",
+    img: "https://picsum.photos/seed/ecl-laser-cutting-industrial/1200/1500",
     href: "/solutions",
   },
   {
@@ -41,7 +32,7 @@ const services = [
     description:
       "Soudeurs certifiés MIG, TIG et structurale pour assemblages industriels et architecturaux exigeants.",
     tags: ["MIG / TIG", "Structurale", "Alimentaire"],
-    img: "https://picsum.photos/seed/ecl-welding-arc-workshop/1600/900",
+    img: "https://picsum.photos/seed/ecl-welding-arc-workshop/1200/1500",
     href: "/solutions",
   },
   {
@@ -50,7 +41,7 @@ const services = [
     description:
       "Miroir, satiné, brossé, poudré. Chaque finition exécutée en atelier selon les standards les plus exigeants.",
     tags: ["Miroir", "Satiné", "Brossé"],
-    img: "https://picsum.photos/seed/ecl-polished-steel-surface/1600/900",
+    img: "https://picsum.photos/seed/ecl-polished-steel-surface/1200/1500",
     href: "/fabrication",
   },
   {
@@ -59,131 +50,91 @@ const services = [
     description:
       "Équipe dédiée partout au Québec. Livraison coordonnée, pose soignée, résultat garanti.",
     tags: ["Québec", "Coordonné", "Garanti"],
-    img: "https://picsum.photos/seed/ecl-installation-commercial/1600/900",
+    img: "https://picsum.photos/seed/ecl-installation-commercial/1200/1500",
     href: "/a-propos",
   },
 ]
 
-const total = String(services.length).padStart(2, "0")
-
 export function SavoirFaire() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const reduce = useReducedMotion()
-
-  useEffect(() => {
-    if (reduce || !containerRef.current) return
-    const ctx = gsap.context(() => {
-      const cards = gsap.utils.toArray<HTMLElement>(".sf-card")
-      cards.forEach((card, i) => {
-        if (i === cards.length - 1) return
-
-        ScrollTrigger.create({
-          trigger: card,
-          start: "top top",
-          endTrigger: cards[cards.length - 1],
-          end: "top top",
-          pin: true,
-          pinSpacing: false,
-        })
-      })
-    }, containerRef)
-    return () => ctx.revert()
-  }, [reduce])
+  const [open, setOpen] = useState(0)
 
   return (
-    <section data-header-theme="light" className="relative bg-[#f3f3f1]">
-      {/* Section label */}
-      <div className="px-6 md:px-12 pt-20 pb-6">
-        <div className="max-w-[1400px] mx-auto border-t border-black/8 pt-10">
-          <p className="font-display text-[0.75rem] text-zinc-400 uppercase tracking-[0.18em]">
-            Savoir-faire
-          </p>
-        </div>
-      </div>
+    <section
+      data-header-theme="light"
+      className="border-t border-border bg-surface py-24 md:py-32"
+    >
+      <div className="mx-auto max-w-[1400px] px-6 md:px-12">
+        <Eyebrow>Savoir-faire</Eyebrow>
+        <h2 className="mt-6 max-w-[18ch] font-display text-[clamp(2rem,5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
+          Voici comment nous donnons forme au métal.
+        </h2>
 
-      {/* Sticky stack */}
-      <div ref={containerRef}>
-        {services.map((service, i) => (
-          <div
-            key={service.id}
-            className="sf-card relative min-h-[100dvh] w-full overflow-hidden will-change-transform bg-[#f3f3f1]"
-            style={{ zIndex: i + 1 }}
-          >
-            {i === 0 ? (
-              /* First card — 3D model on the right, desktop only */
-              <div className="absolute inset-y-0 right-0 w-[58%] hidden lg:block">
-                <ModelViewer />
-              </div>
-            ) : (
-              /* Other cards — full-bleed background image */
-              <div className="absolute inset-0">
+        <div className="mt-12 grid gap-12 md:mt-16 lg:grid-cols-[1fr_minmax(360px,40%)]">
+          {/* Numbered accordion */}
+          <div className="border-t border-border">
+            {services.map((s, i) => {
+              const isOpen = open === i
+              return (
+                <div key={s.id} className="border-b border-border">
+                  <button
+                    type="button"
+                    onClick={() => setOpen(isOpen ? -1 : i)}
+                    className="flex w-full items-center gap-5 py-6 text-left md:gap-8"
+                    aria-expanded={isOpen}
+                  >
+                    <span className="font-mono text-sm text-foreground-muted">
+                      {s.id}
+                    </span>
+                    <span className="flex-1 font-display text-[clamp(1.4rem,3.2vw,2.5rem)] font-medium leading-tight text-foreground">
+                      {s.title}
+                    </span>
+                    <span className="text-foreground-muted">
+                      {isOpen ? <Minus size={22} /> : <Plus size={22} />}
+                    </span>
+                  </button>
+
+                  <div
+                    className={`grid overflow-hidden transition-all duration-300 ${
+                      isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                    }`}
+                  >
+                    <div className="min-h-0">
+                      <div className="pb-8 pl-9 pr-4 md:pl-[3.75rem]">
+                        <p className="max-w-[52ch] leading-relaxed text-foreground-muted">
+                          {s.description}
+                        </p>
+                        <div className="mt-5 flex flex-wrap gap-2">
+                          {s.tags.map((t) => (
+                            <Tag key={t}>{t}</Tag>
+                          ))}
+                        </div>
+                        <ArrowLink href={s.href} className="mt-6">
+                          En savoir plus
+                        </ArrowLink>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Contained visual of the open service */}
+          <div className="hidden lg:block">
+            <div className="sticky top-28">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-border">
+                {/* TODO: replace with actual photography of each service */}
                 <Image
-                  src={service.img}
-                  alt={service.title}
+                  src={services[open === -1 ? 0 : open].img}
+                  alt={services[open === -1 ? 0 : open].title}
                   fill
                   className="object-cover"
-                  sizes="100vw"
+                  sizes="40vw"
                 />
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background:
-                      "linear-gradient(90deg, rgb(243 243 241 / 0.97) 0%, rgb(243 243 241 / 0.90) 40%, rgb(243 243 241 / 0.40) 66%, transparent 100%)",
-                  }}
-                />
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background:
-                      "linear-gradient(to top, rgb(243 243 241 / 0.65) 0%, transparent 42%)",
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Content */}
-            <div className="relative z-10 flex min-h-[100dvh] items-center">
-              <div className="max-w-[1400px] mx-auto w-full px-6 md:px-12 py-24">
-                <div className="max-w-[520px]">
-                  <p className="font-mono text-[10px] text-accent/70 tracking-[0.32em] mb-8 uppercase">
-                    {service.id}&nbsp;/&nbsp;{total}
-                  </p>
-
-                  <h2 className="font-display text-[clamp(2rem,4.5vw,3.25rem)] text-zinc-900 uppercase tracking-[0.06em] leading-[1.05] mb-5">
-                    {service.title}
-                  </h2>
-
-                  <p className="text-[0.9375rem] text-zinc-600 font-sans leading-relaxed mb-8 max-w-[42ch]">
-                    {service.description}
-                  </p>
-
-                  <div className="flex flex-wrap gap-2 mb-10">
-                    {service.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="px-3 py-1 text-[10px] font-sans tracking-[0.12em] text-zinc-500 border border-black/15 uppercase"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  <Link
-                    href={service.href}
-                    className="inline-flex items-center gap-2.5 text-[13px] font-sans font-medium text-accent hover:text-accent-hover transition-colors duration-200 group"
-                  >
-                    En savoir plus
-                    <ArrowRight
-                      size={13}
-                      weight="bold"
-                      className="group-hover:translate-x-1 transition-transform duration-200"
-                    />
-                  </Link>
-                </div>
               </div>
             </div>
           </div>
-        ))}
+        </div>
       </div>
     </section>
   )

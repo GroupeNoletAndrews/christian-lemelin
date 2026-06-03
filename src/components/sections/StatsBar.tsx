@@ -7,15 +7,18 @@ const stats = [
 
 export function StatsBar() {
   return (
-    <section data-header-theme="light" className="bg-surface border-y border-black/8 py-16 md:py-20">
-      <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 md:gap-16">
+    <section
+      data-header-theme="light"
+      className="border-t border-border bg-surface py-20 md:py-28"
+    >
+      <div className="mx-auto max-w-[1400px] px-6 md:px-12">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-12 lg:grid-cols-4">
           {stats.map((stat) => (
-            <div key={stat.label} className="text-center lg:text-left">
-              <p className="font-mono text-[clamp(2.25rem,4.5vw,3.25rem)] text-zinc-900 leading-none mb-2.5 tracking-[-0.02em]">
+            <div key={stat.label}>
+              <p className="font-display text-[clamp(3rem,6vw,5rem)] font-semibold leading-none tracking-[-0.03em] text-foreground">
                 {stat.value}
               </p>
-              <p className="text-[11px] font-sans text-zinc-400 tracking-[0.06em] uppercase leading-relaxed">
+              <p className="mt-3 text-sm leading-relaxed text-foreground-muted">
                 {stat.label}
               </p>
             </div>

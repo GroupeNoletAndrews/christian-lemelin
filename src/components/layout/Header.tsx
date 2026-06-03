@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { List, X } from "@phosphor-icons/react"
-import { motion, AnimatePresence } from "motion/react"
 import Image from "next/image"
+import { usePathname } from "next/navigation"
+import { motion, AnimatePresence, type Variants } from "motion/react"
+import { X, ArrowUpRight } from "@phosphor-icons/react"
+import { useLenis } from "@/components/providers/LenisProvider"
 
 type HeaderTheme = "dark" | "light"
 
-// Vertical midpoint of the floating header in viewport coords (top:24 + h:64/2 = 56)
 const HEADER_MID_Y = 56
 
 const navLinks = [
@@ -21,161 +21,253 @@ const navLinks = [
   { href: "/emplois", label: "Emplois" },
 ]
 
+// Placeholder partners (à remplacer par les vrais logos)
+const partners = [
+  "Atelier Nord",
+  "Métalu QC",
+  "Groupe Ferron",
+  "InoxPro",
+  "Usimétal",
+  "Soudexpert",
+  "Laurentide Métal",
+]
+
+// Menu overlay animations — the frame/divider lines DRAW first (staggered),
+// then the content reveals. Everything reverses on close.
+const EASE: [number, number, number, number] = [0.76, 0, 0.24, 1]
+
+const overlayV: Variants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.35, ease: EASE } },
+  exit: { opacity: 0, transition: { duration: 0.4, ease: EASE, delay: 0.55 } },
+}
+
+// Horizontal line draws left→right (scaleX)
+const hLineV: Variants = {
+  initial: { scaleX: 0 },
+  animate: (i: number) => ({ scaleX: 1, transition: { duration: 0.7, ease: EASE, delay: 0.1 + i * 0.12 } }),
+  exit: (i: number) => ({ scaleX: 0, transition: { duration: 0.4, ease: EASE, delay: i * 0.05 } }),
+}
+
+// Vertical line draws top→bottom (scaleY)
+const vLineV: Variants = {
+  initial: { scaleY: 0 },
+  animate: (i: number) => ({ scaleY: 1, transition: { duration: 0.7, ease: EASE, delay: 0.1 + i * 0.12 } }),
+  exit: (i: number) => ({ scaleY: 0, transition: { duration: 0.4, ease: EASE, delay: i * 0.05 } }),
+}
+
+// Content fades/rises in after the frame is drawn
+const contentV: Variants = {
+  initial: { opacity: 0, y: 22 },
+  animate: (i: number) => ({ opacity: 1, y: 0, transition: { duration: 0.7, ease: EASE, delay: 0.6 + i * 0.07 } }),
+  exit: { opacity: 0, transition: { duration: 0.25, ease: EASE } },
+}
+
+// Big nav links rise from a mask (left column), staggered
+const linkRiseV: Variants = {
+  initial: { y: "115%" },
+  animate: (i: number) => ({ y: "0%", transition: { duration: 0.8, ease: EASE, delay: 0.55 + i * 0.08 } }),
+  exit: (i: number) => ({ y: "115%", transition: { duration: 0.45, ease: EASE, delay: i * 0.05 } }),
+}
+
 export function Header() {
   const pathname = usePathname()
+  const lenis = useLenis()
+  const [open, setOpen] = useState(false)
+  const [theme, setTheme] = useState<HeaderTheme>("light")
   const [scrolled, setScrolled] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [theme, setTheme] = useState<HeaderTheme>("dark")
 
   useEffect(() => {
     const update = () => {
-      setScrolled(window.scrollY > 50)
-
+      setScrolled(window.scrollY > 24)
       const sections = document.querySelectorAll<HTMLElement>("[data-header-theme]")
-      let detected: HeaderTheme = "dark"
+      let detected: HeaderTheme = "light"
       sections.forEach((el) => {
         const { top, bottom } = el.getBoundingClientRect()
         if (HEADER_MID_Y >= top && HEADER_MID_Y < bottom) {
-          detected = (el.dataset.headerTheme as HeaderTheme) ?? "dark"
+          detected = (el.dataset.headerTheme as HeaderTheme) ?? "light"
         }
       })
       setTheme(detected)
     }
-
     window.addEventListener("scroll", update, { passive: true })
     update()
     return () => window.removeEventListener("scroll", update)
   }, [])
 
+  // Close on navigation
+  useEffect(() => setOpen(false), [pathname])
+
+  // Lock scroll while the menu overlay is open (Lenis + native fallback)
   useEffect(() => {
-    setMobileOpen(false)
-  }, [pathname])
+    if (open) {
+      lenis?.stop()
+      document.body.style.overflow = "hidden"
+    } else {
+      lenis?.start()
+      document.body.style.overflow = ""
+    }
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [open, lenis])
 
-  const light = theme === "light"
-
-  // Glassmorphism container
-  const containerStyle: React.CSSProperties = {
-    borderRadius: "16px",
-    background: light
-      ? scrolled ? "rgb(255 255 255 / 0.92)" : "rgb(255 255 255 / 0.85)"
-      : scrolled ? "rgb(255 255 255 / 0.11)" : "rgb(255 255 255 / 0.07)",
-    border: light
-      ? "1px solid rgb(0 0 0 / 0.08)"
-      : "1px solid rgb(255 255 255 / 0.18)",
-    backdropFilter: "blur(24px) saturate(180%) contrast(1.05)",
-    WebkitBackdropFilter: "blur(24px) saturate(180%) contrast(1.05)",
-    boxShadow: light
-      ? "inset 0 1px 0 rgb(255 255 255 / 0.95), 0 4px 24px rgb(0 0 0 / 0.10), 0 1px 4px rgb(0 0 0 / 0.06)"
-      : "inset 0 1px 0 rgb(255 255 255 / 0.20), 0 8px 32px rgb(0 0 0 / 0.40)",
-    transition: "background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease",
-  }
-
-  // Text tokens
-  const navActive = light ? "text-zinc-900" : "text-white"
-  const navInactive = light ? "text-zinc-600 hover:text-zinc-900" : "text-white/60 hover:text-white"
-  const toggleColor = light ? "text-zinc-500 hover:text-zinc-900" : "text-white/70 hover:text-white"
-  const t = "transition-colors duration-[350ms]"
+  // In the closed bar, the logo inverts to white over dark sections.
+  const darkBar = theme === "dark" && !open
+  const logoWhite = open || theme === "dark"
 
   return (
     <>
-      <header className="fixed top-6 left-1/2 z-50 w-[calc(100%-48px)] max-w-[1200px] -translate-x-1/2">
-        <div className="flex h-16 items-center justify-between px-5 md:px-6" style={containerStyle}>
-
-          {/* Logo — invert in dark mode (transparent PNG: dark elements → white) */}
-          <Link href="/" className="shrink-0 flex items-center">
+      <header className="fixed inset-x-0 top-0 z-50">
+        <div
+          className={`flex h-20 items-center justify-between px-6 transition-colors duration-300 md:px-12 ${
+            scrolled && !open
+              ? darkBar
+                ? "border-b border-white/10 bg-black/30 backdrop-blur-xl"
+                : "border-b border-border bg-background/70 backdrop-blur-xl"
+              : "border-b border-transparent"
+          }`}
+        >
+          {/* Logo */}
+          <Link href="/" className="relative z-50 flex shrink-0 items-center">
             <Image
               src="/assets/logo_eclemelin.png"
               alt="Entreprises Christian Lemelin"
               width={384}
               height={64}
               priority
-              className={`h-7 w-auto transition-[filter] duration-[350ms] ${light ? "" : "invert"}`}
+              className={`h-7 w-auto transition-[filter] duration-300 ${logoWhite ? "invert" : ""}`}
             />
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-0.5">
-            {navLinks.map((link) => {
-              const active = pathname === link.href
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-3.5 py-1.5 text-[13px] font-sans tracking-[0.02em] ${t} ${active ? navActive : navInactive}`}
-                >
-                  {link.label}
-                  {active && <span className="block h-px w-full mt-0.5 bg-accent" />}
-                </Link>
-              )
-            })}
-          </nav>
-
-          {/* CTA + mobile toggle */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/*
-              Button radius = 8px = half of header's 16px → mathematically coherent
-              Dark text on amber (#F5A020) for WCAG AA contrast (~8:1 ratio)
-              Amber glow on hover (MOTION_INTENSITY: 7)
-            */}
-            <Link
-              href="/contact"
-              className="hidden md:flex items-center px-4 h-9 text-[13px] font-sans font-medium tracking-[0.03em] text-zinc-950 bg-accent rounded-lg hover:bg-accent-hover hover:shadow-[0_0_20px_rgb(245_160_32/0.40)] active:scale-[0.97] active:shadow-none transition-all duration-200"
-            >
-              Nous Joindre
-            </Link>
-
-            <button
-              onClick={() => setMobileOpen((v) => !v)}
-              className={`lg:hidden flex items-center justify-center w-9 h-9 ${t} ${toggleColor}`}
-              aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
-            >
-              {mobileOpen
-                ? <X size={18} weight="regular" />
-                : <List size={18} weight="regular" />}
-            </button>
-          </div>
+          {/* Menu toggle (opens). The overlay carries its own ✕ to close. */}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-expanded={open}
+            aria-label="Ouvrir le menu"
+            className="relative z-50 inline-flex h-9 items-center rounded-full bg-accent px-5 text-[13px] font-medium tracking-[0.02em] text-white transition-colors duration-200 hover:bg-accent-hover"
+          >
+            Menu
+          </button>
         </div>
       </header>
 
-      {/* Mobile dropdown — always dark */}
+      {/* Full-screen OPUS-blue menu — framed layout, frame/divider lines draw in.
+          Big nav links on the left, info on the right, partners at the bottom. */}
       <AnimatePresence>
-        {mobileOpen && (
+        {open && (
           <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            className="fixed top-[104px] left-1/2 z-40 w-[calc(100%-48px)] max-w-[1200px] -translate-x-1/2"
-            style={{
-              background: "rgb(9 9 11 / 0.96)",
-              border: "1px solid rgb(255 255 255 / 0.10)",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
-            }}
+            variants={overlayV}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="fixed inset-0 z-[95] bg-accent text-white"
           >
-            <nav className="flex flex-col p-3 gap-0.5">
-              {navLinks.map((link) => {
-                const active = pathname === link.href
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`px-4 py-3 text-sm font-sans tracking-[0.02em] transition-colors rounded-lg ${
-                      active ? "text-white bg-white/5" : "text-white/60 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                )
-              })}
-              <div className="h-px bg-white/8 my-2" />
-              <Link
-                href="/contact"
-                className="px-4 py-3 text-sm font-sans font-medium text-zinc-950 bg-accent hover:bg-accent-hover rounded-lg text-center transition-colors"
-              >
-                Nous Joindre
-              </Link>
-            </nav>
+            <div className="h-full w-full p-4 sm:p-6 md:p-8">
+              {/* Framed canvas — outer lines draw around everything */}
+              <div className="relative h-full w-full">
+                <motion.div variants={hLineV} custom={0} className="absolute left-0 top-0 h-px w-full origin-left bg-white/25" />
+                <motion.div variants={hLineV} custom={1} className="absolute bottom-0 left-0 h-px w-full origin-right bg-white/25" />
+                <motion.div variants={vLineV} custom={0} className="absolute left-0 top-0 h-full w-px origin-top bg-white/25" />
+                <motion.div variants={vLineV} custom={1} className="absolute right-0 top-0 h-full w-px origin-bottom bg-white/25" />
+
+                {/* Inner content */}
+                <div className="flex h-full flex-col px-5 py-5 md:px-10 md:py-8">
+                  {/* Header row: logo + close */}
+                  <div className="flex items-center justify-between">
+                    <Image
+                      src="/assets/logo_eclemelin.png"
+                      alt="Entreprises Christian Lemelin"
+                      width={384}
+                      height={64}
+                      className="h-6 w-auto invert md:h-7"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setOpen(false)}
+                      aria-label="Fermer le menu"
+                      className="text-white/80 transition-colors hover:text-white"
+                    >
+                      <X size={30} weight="thin" />
+                    </button>
+                  </div>
+
+                  {/* Divider under header */}
+                  <motion.div variants={hLineV} custom={2} className="my-6 h-px w-full origin-left bg-white/25 md:my-8" />
+
+                  {/* Main: big links (left) | divider | info (right) */}
+                  <div className="flex flex-1 flex-col md:flex-row">
+                    {/* Big nav links — left */}
+                    <nav className="flex flex-1 flex-col justify-center md:pr-12">
+                      {navLinks.map((link, i) => (
+                        <div key={link.href} className="overflow-hidden">
+                          <motion.div variants={linkRiseV} custom={i}>
+                            <Link
+                              href={link.href}
+                              className="block py-0.5 font-display text-[clamp(2rem,5.5vw,4.25rem)] font-medium leading-[1.08] tracking-[-0.02em] text-white/90 transition-colors hover:text-white"
+                            >
+                              {link.label}
+                            </Link>
+                          </motion.div>
+                        </div>
+                      ))}
+                    </nav>
+
+                    {/* Vertical divider */}
+                    <motion.div variants={vLineV} custom={3} className="hidden w-px origin-top self-stretch bg-white/25 md:block" />
+
+                    {/* Info — right */}
+                    <div className="flex w-full flex-col justify-center pt-10 md:w-[32%] md:pl-12 md:pt-0">
+                      <motion.div variants={contentV} custom={0}>
+                        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/55">
+                          Entreprises Christian Lemelin
+                        </p>
+                        <p className="mt-1 text-sm text-white/75">
+                          Fabrication métallique sur mesure — Québec
+                        </p>
+                      </motion.div>
+
+                      <motion.div variants={contentV} custom={1} className="mt-8 flex flex-col gap-2 text-lg">
+                        <a href="tel:+14186821750" className="w-fit text-white/85 transition-colors hover:text-white">
+                          418 682-1750
+                        </a>
+                        <a href="mailto:info@eclemelin.com" className="w-fit text-white/85 transition-colors hover:text-white">
+                          info@eclemelin.com
+                        </a>
+                        <span className="text-white/60">Québec, QC, Canada</span>
+                      </motion.div>
+
+                      <motion.div variants={contentV} custom={2}>
+                        <Link
+                          href="/contact"
+                          className="mt-8 inline-flex h-12 w-fit items-center rounded-full bg-white px-7 text-[14px] font-medium text-foreground transition-colors hover:bg-white/90"
+                        >
+                          Nous joindre
+                        </Link>
+                      </motion.div>
+
+                      <motion.div variants={contentV} custom={3} className="mt-8 flex items-center gap-4 text-[12px] uppercase tracking-[0.15em]">
+                        <span className="text-white/45">English</span>
+                        <span className="text-white underline decoration-white decoration-2 underline-offset-4">Français</span>
+                      </motion.div>
+                    </div>
+                  </div>
+
+                  {/* Divider above partners */}
+                  <motion.div variants={hLineV} custom={4} className="mb-6 mt-6 h-px w-full origin-left bg-white/25 md:mb-8 md:mt-8" />
+
+                  {/* Partners (placeholder — à remplacer par les vrais logos) */}
+                  <motion.div variants={contentV} custom={4} className="flex flex-wrap items-center gap-x-8 gap-y-4 md:justify-between">
+                    {partners.map((p) => (
+                      <span key={p} className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">
+                        {p}
+                      </span>
+                    ))}
+                  </motion.div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

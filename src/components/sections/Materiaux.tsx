@@ -5,6 +5,8 @@ import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { useReducedMotion } from "motion/react"
 import Image from "next/image"
+import { Eyebrow } from "@/components/ui/Eyebrow"
+import { ParallaxImage } from "@/components/ui/ParallaxImage"
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -72,121 +74,77 @@ export function Materiaux() {
   }, [reduce])
 
   return (
-    <section data-header-theme="light" className="bg-[#f3f3f1]">
-
-      {/* Mobile: vertical stack */}
+    <section data-header-theme="light" className="bg-background">
+      {/* Mobile: vertical stack of contained cards */}
       <div className="md:hidden">
-        <div className="px-6 pt-20 pb-10 border-t border-black/8">
-          <p className="font-display text-[0.75rem] text-zinc-400 uppercase tracking-[0.18em] mb-6">
-            Matériaux
-          </p>
-          <h2 className="font-display text-[2rem] text-zinc-900 uppercase tracking-[0.08em] leading-[1.05]">
-            Maitrise<br />complète
+        <div className="px-6 pb-10 pt-24">
+          <Eyebrow>Matériaux</Eyebrow>
+          <h2 className="mt-6 font-display text-[clamp(2rem,9vw,2.75rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
+            Une maîtrise complète de la gamme.
           </h2>
         </div>
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-6 px-6 pb-16">
           {materials.map((mat) => (
-            <div key={mat.code} className="relative h-[56vw] overflow-hidden">
-              {/* TODO: replace with actual material photography */}
-              <Image
-                src={mat.img}
-                alt={mat.name}
-                fill
-                className="object-cover"
-                sizes="100vw"
-              />
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "linear-gradient(to top, rgb(243 243 241 / 0.95) 0%, rgb(243 243 241 / 0.45) 55%, transparent 100%)",
-                }}
-              />
-              <div className="absolute bottom-0 left-0 p-5">
-                <p className="font-mono text-[10px] text-accent/70 tracking-[0.3em] mb-1">
-                  {mat.code}
-                </p>
-                <p className="font-display text-[1.6rem] text-zinc-900 uppercase tracking-[0.08em] leading-none">
-                  {mat.name}
-                </p>
+            <article key={mat.code}>
+              <div className="relative aspect-[5/4] overflow-hidden rounded-2xl border border-border">
+                {/* TODO: replace with actual material photography / GLB */}
+                <ParallaxImage src={mat.img} alt={mat.name} sizes="100vw" />
               </div>
-            </div>
+              <div className="mt-4 flex items-baseline gap-3">
+                <span className="font-mono text-xs tracking-[0.2em] text-foreground-muted">{mat.code}</span>
+                <h3 className="font-display text-2xl font-semibold text-foreground">{mat.name}</h3>
+              </div>
+              <p className="mt-1 text-sm text-foreground-muted">{mat.fullName}</p>
+            </article>
           ))}
         </div>
       </div>
 
-      {/* Desktop: horizontal scroll hijack */}
-      <div ref={wrapRef} className="hidden md:block relative overflow-hidden">
-        <div ref={trackRef} className="flex h-[100dvh] items-stretch">
-
+      {/* Desktop: horizontal scroll carousel */}
+      <div ref={wrapRef} className="relative hidden overflow-hidden md:block">
+        <div ref={trackRef} className="flex h-[100dvh] items-center">
           {/* Intro panel */}
-          <div className="shrink-0 w-[38vw] flex flex-col justify-center px-14 xl:px-20 border-r border-black/8">
-            <p className="font-display text-[0.7rem] text-zinc-400 uppercase tracking-[0.18em] mb-8">
-              Matériaux
-            </p>
-            <h2 className="font-display text-[clamp(2.25rem,3.8vw,3.25rem)] text-zinc-900 uppercase tracking-[0.07em] leading-[1.05] mb-6">
-              Maitrise<br />complète<br />de la gamme
+          <div className="flex h-full w-[40vw] shrink-0 flex-col justify-center px-14 xl:px-20">
+            <Eyebrow>Matériaux</Eyebrow>
+            <h2 className="mt-6 font-display text-[clamp(2.25rem,3.8vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
+              Une maîtrise complète de la gamme.
             </h2>
-            <p className="text-sm text-zinc-500 font-sans leading-relaxed max-w-[30ch] mb-12">
-              Inox, acier, aluminium, laiton et cuivre travaillés avec la même exigence depuis des décennies.
+            <p className="mt-6 max-w-[36ch] leading-relaxed text-foreground-muted">
+              Inox, acier, aluminium, laiton et cuivre, travaillés avec la même
+              exigence depuis des décennies.
             </p>
-            {/* Material index */}
-            <div className="flex flex-col gap-2.5">
+            <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6">
               {materials.map((mat, i) => (
-                <div
-                  key={mat.code}
-                  className="flex items-center gap-3 font-mono text-[10px] tracking-[0.15em]"
-                >
-                  <span className="text-accent/60">{String(i + 1).padStart(2, "0")}</span>
-                  <span className="text-zinc-400 uppercase">{mat.name}</span>
-                  <span className="text-zinc-300">{mat.code}</span>
+                <div key={mat.code} className="flex items-center gap-4 font-mono text-xs tracking-[0.12em]">
+                  <span className="text-foreground-muted">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="flex-1 text-foreground">{mat.name}</span>
+                  <span className="text-foreground-muted">{mat.code}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Material panels */}
+          {/* Material cards */}
           {materials.map((mat) => (
-            <div
-              key={mat.code}
-              className="shrink-0 w-[58vw] relative overflow-hidden border-r border-black/8"
-            >
-              {/* TODO: replace src with actual material photography or 3D model GIF */}
-              <Image
-                src={mat.img}
-                alt={mat.name}
-                fill
-                className="object-cover"
-                sizes="58vw"
-              />
-              {/* Light wash from left — photo shows on the right */}
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "linear-gradient(to right, rgb(243 243 241 / 0.95) 0%, rgb(243 243 241 / 0.65) 36%, transparent 68%)",
-                }}
-              />
-              <div className="absolute inset-0 flex items-end p-12 xl:p-16">
-                <div>
-                  <p className="font-mono text-[10px] text-accent/70 tracking-[0.32em] mb-4 uppercase">
-                    {mat.code}
-                  </p>
-                  <h3 className="font-display text-[clamp(3rem,5.5vw,4.5rem)] text-zinc-900 uppercase tracking-[0.05em] leading-none mb-2">
+            <div key={mat.code} className="flex h-full w-[34vw] shrink-0 flex-col justify-center px-6">
+              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-border">
+                {/* TODO: replace with actual material photography / interactive GLB */}
+                <Image src={mat.img} alt={mat.name} fill className="object-cover" sizes="34vw" />
+              </div>
+              <div className="mt-5">
+                <div className="flex items-baseline gap-3">
+                  <span className="font-mono text-xs tracking-[0.2em] text-foreground-muted">{mat.code}</span>
+                  <h3 className="font-display text-[clamp(1.75rem,2.4vw,2.5rem)] font-semibold leading-none text-foreground">
                     {mat.name}
                   </h3>
-                  <p className="text-sm text-zinc-500 font-sans mb-8">
-                    {mat.fullName}
-                  </p>
-                  <div className="grid grid-cols-3 gap-5 max-w-[460px]">
-                    {mat.properties.map((prop) => (
-                      <div key={prop} className="border-t border-black/12 pt-3">
-                        <p className="text-[11px] text-zinc-600 font-sans leading-snug">
-                          {prop}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                </div>
+                <p className="mt-2 text-sm text-foreground-muted">{mat.fullName}</p>
+                <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1">
+                  {mat.properties.map((prop) => (
+                    <span key={prop} className="text-[13px] text-foreground-muted">
+                      {prop}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>

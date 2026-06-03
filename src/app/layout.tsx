@@ -1,26 +1,24 @@
 import type { Metadata } from "next"
-import { Bebas_Neue, Barlow_Condensed, Geist_Mono } from "next/font/google"
+import { Onest, Fragment_Mono } from "next/font/google"
 import "./globals.css"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
+import { LenisProvider } from "@/components/providers/LenisProvider"
+import { Preloader } from "@/components/ui/Preloader"
+import { CustomScrollbar } from "@/components/ui/CustomScrollbar"
 
-const bebasNeue = Bebas_Neue({
+// OPUS design system — see DESIGN.md
+// Onest: variable font for headings + body. Fragment Mono: eyebrows, labels, section numbers.
+const onest = Onest({
+  subsets: ["latin"],
+  variable: "--font-onest",
+  display: "swap",
+})
+
+const fragmentMono = Fragment_Mono({
   weight: "400",
   subsets: ["latin"],
-  variable: "--font-bebas-neue",
-  display: "swap",
-})
-
-const barlowCondensed = Barlow_Condensed({
-  subsets: ["latin"],
-  variable: "--font-barlow-condensed",
-  weight: ["600"],
-  display: "swap",
-})
-
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
+  variable: "--font-fragment-mono",
   display: "swap",
 })
 
@@ -55,12 +53,16 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
-      className={`${bebasNeue.variable} ${barlowCondensed.variable} ${geistMono.variable}`}
+      className={`${onest.variable} ${fragmentMono.variable}`}
     >
       <body className="min-h-screen bg-background text-foreground antialiased">
-        <Header />
-        <main>{children}</main>
-        <Footer />
+        <LenisProvider>
+          <Preloader />
+          <CustomScrollbar />
+          <Header />
+          <main>{children}</main>
+          <Footer />
+        </LenisProvider>
       </body>
     </html>
   )

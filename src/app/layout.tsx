@@ -3,6 +3,7 @@ import { Bebas_Neue, Barlow_Condensed, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
+import { RootLayoutWrapper } from "@/components/layout/RootLayoutWrapper"
 
 const bebasNeue = Bebas_Neue({
   weight: "400",
@@ -58,9 +59,11 @@ export default function RootLayout({
       className={`${bebasNeue.variable} ${barlowCondensed.variable} ${geistMono.variable}`}
     >
       <body className="min-h-screen bg-background text-foreground antialiased">
-        <Header />
-        <main>{children}</main>
-        <Footer />
+        <RootLayoutWrapper>
+          <Header />
+          <main>{children}</main>
+          <Footer />
+        </RootLayoutWrapper>
       </body>
     </html>
   )

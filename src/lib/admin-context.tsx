@@ -39,7 +39,7 @@ interface AdminContextType {
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined)
 
-const REALISATIONS_STORAGE_KEY = "ecl_realisations_v1"
+const REALISATIONS_STORAGE_KEY = "ecl_realisations_v2"
 
 // Dummy data for initial jobs
 const DUMMY_JOBS: Job[] = [
@@ -78,6 +78,7 @@ const seedImages = (seed: string, n: number) =>
   )
 
 const DUMMY_REALISATIONS: Realisation[] = [
+  // --- 6 pinned (shown on the home page) ---
   {
     id: "r1",
     name: "Cuisine centrale CHU de Québec",
@@ -104,6 +105,61 @@ const DUMMY_REALISATIONS: Realisation[] = [
     pinned: true,
     createdAt: new Date("2025-08-20"),
     updatedAt: new Date("2025-08-20"),
+  },
+  {
+    id: "r4",
+    name: "Balustrades acier — Villa privée",
+    category: "Résidentiel",
+    images: seedImages("ecl-real-steel-railing", 3),
+    pinned: true,
+    createdAt: new Date("2025-07-30"),
+    updatedAt: new Date("2025-07-30"),
+  },
+  {
+    id: "r5",
+    name: "Structure industrielle — Aluminerie",
+    category: "Industrie",
+    images: seedImages("ecl-real-industrial-structure", 3),
+    pinned: true,
+    createdAt: new Date("2025-07-05"),
+    updatedAt: new Date("2025-07-05"),
+  },
+  {
+    id: "r6",
+    name: "Plafond cuivre — Boutique design",
+    category: "Commercial",
+    images: seedImages("ecl-real-copper-ceiling", 4),
+    pinned: true,
+    createdAt: new Date("2025-06-18"),
+    updatedAt: new Date("2025-06-18"),
+  },
+  // --- additional réalisations (not pinned — visible on /realisations) ---
+  {
+    id: "r7",
+    name: "Escalier hélicoïdal inox — Siège social",
+    category: "Architecture",
+    images: seedImages("ecl-real-spiral-staircase", 3),
+    pinned: false,
+    createdAt: new Date("2025-05-22"),
+    updatedAt: new Date("2025-05-22"),
+  },
+  {
+    id: "r8",
+    name: "Mobilier sur mesure — Restaurant Le Clan",
+    category: "Restauration",
+    images: seedImages("ecl-real-custom-furniture", 3),
+    pinned: false,
+    createdAt: new Date("2025-04-15"),
+    updatedAt: new Date("2025-04-15"),
+  },
+  {
+    id: "r9",
+    name: "Garde-corps verre et acier — Condos Bassin",
+    category: "Résidentiel",
+    images: seedImages("ecl-real-glass-guardrail", 3),
+    pinned: false,
+    createdAt: new Date("2025-03-09"),
+    updatedAt: new Date("2025-03-09"),
   },
 ]
 

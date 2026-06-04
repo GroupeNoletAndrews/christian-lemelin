@@ -36,7 +36,7 @@ export function RealisationCard({
     stop()
     timer.current = setInterval(() => {
       setActive((i) => (i + 1) % images.length)
-    }, 900)
+    }, 3000)
   }
 
   const reset = () => {

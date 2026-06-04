@@ -53,6 +53,14 @@ export default function AdminLoginPage() {
       >
         {/* Brand */}
         <div className="flex flex-col items-center text-center mb-10">
+          <Image
+            src="/assets/logo_eclemelin.png"
+            alt="Entreprises Christian Lemelin"
+            width={384}
+            height={64}
+            priority
+            className="h-9 w-auto mb-8"
+          />
           <Eyebrow>Espace admin</Eyebrow>
           <h1 className="mt-5 font-display text-4xl font-semibold tracking-tight text-foreground">
             Connexion

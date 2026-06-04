@@ -6,20 +6,24 @@ import { motion } from "motion/react"
 import { Realisation } from "@/types/admin"
 import { Tag } from "@/components/ui/Tag"
 
+// Alternating aspect ratios give the masonry layout its rhythm.
+const RATIOS = ["aspect-[4/3]", "aspect-[4/5]", "aspect-[4/5]", "aspect-[4/3]"]
+
 /**
- * A réalisation tile with a hover image carousel. All cards share the same
- * aspect ratio so grids stay uniform. Used on the home section and the full
- * /realisations page.
+ * A réalisation tile with a hover image carousel. Sized for a masonry
+ * (CSS columns) layout — the aspect ratio alternates by index. Used on the
+ * home section and the full /realisations page.
  */
 export function RealisationCard({
   realisation,
   index = 0,
-  ratio = "aspect-[4/3]",
+  ratio,
 }: {
   realisation: Realisation
   index?: number
   ratio?: string
 }) {
+  const cardRatio = ratio ?? RATIOS[index % RATIOS.length]
   const images = realisation.images.length ? realisation.images : [""]
   const [active, setActive] = useState(0)
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -49,7 +53,7 @@ export function RealisationCard({
 
   return (
     <motion.article
-      className="group"
+      className="group mb-6 break-inside-avoid"
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.1 }}
@@ -58,7 +62,7 @@ export function RealisationCard({
       onMouseLeave={reset}
     >
       <div
-        className={`relative ${ratio} overflow-hidden rounded-2xl border border-border bg-surface-elevated`}
+        className={`relative ${cardRatio} overflow-hidden rounded-2xl border border-border bg-surface-elevated`}
       >
         {images.map((src, i) =>
           src ? (

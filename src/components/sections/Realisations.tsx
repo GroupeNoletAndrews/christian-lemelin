@@ -23,9 +23,9 @@ export function Realisations() {
           <ArrowLink href="/realisations">Voir tout</ArrowLink>
         </div>
 
-        {/* Uniform grid */}
+        {/* Masonry */}
         {pinned.length > 0 ? (
-          <div className="mt-14 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-14 gap-6 [column-fill:_balance] sm:columns-2 lg:columns-3">
             {pinned.map((r, i) => (
               <RealisationCard key={r.id} realisation={r} index={i} />
             ))}

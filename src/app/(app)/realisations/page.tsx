@@ -38,7 +38,7 @@ export default function RealisationsPage() {
                   {String(realisations.length).padStart(2, "0")}
                 </p>
               </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="gap-6 [column-fill:_balance] sm:columns-2 lg:columns-3">
                 {realisations.map((r, i) => (
                   <RealisationCard key={r.id} realisation={r} index={i} />
                 ))}

@@ -24,7 +24,6 @@ export default function RealisationFormPage() {
   } = useAdmin();
 
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [pinned, setPinned] = useState(false);
   const [wasPinned, setWasPinned] = useState(false);
@@ -36,7 +35,6 @@ export default function RealisationFormPage() {
       const r = getRealisation(id);
       if (r) {
         setName(r.name);
-        setCategory(r.category || "");
         setImages(r.images);
         setPinned(r.pinned);
         setWasPinned(r.pinned);
@@ -75,7 +73,6 @@ export default function RealisationFormPage() {
 
     const data = {
       name: name.trim(),
-      category: category.trim() || undefined,
       images,
       pinned: pinned && canPin,
     };
@@ -127,37 +124,19 @@ export default function RealisationFormPage() {
           className="bg-surface rounded-2xl p-8 border border-border space-y-6"
         >
           {/* Name + Category */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="name" className={labelClass}>
-                Nom <span className="text-accent">*</span>
-              </label>
-              <input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Comptoir bar — Hôtel Le Château"
-                className={fieldClass}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="category" className={labelClass}>
-                Catégorie{" "}
-                <span className="text-foreground-muted normal-case tracking-normal">
-                  (optionnel)
-                </span>
-              </label>
-              <input
-                id="category"
-                type="text"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="Ex: Hôtellerie"
-                className={fieldClass}
-              />
-            </div>
+          <div>
+            <label htmlFor="name" className={labelClass}>
+              Nom <span className="text-accent">*</span>
+            </label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Comptoir bar — Hôtel Le Château"
+              className={fieldClass}
+              required
+            />
           </div>
 
           {/* Images */}

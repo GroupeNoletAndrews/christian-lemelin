@@ -82,7 +82,6 @@ const DUMMY_REALISATIONS: Realisation[] = [
   {
     id: "r1",
     name: "Cuisine centrale CHU de Québec",
-    category: "Restauration",
     images: seedImages("ecl-real-hospital-kitchen", 3),
     pinned: true,
     createdAt: new Date("2025-10-01"),
@@ -91,7 +90,6 @@ const DUMMY_REALISATIONS: Realisation[] = [
   {
     id: "r2",
     name: "Façade laiton — Place Ste-Foy",
-    category: "Architecture",
     images: seedImages("ecl-real-brass-facade", 3),
     pinned: true,
     createdAt: new Date("2025-09-12"),
@@ -100,7 +98,6 @@ const DUMMY_REALISATIONS: Realisation[] = [
   {
     id: "r3",
     name: "Comptoir bar — Hôtel Le Château",
-    category: "Hôtellerie",
     images: seedImages("ecl-real-hotel-bar", 4),
     pinned: true,
     createdAt: new Date("2025-08-20"),
@@ -109,7 +106,6 @@ const DUMMY_REALISATIONS: Realisation[] = [
   {
     id: "r4",
     name: "Balustrades acier — Villa privée",
-    category: "Résidentiel",
     images: seedImages("ecl-real-steel-railing", 3),
     pinned: true,
     createdAt: new Date("2025-07-30"),
@@ -118,7 +114,6 @@ const DUMMY_REALISATIONS: Realisation[] = [
   {
     id: "r5",
     name: "Structure industrielle — Aluminerie",
-    category: "Industrie",
     images: seedImages("ecl-real-industrial-structure", 3),
     pinned: true,
     createdAt: new Date("2025-07-05"),
@@ -127,7 +122,6 @@ const DUMMY_REALISATIONS: Realisation[] = [
   {
     id: "r6",
     name: "Plafond cuivre — Boutique design",
-    category: "Commercial",
     images: seedImages("ecl-real-copper-ceiling", 4),
     pinned: true,
     createdAt: new Date("2025-06-18"),
@@ -137,7 +131,6 @@ const DUMMY_REALISATIONS: Realisation[] = [
   {
     id: "r7",
     name: "Escalier hélicoïdal inox — Siège social",
-    category: "Architecture",
     images: seedImages("ecl-real-spiral-staircase", 3),
     pinned: false,
     createdAt: new Date("2025-05-22"),
@@ -146,7 +139,6 @@ const DUMMY_REALISATIONS: Realisation[] = [
   {
     id: "r8",
     name: "Mobilier sur mesure — Restaurant Le Clan",
-    category: "Restauration",
     images: seedImages("ecl-real-custom-furniture", 3),
     pinned: false,
     createdAt: new Date("2025-04-15"),
@@ -155,7 +147,6 @@ const DUMMY_REALISATIONS: Realisation[] = [
   {
     id: "r9",
     name: "Garde-corps verre et acier — Condos Bassin",
-    category: "Résidentiel",
     images: seedImages("ecl-real-glass-guardrail", 3),
     pinned: false,
     createdAt: new Date("2025-03-09"),

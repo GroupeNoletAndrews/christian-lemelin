@@ -368,11 +368,6 @@ function RealisationsPanel({
                   <h3 className="font-display text-lg font-medium text-foreground leading-tight">
                     {r.name}
                   </h3>
-                  {r.category && (
-                    <div className="mt-2">
-                      <Tag>{r.category}</Tag>
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-2 pt-1">

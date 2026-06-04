@@ -13,7 +13,6 @@ export interface Job {
 export interface Realisation {
   id: string
   name: string
-  category?: string
   /** Ordered image data URLs. images[0] is the cover. */
   images: string[]
   /** Pinned réalisations appear on the home page (max 6). */

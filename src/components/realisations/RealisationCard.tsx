@@ -9,7 +9,6 @@ import {
   useReducedMotion,
 } from "motion/react"
 import { Realisation } from "@/types/admin"
-import { Tag } from "@/components/ui/Tag"
 
 // Alternating aspect ratios give the masonry layout its rhythm.
 const RATIOS = ["aspect-[4/3]", "aspect-[4/5]", "aspect-[4/5]", "aspect-[4/3]"]
@@ -129,11 +128,6 @@ export function RealisationCard({
         <h3 className="font-display text-xl font-medium leading-tight text-foreground">
           {realisation.name}
         </h3>
-        {realisation.category && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Tag>{realisation.category}</Tag>
-          </div>
-        )}
       </div>
     </motion.article>
   )

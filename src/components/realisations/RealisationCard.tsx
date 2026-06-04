@@ -1,0 +1,106 @@
+"use client"
+
+import { useEffect, useRef, useState } from "react"
+import Image from "next/image"
+import { motion } from "motion/react"
+import { Realisation } from "@/types/admin"
+import { Tag } from "@/components/ui/Tag"
+
+/**
+ * A réalisation tile with a hover image carousel. All cards share the same
+ * aspect ratio so grids stay uniform. Used on the home section and the full
+ * /realisations page.
+ */
+export function RealisationCard({
+  realisation,
+  index = 0,
+  ratio = "aspect-[4/3]",
+}: {
+  realisation: Realisation
+  index?: number
+  ratio?: string
+}) {
+  const images = realisation.images.length ? realisation.images : [""]
+  const [active, setActive] = useState(0)
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const stop = () => {
+    if (timer.current) {
+      clearInterval(timer.current)
+      timer.current = null
+    }
+  }
+
+  const start = () => {
+    if (images.length <= 1) return
+    stop()
+    timer.current = setInterval(() => {
+      setActive((i) => (i + 1) % images.length)
+    }, 900)
+  }
+
+  const reset = () => {
+    stop()
+    setActive(0)
+  }
+
+  // Clean up on unmount
+  useEffect(() => stop, [])
+
+  return (
+    <motion.article
+      className="group"
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.1 }}
+      transition={{ duration: 0.5, delay: (index % 3) * 0.06 }}
+      onMouseEnter={start}
+      onMouseLeave={reset}
+    >
+      <div
+        className={`relative ${ratio} overflow-hidden rounded-2xl border border-border bg-surface-elevated`}
+      >
+        {images.map((src, i) =>
+          src ? (
+            <Image
+              key={i}
+              src={src}
+              alt={realisation.name}
+              fill
+              unoptimized
+              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+              className={`object-cover transition-opacity duration-500 ${
+                i === active ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          ) : null
+        )}
+
+        {/* Carousel indicator */}
+        {images.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {images.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i === active ? "w-4 bg-white" : "w-1.5 bg-white/50"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4">
+        <h3 className="font-display text-xl font-medium leading-tight text-foreground">
+          {realisation.name}
+        </h3>
+        {realisation.category && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Tag>{realisation.category}</Tag>
+          </div>
+        )}
+      </div>
+    </motion.article>
+  )
+}

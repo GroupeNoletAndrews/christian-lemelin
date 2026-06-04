@@ -1,13 +1,17 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { motion } from "motion/react"
 import { useAdmin } from "@/lib/admin-context"
+import { Job } from "@/types/admin"
 import { Eyebrow } from "@/components/ui/Eyebrow"
 import { Tag } from "@/components/ui/Tag"
+import { ApplyModal } from "@/components/emplois/ApplyModal"
 
 export default function EmploisPage() {
   const { jobs } = useAdmin()
+  const [applyJob, setApplyJob] = useState<Job | null>(null)
 
   const getJobTypeLabel = (type: string) => {
     switch (type) {
@@ -106,12 +110,12 @@ export default function EmploisPage() {
                       </div>
                     </div>
 
-                    <Link
-                      href="/contact"
+                    <button
+                      onClick={() => setApplyJob(job)}
                       className="md:flex-shrink-0 inline-flex items-center justify-center px-7 py-3.5 bg-accent hover:bg-accent-hover text-white rounded-full font-sans text-sm font-medium transition-colors whitespace-nowrap active:scale-[0.99]"
                     >
                       Postuler
-                    </Link>
+                    </button>
                   </div>
                 </motion.div>
               ))}
@@ -147,6 +151,8 @@ export default function EmploisPage() {
           </motion.div>
         </div>
       </section>
+
+      <ApplyModal job={applyJob} onClose={() => setApplyJob(null)} />
     </div>
   )
 }

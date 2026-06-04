@@ -1,16 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Trash, File, Plus, Password } from "@phosphor-icons/react";
+import { Trash, PencilSimple, Plus, SignOut } from "@phosphor-icons/react";
 import { useAdmin } from "@/lib/admin-context";
+import { Tag } from "@/components/ui/Tag";
+
+const typeLabel = (type: string) =>
+  type === "full-time"
+    ? "Temps plein"
+    : type === "part-time"
+      ? "Temps partiel"
+      : "Contrat";
 
 export default function AdminDashboard() {
   const router = useRouter();
   const { isAuthenticated, username, jobs, logout, deleteJob } = useAdmin();
-  const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -33,127 +40,110 @@ export default function AdminDashboard() {
     }
   };
 
-  const toggleJobSelection = (id: string) => {
-    setSelectedJobs((prev) =>
-      prev.includes(id) ? prev.filter((jobId) => jobId !== id) : [...prev, id],
-    );
-  };
+  const stats = [
+    { label: "Total d'emplois", value: jobs.length },
+    { label: "Temps plein", value: jobs.filter((j) => j.type === "full-time").length },
+    { label: "Contrats", value: jobs.filter((j) => j.type === "contract").length },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#f3f3f1]">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white border-b border-[#e8e8e6] sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+      <header className="bg-surface border-b border-border sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-[#111113] font-bebas-neue">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted mb-1">
+              Espace admin
+            </p>
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">
               Tableau de bord
             </h1>
-            <p className="text-[#111113]/60 font-barlow-condensed text-sm">
-              Bienvenue,{" "}
-              <span className="font-bold text-[#111113]">{username}</span>
+            <p className="text-foreground-muted font-sans text-sm mt-1">
+              Bienvenue, <span className="text-foreground">{username}</span>
             </p>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-[#111113] text-white rounded-lg hover:bg-[#111113]/90 transition-colors font-barlow-condensed"
+            className="flex items-center gap-2 px-5 py-2.5 border border-border text-foreground rounded-full hover:bg-surface-elevated hover:border-foreground/30 transition-colors font-sans text-sm"
           >
-            <Password size={18} />
+            <SignOut size={18} />
             Déconnexion
           </button>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main */}
       <main className="max-w-7xl mx-auto px-6 py-12">
-        {/* Stats Bar */}
+        {/* Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
+          className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-12"
         >
-          <div className="bg-white rounded-xl p-6 border border-[#e8e8e6]">
-            <p className="text-[#111113]/60 font-barlow-condensed text-sm mb-2">
-              Total d'emplois
-            </p>
-            <p className="text-4xl font-bold text-[#111113] font-bebas-neue">
-              {jobs.length}
-            </p>
-          </div>
-          <div className="bg-white rounded-xl p-6 border border-[#e8e8e6]">
-            <p className="text-[#111113]/60 font-barlow-condensed text-sm mb-2">
-              Temps plein
-            </p>
-            <p className="text-4xl font-bold text-[#111113] font-bebas-neue">
-              {jobs.filter((j) => j.type === "full-time").length}
-            </p>
-          </div>
-          <div className="bg-white rounded-xl p-6 border border-[#e8e8e6]">
-            <p className="text-[#111113]/60 font-barlow-condensed text-sm mb-2">
-              Contrats
-            </p>
-            <p className="text-4xl font-bold text-[#111113] font-bebas-neue">
-              {jobs.filter((j) => j.type === "contract").length}
-            </p>
-          </div>
+          {stats.map((s) => (
+            <div key={s.label} className="bg-surface rounded-2xl p-6 border border-border">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted mb-3">
+                {s.label}
+              </p>
+              <p className="font-display text-4xl font-semibold text-foreground tracking-tight">
+                {s.value}
+              </p>
+            </div>
+          ))}
         </motion.div>
 
-        {/* Action Bar */}
+        {/* Action bar */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex items-center justify-between mb-8"
+          className="flex items-center justify-between mb-6"
         >
-          <h2 className="text-2xl font-bold text-[#111113] font-bebas-neue">
+          <h2 className="font-display text-xl font-semibold text-foreground tracking-tight">
             Emplois
           </h2>
           <Link
-            href="/admin/dashboard/jobs/create"
-            className="flex items-center gap-2 px-6 py-3 bg-[#f5a020] text-white rounded-lg hover:bg-[#d4881a] transition-colors font-barlow-condensed font-bold"
+            href="/admin/dashboard/jobs/create/edit"
+            className="flex items-center gap-2 px-5 py-3 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors font-sans text-sm font-medium active:scale-[0.99]"
           >
-            <Plus size={20} />
+            <Plus size={18} weight="bold" />
             Ajouter un emploi
           </Link>
         </motion.div>
 
-        {/* Jobs Table */}
+        {/* Jobs table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-white rounded-xl border border-[#e8e8e6] overflow-hidden"
+          className="bg-surface rounded-2xl border border-border overflow-hidden"
         >
           {jobs.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-[#111113]/60 font-barlow-condensed mb-4">
-                Aucun emploi trouvé
-              </p>
+            <div className="text-center py-16">
+              <p className="text-foreground-muted font-sans mb-5">Aucun emploi trouvé</p>
               <Link
-                href="/admin/dashboard/jobs/create"
-                className="inline-block px-6 py-2 bg-[#f5a020] text-white rounded-lg hover:bg-[#d4881a] transition-colors font-barlow-condensed"
+                href="/admin/dashboard/jobs/create/edit"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors font-sans text-sm font-medium"
               >
+                <Plus size={16} weight="bold" />
                 Créer le premier emploi
               </Link>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-[#f3f3f1] border-b border-[#e8e8e6]">
+                <thead className="bg-background border-b border-border">
                   <tr>
-                    <th className="text-left px-6 py-4 font-barlow-condensed font-bold text-[#111113]">
-                      Titre
-                    </th>
-                    <th className="text-left px-6 py-4 font-barlow-condensed font-bold text-[#111113]">
-                      Département
-                    </th>
-                    <th className="text-left px-6 py-4 font-barlow-condensed font-bold text-[#111113]">
-                      Type
-                    </th>
-                    <th className="text-left px-6 py-4 font-barlow-condensed font-bold text-[#111113]">
-                      Localisation
-                    </th>
-                    <th className="text-center px-6 py-4 font-barlow-condensed font-bold text-[#111113]">
+                    {["Titre", "Département", "Type", "Localisation"].map((h) => (
+                      <th
+                        key={h}
+                        className="text-left px-6 py-4 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground-muted"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                    <th className="text-center px-6 py-4 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground-muted">
                       Actions
                     </th>
                   </tr>
@@ -165,48 +155,32 @@ export default function AdminDashboard() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: index * 0.05 }}
-                      className="border-b border-[#e8e8e6] hover:bg-[#f3f3f1] transition-colors"
+                      className="border-b border-border last:border-0 hover:bg-background transition-colors"
                     >
                       <td className="px-6 py-4">
-                        <p className="font-barlow-condensed font-bold text-[#111113]">
-                          {job.title}
-                        </p>
+                        <p className="font-sans font-medium text-foreground">{job.title}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-block px-3 py-1 bg-[#f3f3f1] rounded-full text-sm font-barlow-condensed text-[#111113]">
-                          {job.department}
-                        </span>
+                        <Tag>{job.department}</Tag>
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-block px-3 py-1 rounded-full text-sm font-barlow-condensed ${
-                            job.type === "full-time"
-                              ? "bg-green-100 text-green-800"
-                              : job.type === "part-time"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-purple-100 text-purple-800"
-                          }`}
-                        >
-                          {job.type === "full-time"
-                            ? "Temps plein"
-                            : job.type === "part-time"
-                              ? "Temps partiel"
-                              : "Contrat"}
-                        </span>
+                        <Tag>{typeLabel(job.type)}</Tag>
                       </td>
-                      <td className="px-6 py-4 font-barlow-condensed text-[#111113]/80">
+                      <td className="px-6 py-4 font-sans text-foreground-muted">
                         {job.location}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-1">
                           <Link
                             href={`/admin/dashboard/jobs/${job.id}/edit`}
-                            className="p-2 hover:bg-[#f3f3f1] rounded-lg transition-colors text-[#111113]"
+                            aria-label="Modifier"
+                            className="p-2 hover:bg-surface-elevated rounded-lg transition-colors text-foreground"
                           >
-                            <File size={18} />
+                            <PencilSimple size={18} />
                           </Link>
                           <button
                             onClick={() => handleDeleteJob(job.id)}
+                            aria-label="Supprimer"
                             className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-600"
                           >
                             <Trash size={18} />

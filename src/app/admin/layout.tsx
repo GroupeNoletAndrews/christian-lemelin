@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAdmin } from "@/lib/admin-context";
-import { AdminProvider } from "@/lib/admin-context";
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();

@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { Job } from "@/types/admin";
+import { Tag } from "@/components/ui/Tag";
 
 interface JobPreviewProps {
   job: Omit<Job, "id" | "createdAt" | "updatedAt">;
@@ -21,6 +22,9 @@ export function JobPreview({ job }: JobPreviewProps) {
     }
   };
 
+  const fieldLabel =
+    "font-mono text-[10px] uppercase tracking-[0.18em] text-foreground-muted mb-1";
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -28,75 +32,50 @@ export function JobPreview({ job }: JobPreviewProps) {
       transition={{ duration: 0.3 }}
       className="space-y-4"
     >
-      {/* Job Header */}
-      <div className="pb-4 border-b border-[#e8e8e6]">
-        <h4 className="text-xl font-bold text-[#111113] font-bebas-neue mb-2">
+      {/* Header */}
+      <div className="pb-4 border-b border-border">
+        <h4 className="font-display text-xl font-semibold text-foreground tracking-tight mb-3">
           {job.title || "—"}
         </h4>
         <div className="flex flex-wrap gap-2">
-          <span className="inline-block px-2 py-1 bg-[#f5a020]/10 rounded text-xs font-barlow-condensed text-[#111113] font-bold">
-            {job.department || "—"}
-          </span>
-          <span
-            className={`inline-block px-2 py-1 rounded text-xs font-barlow-condensed font-bold ${
-              job.type === "full-time"
-                ? "bg-green-100 text-green-800"
-                : job.type === "part-time"
-                  ? "bg-blue-100 text-blue-800"
-                  : "bg-purple-100 text-purple-800"
-            }`}
-          >
-            {getJobTypeLabel(job.type)}
-          </span>
+          <Tag>{job.department || "—"}</Tag>
+          <Tag>{getJobTypeLabel(job.type)}</Tag>
         </div>
       </div>
 
-      {/* Job Details */}
+      {/* Details */}
       <div className="space-y-3">
         <div>
-          <p className="text-xs font-barlow-condensed text-[#111113]/60 mb-1">
-            LOCALISATION
-          </p>
-          <p className="text-sm font-barlow-condensed text-[#111113]">
-            {job.location || "—"}
-          </p>
+          <p className={fieldLabel}>Localisation</p>
+          <p className="text-sm font-sans text-foreground">{job.location || "—"}</p>
         </div>
 
         {job.salary && (
           <div>
-            <p className="text-xs font-barlow-condensed text-[#111113]/60 mb-1">
-              SALAIRE
-            </p>
-            <p className="text-sm font-barlow-condensed text-[#111113]">
-              {job.salary}
-            </p>
+            <p className={fieldLabel}>Salaire</p>
+            <p className="text-sm font-sans text-foreground">{job.salary}</p>
           </div>
         )}
 
         <div>
-          <p className="text-xs font-barlow-condensed text-[#111113]/60 mb-1">
-            DESCRIPTION
-          </p>
-          <p className="text-sm font-barlow-condensed text-[#111113] leading-relaxed whitespace-pre-wrap line-clamp-6">
+          <p className={fieldLabel}>Description</p>
+          <p className="text-sm font-sans text-foreground-muted leading-relaxed whitespace-pre-wrap line-clamp-6">
             {job.description || "—"}
           </p>
         </div>
       </div>
 
-      {/* CTA Button Preview */}
-      <div className="pt-4 border-t border-[#e8e8e6]">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="w-full py-2 bg-[#f5a020] text-white rounded-lg font-barlow-condensed font-bold text-sm hover:bg-[#d4881a] transition-colors"
+      {/* CTA preview */}
+      <div className="pt-4 border-t border-border">
+        <button
+          className="w-full py-2.5 bg-accent text-white rounded-full font-sans font-medium text-sm opacity-60 cursor-not-allowed"
           disabled
         >
-          Voir plus (désactivé en aperçu)
-        </motion.button>
+          Postuler (désactivé en aperçu)
+        </button>
       </div>
 
-      {/* Note */}
-      <p className="text-xs text-[#111113]/50 font-barlow-condensed text-center pt-2">
+      <p className="text-xs text-foreground-muted font-sans text-center pt-1">
         Ceci est un aperçu de la page emploi
       </p>
     </motion.div>

@@ -97,36 +97,40 @@ export default function JobFormPage() {
     router.push("/admin/dashboard");
   };
 
+  const labelClass =
+    "block font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted mb-2";
+  const fieldClass =
+    "w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder-foreground-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all font-sans";
+
   return (
-    <div className="min-h-screen bg-[#f3f3f1]">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white border-b border-[#e8e8e6] sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+      <header className="bg-surface border-b border-border sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               href="/admin/dashboard"
-              className="p-2 hover:bg-[#f3f3f1] rounded-lg transition-colors"
+              aria-label="Retour"
+              className="p-2 hover:bg-surface-elevated rounded-lg transition-colors text-foreground"
             >
-              <ArrowLeft size={24} className="text-[#111113]" />
+              <ArrowLeft size={22} />
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-[#111113] font-bebas-neue">
-                {isEditMode ? "Modifier" : "Créer"} un emploi
-              </h1>
-              <p className="text-[#111113]/60 font-barlow-condensed text-sm">
-                {isEditMode
-                  ? "Modifiez les détails de l'emploi"
-                  : "Ajoutez un nouvel emploi à la liste"}
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted mb-1">
+                {isEditMode ? "Modifier" : "Nouveau"}
               </p>
+              <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">
+                {isEditMode ? "Modifier l'emploi" : "Créer un emploi"}
+              </h1>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main */}
       <main className="max-w-6xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Form Section */}
+          {/* Form */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -135,16 +139,13 @@ export default function JobFormPage() {
           >
             <form
               onSubmit={handleSubmit}
-              className="bg-white rounded-xl p-8 border border-[#e8e8e6]"
+              className="bg-surface rounded-2xl p-8 border border-border"
             >
               <div className="space-y-6">
                 {/* Title */}
                 <div>
-                  <label
-                    htmlFor="title"
-                    className="block text-sm font-barlow-condensed font-bold text-[#111113] mb-2"
-                  >
-                    Titre du poste <span className="text-red-600">*</span>
+                  <label htmlFor="title" className={labelClass}>
+                    Titre du poste <span className="text-accent">*</span>
                   </label>
                   <input
                     id="title"
@@ -153,7 +154,7 @@ export default function JobFormPage() {
                     value={formData.title}
                     onChange={handleInputChange}
                     placeholder="Ex: Ingénieur Fabrication"
-                    className="w-full px-4 py-3 rounded-lg border border-[#e8e8e6] bg-[#f3f3f1] text-[#111113] placeholder-[#111113]/40 focus:outline-none focus:ring-2 focus:ring-[#f5a020] focus:border-transparent transition-all font-barlow-condensed"
+                    className={fieldClass}
                     required
                   />
                 </div>
@@ -161,11 +162,8 @@ export default function JobFormPage() {
                 {/* Department and Type */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label
-                      htmlFor="department"
-                      className="block text-sm font-barlow-condensed font-bold text-[#111113] mb-2"
-                    >
-                      Département <span className="text-red-600">*</span>
+                    <label htmlFor="department" className={labelClass}>
+                      Département <span className="text-accent">*</span>
                     </label>
                     <input
                       id="department"
@@ -174,23 +172,20 @@ export default function JobFormPage() {
                       value={formData.department}
                       onChange={handleInputChange}
                       placeholder="Ex: Production"
-                      className="w-full px-4 py-3 rounded-lg border border-[#e8e8e6] bg-[#f3f3f1] text-[#111113] placeholder-[#111113]/40 focus:outline-none focus:ring-2 focus:ring-[#f5a020] focus:border-transparent transition-all font-barlow-condensed"
+                      className={fieldClass}
                       required
                     />
                   </div>
                   <div>
-                    <label
-                      htmlFor="type"
-                      className="block text-sm font-barlow-condensed font-bold text-[#111113] mb-2"
-                    >
-                      Type d'emploi <span className="text-red-600">*</span>
+                    <label htmlFor="type" className={labelClass}>
+                      Type d&apos;emploi <span className="text-accent">*</span>
                     </label>
                     <select
                       id="type"
                       name="type"
                       value={formData.type}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-lg border border-[#e8e8e6] bg-[#f3f3f1] text-[#111113] focus:outline-none focus:ring-2 focus:ring-[#f5a020] focus:border-transparent transition-all font-barlow-condensed"
+                      className={fieldClass}
                     >
                       <option value="full-time">Temps plein</option>
                       <option value="part-time">Temps partiel</option>
@@ -202,11 +197,8 @@ export default function JobFormPage() {
                 {/* Location and Salary */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label
-                      htmlFor="location"
-                      className="block text-sm font-barlow-condensed font-bold text-[#111113] mb-2"
-                    >
-                      Localisation <span className="text-red-600">*</span>
+                    <label htmlFor="location" className={labelClass}>
+                      Localisation <span className="text-accent">*</span>
                     </label>
                     <input
                       id="location"
@@ -215,17 +207,13 @@ export default function JobFormPage() {
                       value={formData.location}
                       onChange={handleInputChange}
                       placeholder="Ex: Québec, QC"
-                      className="w-full px-4 py-3 rounded-lg border border-[#e8e8e6] bg-[#f3f3f1] text-[#111113] placeholder-[#111113]/40 focus:outline-none focus:ring-2 focus:ring-[#f5a020] focus:border-transparent transition-all font-barlow-condensed"
+                      className={fieldClass}
                       required
                     />
                   </div>
                   <div>
-                    <label
-                      htmlFor="salary"
-                      className="block text-sm font-barlow-condensed font-bold text-[#111113] mb-2"
-                    >
-                      Salaire{" "}
-                      <span className="text-[#111113]/40">(optionnel)</span>
+                    <label htmlFor="salary" className={labelClass}>
+                      Salaire <span className="text-foreground-muted normal-case tracking-normal">(optionnel)</span>
                     </label>
                     <input
                       id="salary"
@@ -234,18 +222,15 @@ export default function JobFormPage() {
                       value={formData.salary}
                       onChange={handleInputChange}
                       placeholder="Ex: 65,000 - 85,000 $/an"
-                      className="w-full px-4 py-3 rounded-lg border border-[#e8e8e6] bg-[#f3f3f1] text-[#111113] placeholder-[#111113]/40 focus:outline-none focus:ring-2 focus:ring-[#f5a020] focus:border-transparent transition-all font-barlow-condensed"
+                      className={fieldClass}
                     />
                   </div>
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label
-                    htmlFor="description"
-                    className="block text-sm font-barlow-condensed font-bold text-[#111113] mb-2"
-                  >
-                    Description <span className="text-red-600">*</span>
+                  <label htmlFor="description" className={labelClass}>
+                    Description <span className="text-accent">*</span>
                   </label>
                   <textarea
                     id="description"
@@ -254,45 +239,55 @@ export default function JobFormPage() {
                     onChange={handleInputChange}
                     placeholder="Décrivez le poste, les responsabilités, les qualifications requises..."
                     rows={6}
-                    className="w-full px-4 py-3 rounded-lg border border-[#e8e8e6] bg-[#f3f3f1] text-[#111113] placeholder-[#111113]/40 focus:outline-none focus:ring-2 focus:ring-[#f5a020] focus:border-transparent transition-all font-barlow-condensed resize-none"
+                    className={`${fieldClass} resize-none`}
                     required
                   />
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-4 pt-4">
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowPreview(!showPreview)}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#111113] text-white rounded-lg hover:bg-[#111113]/90 transition-colors font-barlow-condensed font-bold"
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-border text-foreground rounded-full hover:bg-surface-elevated hover:border-foreground/30 transition-colors font-sans text-sm font-medium lg:hidden"
                   >
-                    <Eye size={20} />
-                    Aperçu
+                    <Eye size={18} />
+                    {showPreview ? "Masquer l'aperçu" : "Afficher l'aperçu"}
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-6 py-3 bg-[#f5a020] text-white rounded-lg hover:bg-[#d4881a] transition-colors font-barlow-condensed font-bold"
+                    className="flex-1 px-6 py-3 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors font-sans text-sm font-medium active:scale-[0.99]"
                   >
-                    {isEditMode ? "Mettre à jour" : "Créer"} l'emploi
+                    {isEditMode ? "Mettre à jour" : "Créer"} l&apos;emploi
                   </button>
                 </div>
               </div>
             </form>
+
+            {/* Mobile preview (toggled) */}
+            {showPreview && (
+              <div className="mt-6 lg:hidden bg-surface rounded-2xl p-6 border border-border">
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted mb-4">
+                  Aperçu en direct
+                </p>
+                <JobPreview job={formData} />
+              </div>
+            )}
           </motion.div>
 
-          {/* Preview Section */}
+          {/* Desktop preview (sticky) */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="lg:col-span-1"
+            className="hidden lg:block lg:col-span-1"
           >
             <div className="sticky top-24">
-              <div className="bg-white rounded-xl p-6 border border-[#e8e8e6]">
-                <h3 className="text-lg font-bold text-[#111113] font-bebas-neue mb-4">
+              <div className="bg-surface rounded-2xl p-6 border border-border">
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted mb-4">
                   Aperçu en direct
-                </h3>
-                <JobPreview job={formData as any} />
+                </p>
+                <JobPreview job={formData} />
               </div>
             </div>
           </motion.div>

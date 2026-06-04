@@ -2,17 +2,27 @@
 
 import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
-import { motion } from "motion/react"
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useReducedMotion,
+} from "motion/react"
 import { Realisation } from "@/types/admin"
 import { Tag } from "@/components/ui/Tag"
 
 // Alternating aspect ratios give the masonry layout its rhythm.
 const RATIOS = ["aspect-[4/3]", "aspect-[4/5]", "aspect-[4/5]", "aspect-[4/3]"]
 
+// Parallax travel as a % of the (oversized) image height — the "images lag
+// behind the scroll" feel from DESIGN.md §7.
+const PARALLAX_AMOUNT = 18
+
 /**
- * A réalisation tile with a hover image carousel. Sized for a masonry
- * (CSS columns) layout — the aspect ratio alternates by index. Used on the
- * home section and the full /realisations page.
+ * A réalisation tile with a hover image carousel and a scroll parallax (the
+ * image is oversized and translates slower than the page, so tiles appear to
+ * lag behind the scroll). Sized for a masonry (CSS columns) layout — the
+ * aspect ratio alternates by index. Used on the home section and /realisations.
  */
 export function RealisationCard({
   realisation,
@@ -27,6 +37,19 @@ export function RealisationCard({
   const images = realisation.images.length ? realisation.images : [""]
   const [active, setActive] = useState(0)
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Scroll parallax
+  const frameRef = useRef<HTMLDivElement>(null)
+  const reduce = useReducedMotion()
+  const { scrollYProgress } = useScroll({
+    target: frameRef,
+    offset: ["start end", "end start"],
+  })
+  const y = useTransform(
+    scrollYProgress,
+    [0, 1],
+    [`-${PARALLAX_AMOUNT}%`, `${PARALLAX_AMOUNT}%`]
+  )
 
   const stop = () => {
     if (timer.current) {
@@ -62,27 +85,34 @@ export function RealisationCard({
       onMouseLeave={reset}
     >
       <div
+        ref={frameRef}
         className={`relative ${cardRatio} overflow-hidden rounded-2xl border border-border bg-surface-elevated`}
       >
-        {images.map((src, i) =>
-          src ? (
-            <Image
-              key={i}
-              src={src}
-              alt={realisation.name}
-              fill
-              unoptimized
-              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-              className={`object-cover transition-opacity duration-500 ${
-                i === active ? "opacity-100" : "opacity-0"
-              }`}
-            />
-          ) : null
-        )}
+        {/* Oversized, parallax-translating image stack (carousel) */}
+        <motion.div
+          style={{ y: reduce ? 0 : y }}
+          className="absolute inset-x-0 -top-[35%] h-[170%] will-change-transform"
+        >
+          {images.map((src, i) =>
+            src ? (
+              <Image
+                key={i}
+                src={src}
+                alt={realisation.name}
+                fill
+                unoptimized
+                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                className={`object-cover transition-opacity duration-500 ${
+                  i === active ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            ) : null
+          )}
+        </motion.div>
 
-        {/* Carousel indicator */}
+        {/* Carousel indicator (fixed on the frame, not parallaxed) */}
         {images.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+          <div className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 flex gap-1.5">
             {images.map((_, i) => (
               <span
                 key={i}

@@ -1,10 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "motion/react";
-import { Trash, PencilSimple, Plus, SignOut } from "@phosphor-icons/react";
+import {
+  Trash,
+  PencilSimple,
+  Plus,
+  SignOut,
+  ArrowLeft,
+  PushPin,
+  ImageSquare,
+} from "@phosphor-icons/react";
 import { useAdmin } from "@/lib/admin-context";
 import { Tag } from "@/components/ui/Tag";
 
@@ -15,9 +24,31 @@ const typeLabel = (type: string) =>
       ? "Temps partiel"
       : "Contrat";
 
+type Tab = "emplois" | "realisations";
+
 export default function AdminDashboard() {
   const router = useRouter();
-  const { isAuthenticated, username, jobs, logout, deleteJob } = useAdmin();
+  const {
+    isAuthenticated,
+    username,
+    jobs,
+    logout,
+    deleteJob,
+    realisations,
+    pinnedCount,
+    maxPinned,
+    togglePinned,
+    deleteRealisation,
+  } = useAdmin();
+
+  // Land on the réalisations tab when returning from a réalisation action
+  // (e.g. router.push("/admin/dashboard#realisations")). Read synchronously
+  // and SSR-safely so we never call setState inside an effect.
+  const [tab, setTab] = useState<Tab>(() =>
+    typeof window !== "undefined" && window.location.hash === "#realisations"
+      ? "realisations"
+      : "emplois"
+  );
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -40,46 +71,72 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteRealisation = (id: string) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette réalisation?")) {
+      deleteRealisation(id);
+    }
+  };
+
+  const handleTogglePin = (id: string) => {
+    if (!togglePinned(id)) {
+      window.alert(
+        `Limite atteinte : un maximum de ${maxPinned} réalisations peuvent être épinglées à l'accueil.`
+      );
+    }
+  };
+
   const stats = [
     { label: "Total d'emplois", value: jobs.length },
-    { label: "Temps plein", value: jobs.filter((j) => j.type === "full-time").length },
-    { label: "Contrats", value: jobs.filter((j) => j.type === "contract").length },
+    { label: "Réalisations", value: realisations.length },
+    { label: "Épinglées à l'accueil", value: `${pinnedCount}/${maxPinned}` },
   ];
+
+  const tabClass = (active: boolean) =>
+    `px-4 py-2 rounded-full font-sans text-sm transition-colors ${
+      active
+        ? "bg-foreground text-white"
+        : "text-foreground-muted hover:text-foreground"
+    }`;
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-surface border-b border-border sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted mb-1">
-              Espace admin
-            </p>
-            <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">
-              Tableau de bord
-            </h1>
-            <p className="text-foreground-muted font-sans text-sm mt-1">
-              Bienvenue, <span className="text-foreground">{username}</span>
-            </p>
+        <div className="max-w-7xl mx-auto px-6 py-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted hover:text-foreground transition-colors mb-2"
+              >
+                <ArrowLeft size={12} />
+                Retour au site
+              </Link>
+              <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">
+                Tableau de bord
+              </h1>
+              <p className="text-foreground-muted font-sans text-sm mt-1">
+                Bienvenue, <span className="text-foreground">{username}</span>
+              </p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-5 py-2.5 border border-border text-foreground rounded-full hover:bg-surface-elevated hover:border-foreground/30 transition-colors font-sans text-sm"
+            >
+              <SignOut size={18} />
+              Déconnexion
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-5 py-2.5 border border-border text-foreground rounded-full hover:bg-surface-elevated hover:border-foreground/30 transition-colors font-sans text-sm"
-          >
-            <SignOut size={18} />
-            Déconnexion
-          </button>
         </div>
       </header>
 
-      {/* Main */}
       <main className="max-w-7xl mx-auto px-6 py-12">
         {/* Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-12"
+          className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10"
         >
           {stats.map((s) => (
             <div key={s.label} className="bg-surface rounded-2xl p-6 border border-border">
@@ -93,108 +150,263 @@ export default function AdminDashboard() {
           ))}
         </motion.div>
 
-        {/* Action bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex items-center justify-between mb-6"
-        >
-          <h2 className="font-display text-xl font-semibold text-foreground tracking-tight">
+        {/* Tabs */}
+        <div className="flex items-center gap-1 mb-6 border border-border rounded-full p-1 w-fit bg-surface">
+          <button className={tabClass(tab === "emplois")} onClick={() => setTab("emplois")}>
             Emplois
-          </h2>
-          <Link
-            href="/admin/dashboard/jobs/create/edit"
-            className="flex items-center gap-2 px-5 py-3 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors font-sans text-sm font-medium active:scale-[0.99]"
+          </button>
+          <button
+            className={tabClass(tab === "realisations")}
+            onClick={() => setTab("realisations")}
           >
-            <Plus size={18} weight="bold" />
-            Ajouter un emploi
-          </Link>
-        </motion.div>
+            Réalisations
+          </button>
+        </div>
 
-        {/* Jobs table */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-surface rounded-2xl border border-border overflow-hidden"
-        >
-          {jobs.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-foreground-muted font-sans mb-5">Aucun emploi trouvé</p>
-              <Link
-                href="/admin/dashboard/jobs/create/edit"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors font-sans text-sm font-medium"
-              >
-                <Plus size={16} weight="bold" />
-                Créer le premier emploi
-              </Link>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-background border-b border-border">
-                  <tr>
-                    {["Titre", "Département", "Type", "Localisation"].map((h) => (
-                      <th
-                        key={h}
-                        className="text-left px-6 py-4 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground-muted"
-                      >
-                        {h}
-                      </th>
-                    ))}
-                    <th className="text-center px-6 py-4 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground-muted">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {jobs.map((job, index) => (
-                    <motion.tr
-                      key={job.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="border-b border-border last:border-0 hover:bg-background transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <p className="font-sans font-medium text-foreground">{job.title}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <Tag>{job.department}</Tag>
-                      </td>
-                      <td className="px-6 py-4">
-                        <Tag>{typeLabel(job.type)}</Tag>
-                      </td>
-                      <td className="px-6 py-4 font-sans text-foreground-muted">
-                        {job.location}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-1">
-                          <Link
-                            href={`/admin/dashboard/jobs/${job.id}/edit`}
-                            aria-label="Modifier"
-                            className="p-2 hover:bg-surface-elevated rounded-lg transition-colors text-foreground"
-                          >
-                            <PencilSimple size={18} />
-                          </Link>
-                          <button
-                            onClick={() => handleDeleteJob(job.id)}
-                            aria-label="Supprimer"
-                            className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-600"
-                          >
-                            <Trash size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </motion.div>
+        {tab === "emplois" ? (
+          <JobsPanel
+            jobs={jobs}
+            onDelete={handleDeleteJob}
+            typeLabel={typeLabel}
+          />
+        ) : (
+          <RealisationsPanel
+            realisations={realisations}
+            onTogglePin={handleTogglePin}
+            onDelete={handleDeleteRealisation}
+          />
+        )}
       </main>
+    </div>
+  );
+}
+
+/* ---------------- Jobs panel ---------------- */
+
+function JobsPanel({
+  jobs,
+  onDelete,
+  typeLabel,
+}: {
+  jobs: ReturnType<typeof useAdmin>["jobs"];
+  onDelete: (id: string) => void;
+  typeLabel: (t: string) => string;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="font-display text-xl font-semibold text-foreground tracking-tight">
+          Emplois
+        </h2>
+        <Link
+          href="/admin/dashboard/jobs/create/edit"
+          className="flex items-center gap-2 px-5 py-3 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors font-sans text-sm font-medium active:scale-[0.99]"
+        >
+          <Plus size={18} weight="bold" />
+          Ajouter un emploi
+        </Link>
+      </div>
+
+      <div className="bg-surface rounded-2xl border border-border overflow-hidden">
+        {jobs.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-foreground-muted font-sans mb-5">Aucun emploi trouvé</p>
+            <Link
+              href="/admin/dashboard/jobs/create/edit"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors font-sans text-sm font-medium"
+            >
+              <Plus size={16} weight="bold" />
+              Créer le premier emploi
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-background border-b border-border">
+                <tr>
+                  {["Titre", "Département", "Type", "Localisation"].map((h) => (
+                    <th
+                      key={h}
+                      className="text-left px-6 py-4 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground-muted"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                  <th className="text-center px-6 py-4 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground-muted">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobs.map((job, index) => (
+                  <motion.tr
+                    key={job.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="border-b border-border last:border-0 hover:bg-background transition-colors"
+                  >
+                    <td className="px-6 py-4">
+                      <p className="font-sans font-medium text-foreground">{job.title}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Tag>{job.department}</Tag>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Tag>{typeLabel(job.type)}</Tag>
+                    </td>
+                    <td className="px-6 py-4 font-sans text-foreground-muted">
+                      {job.location}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-center gap-1">
+                        <Link
+                          href={`/admin/dashboard/jobs/${job.id}/edit`}
+                          aria-label="Modifier"
+                          className="p-2 hover:bg-surface-elevated rounded-lg transition-colors text-foreground"
+                        >
+                          <PencilSimple size={18} />
+                        </Link>
+                        <button
+                          onClick={() => onDelete(job.id)}
+                          aria-label="Supprimer"
+                          className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-600"
+                        >
+                          <Trash size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------- Réalisations panel ------------- */
+
+function RealisationsPanel({
+  realisations,
+  onTogglePin,
+  onDelete,
+}: {
+  realisations: ReturnType<typeof useAdmin>["realisations"];
+  onTogglePin: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="font-display text-xl font-semibold text-foreground tracking-tight">
+          Réalisations
+        </h2>
+        <Link
+          href="/admin/dashboard/realisations/create/edit"
+          className="flex items-center gap-2 px-5 py-3 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors font-sans text-sm font-medium active:scale-[0.99]"
+        >
+          <Plus size={18} weight="bold" />
+          Ajouter une réalisation
+        </Link>
+      </div>
+
+      {realisations.length === 0 ? (
+        <div className="bg-surface rounded-2xl border border-border text-center py-16">
+          <p className="text-foreground-muted font-sans mb-5">
+            Aucune réalisation pour le moment
+          </p>
+          <Link
+            href="/admin/dashboard/realisations/create/edit"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors font-sans text-sm font-medium"
+          >
+            <Plus size={16} weight="bold" />
+            Ajouter la première réalisation
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {realisations.map((r, index) => (
+            <motion.div
+              key={r.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="bg-surface rounded-2xl border border-border overflow-hidden flex flex-col"
+            >
+              <div className="relative aspect-[4/3] bg-surface-elevated">
+                {r.images[0] ? (
+                  <Image
+                    src={r.images[0]}
+                    alt={r.name}
+                    fill
+                    unoptimized
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-foreground-muted">
+                    <ImageSquare size={28} />
+                  </div>
+                )}
+                {r.pinned && (
+                  <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-white">
+                    <PushPin size={11} weight="fill" />
+                    Accueil
+                  </span>
+                )}
+                <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-foreground/70 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-white">
+                  <ImageSquare size={11} />
+                  {r.images.length}
+                </span>
+              </div>
+
+              <div className="p-5 flex flex-col gap-3 flex-1">
+                <div className="flex-1">
+                  <h3 className="font-display text-lg font-medium text-foreground leading-tight">
+                    {r.name}
+                  </h3>
+                  {r.category && (
+                    <div className="mt-2">
+                      <Tag>{r.category}</Tag>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={() => onTogglePin(r.id)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-sans transition-colors ${
+                      r.pinned
+                        ? "bg-accent text-white hover:bg-accent-hover"
+                        : "border border-border text-foreground hover:bg-surface-elevated"
+                    }`}
+                  >
+                    <PushPin size={14} weight={r.pinned ? "fill" : "regular"} />
+                    {r.pinned ? "Épinglée" : "Épingler"}
+                  </button>
+                  <Link
+                    href={`/admin/dashboard/realisations/${r.id}/edit`}
+                    aria-label="Modifier"
+                    className="ml-auto p-2 hover:bg-surface-elevated rounded-lg transition-colors text-foreground"
+                  >
+                    <PencilSimple size={18} />
+                  </Link>
+                  <button
+                    onClick={() => onDelete(r.id)}
+                    aria-label="Supprimer"
+                    className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-600"
+                  >
+                    <Trash size={18} />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

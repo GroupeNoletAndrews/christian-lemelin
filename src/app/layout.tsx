@@ -1,11 +1,7 @@
 import type { Metadata } from "next"
 import { Onest, Fragment_Mono } from "next/font/google"
 import "./globals.css"
-import { Header } from "@/components/layout/Header"
-import { Footer } from "@/components/layout/Footer"
-import { LenisProvider } from "@/components/providers/LenisProvider"
-import { Preloader } from "@/components/ui/Preloader"
-import { CustomScrollbar } from "@/components/ui/CustomScrollbar"
+import { SiteChrome } from "@/components/layout/SiteChrome"
 import { RootLayoutWrapper } from "@/components/layout/RootLayoutWrapper"
 
 // OPUS design system — see DESIGN.md
@@ -60,13 +56,7 @@ export default function RootLayout({
         {/* AdminProvider (admin/jobs context) wraps the OPUS layout so admin
             pages and /emplois keep working — see RootLayoutWrapper. */}
         <RootLayoutWrapper>
-          <LenisProvider>
-            <Preloader />
-            <CustomScrollbar />
-            <Header />
-            <main>{children}</main>
-            <Footer />
-          </LenisProvider>
+          <SiteChrome>{children}</SiteChrome>
         </RootLayoutWrapper>
       </body>
     </html>

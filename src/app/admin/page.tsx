@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { motion } from "motion/react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { useAdmin } from "@/lib/admin-context";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 
@@ -35,7 +37,14 @@ export default function AdminLoginPage() {
     "w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder-foreground-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all font-sans";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-16">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-16">
+      <Link
+        href="/"
+        className="absolute left-6 top-6 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted hover:text-foreground transition-colors"
+      >
+        <ArrowLeft size={12} />
+        Retour au site
+      </Link>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -44,14 +53,6 @@ export default function AdminLoginPage() {
       >
         {/* Brand */}
         <div className="flex flex-col items-center text-center mb-10">
-          <Image
-            src="/assets/logo_eclemelin.png"
-            alt="Entreprises Christian Lemelin"
-            width={384}
-            height={64}
-            priority
-            className="h-8 w-auto mb-8"
-          />
           <Eyebrow>Espace admin</Eyebrow>
           <h1 className="mt-5 font-display text-4xl font-semibold tracking-tight text-foreground">
             Connexion

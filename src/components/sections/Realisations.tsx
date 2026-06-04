@@ -1,68 +1,117 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
+import Image from "next/image"
 import { motion } from "motion/react"
+import { useAdmin } from "@/lib/admin-context"
+import { Realisation } from "@/types/admin"
 import { Eyebrow } from "@/components/ui/Eyebrow"
 import { ArrowLink } from "@/components/ui/ArrowLink"
 import { Tag } from "@/components/ui/Tag"
-import { ParallaxImage } from "@/components/ui/ParallaxImage"
 
-const projects = [
-  {
-    id: "r01",
-    title: "Cuisine centrale CHU de Québec",
-    category: "Restauration",
-    material: "Inox 316L",
-    img: "https://picsum.photos/seed/ecl-project-hospital-kitchen-stainless/900/700",
-    ratio: "aspect-[4/3]",
-  },
-  {
-    id: "r02",
-    title: "Façade laiton — Place Ste-Foy",
-    category: "Architecture",
-    material: "Laiton C360",
-    img: "https://picsum.photos/seed/ecl-project-brass-facade-building/900/1100",
-    ratio: "aspect-[4/5]",
-  },
-  {
-    id: "r03",
-    title: "Balustrades acier — Villa privée",
-    category: "Résidentiel",
-    material: "Acier peint",
-    img: "https://picsum.photos/seed/ecl-project-steel-railing-villa/900/1100",
-    ratio: "aspect-[4/5]",
-  },
-  {
-    id: "r04",
-    title: "Comptoir bar — Hôtel Le Château",
-    category: "Hôtellerie",
-    material: "Inox miroir",
-    img: "https://picsum.photos/seed/ecl-project-hotel-bar-counter/900/700",
-    ratio: "aspect-[4/3]",
-  },
-  {
-    id: "r05",
-    title: "Structure industrielle — Aluminerie",
-    category: "Industrie",
-    material: "Acier A36",
-    img: "https://picsum.photos/seed/ecl-project-industrial-structure/900/700",
-    ratio: "aspect-[4/3]",
-  },
-  {
-    id: "r06",
-    title: "Plafond cuivre — Boutique design",
-    category: "Commercial",
-    material: "Cuivre C110",
-    img: "https://picsum.photos/seed/ecl-project-copper-ceiling-retail/900/1100",
-    ratio: "aspect-[4/5]",
-  },
-]
+// Alternating aspect ratios for a masonry rhythm.
+const RATIOS = ["aspect-[4/3]", "aspect-[4/5]", "aspect-[4/5]", "aspect-[4/3]"]
+
+function RealisationCard({
+  realisation,
+  ratio,
+  index,
+}: {
+  realisation: Realisation
+  ratio: string
+  index: number
+}) {
+  const images = realisation.images.length ? realisation.images : [""]
+  const [active, setActive] = useState(0)
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const stop = () => {
+    if (timer.current) {
+      clearInterval(timer.current)
+      timer.current = null
+    }
+  }
+
+  const start = () => {
+    if (images.length <= 1) return
+    stop()
+    timer.current = setInterval(() => {
+      setActive((i) => (i + 1) % images.length)
+    }, 900)
+  }
+
+  const reset = () => {
+    stop()
+    setActive(0)
+  }
+
+  // Clean up on unmount
+  useEffect(() => stop, [])
+
+  return (
+    <motion.article
+      className="group mb-6 break-inside-avoid"
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.1 }}
+      transition={{ duration: 0.5, delay: (index % 3) * 0.06 }}
+      onMouseEnter={start}
+      onMouseLeave={reset}
+    >
+      <div
+        className={`relative ${ratio} overflow-hidden rounded-2xl border border-border bg-surface-elevated`}
+      >
+        {images.map((src, i) =>
+          src ? (
+            <Image
+              key={i}
+              src={src}
+              alt={realisation.name}
+              fill
+              unoptimized
+              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+              className={`object-cover transition-opacity duration-500 ${
+                i === active ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          ) : null
+        )}
+
+        {/* Carousel indicator */}
+        {images.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {images.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i === active ? "w-4 bg-white" : "w-1.5 bg-white/50"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4">
+        <h3 className="font-display text-xl font-medium leading-tight text-foreground">
+          {realisation.name}
+        </h3>
+        {realisation.category && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Tag>{realisation.category}</Tag>
+          </div>
+        )}
+      </div>
+    </motion.article>
+  )
+}
 
 export function Realisations() {
+  const { realisations, maxPinned } = useAdmin()
+  const pinned = realisations.filter((r) => r.pinned).slice(0, maxPinned)
+
   return (
-    <section
-      data-header-theme="light"
-      className="bg-background py-24 md:py-32"
-    >
+    <section data-header-theme="light" className="bg-background py-24 md:py-32">
       <div className="mx-auto max-w-[1400px] px-6 md:px-12">
         {/* Header */}
         <div className="flex flex-wrap items-end justify-between gap-6">
@@ -76,36 +125,22 @@ export function Realisations() {
         </div>
 
         {/* Masonry */}
-        <div className="mt-14 gap-6 [column-fill:_balance] sm:columns-2 lg:columns-3">
-          {projects.map((project, i) => (
-            <motion.article
-              key={project.id}
-              className="group mb-6 break-inside-avoid"
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.1 }}
-              transition={{ duration: 0.5, delay: (i % 3) * 0.06 }}
-            >
-              <div className={`relative ${project.ratio} overflow-hidden rounded-2xl border border-border`}>
-                {/* TODO: replace with actual project photography */}
-                <ParallaxImage
-                  src={project.img}
-                  alt={project.title}
-                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                />
-              </div>
-              <div className="mt-4">
-                <h3 className="font-display text-xl font-medium leading-tight text-foreground">
-                  {project.title}
-                </h3>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Tag>{project.category}</Tag>
-                  <Tag>{project.material}</Tag>
-                </div>
-              </div>
-            </motion.article>
-          ))}
-        </div>
+        {pinned.length > 0 ? (
+          <div className="mt-14 gap-6 [column-fill:_balance] sm:columns-2 lg:columns-3">
+            {pinned.map((r, i) => (
+              <RealisationCard
+                key={r.id}
+                realisation={r}
+                ratio={RATIOS[i % RATIOS.length]}
+                index={i}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="mt-14 font-sans text-foreground-muted">
+            Aucune réalisation épinglée pour le moment.
+          </p>
+        )}
       </div>
     </section>
   )

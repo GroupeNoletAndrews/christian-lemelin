@@ -1,11 +1,8 @@
 import type { Metadata } from "next"
 import { Onest, Fragment_Mono } from "next/font/google"
 import "./globals.css"
-import { Header } from "@/components/layout/Header"
-import { Footer } from "@/components/layout/Footer"
-import { LenisProvider } from "@/components/providers/LenisProvider"
-import { Preloader } from "@/components/ui/Preloader"
-import { CustomScrollbar } from "@/components/ui/CustomScrollbar"
+import { SiteChrome } from "@/components/layout/SiteChrome"
+import { RootLayoutWrapper } from "@/components/layout/RootLayoutWrapper"
 
 // OPUS design system — see DESIGN.md
 // Onest: variable font for headings + body. Fragment Mono: eyebrows, labels, section numbers.
@@ -56,13 +53,11 @@ export default function RootLayout({
       className={`${onest.variable} ${fragmentMono.variable}`}
     >
       <body className="min-h-screen bg-background text-foreground antialiased">
-        <LenisProvider>
-          <Preloader />
-          <CustomScrollbar />
-          <Header />
-          <main>{children}</main>
-          <Footer />
-        </LenisProvider>
+        {/* AdminProvider (admin/jobs context) wraps the OPUS layout so admin
+            pages and /emplois keep working — see RootLayoutWrapper. */}
+        <RootLayoutWrapper>
+          <SiteChrome>{children}</SiteChrome>
+        </RootLayoutWrapper>
       </body>
     </html>
   )

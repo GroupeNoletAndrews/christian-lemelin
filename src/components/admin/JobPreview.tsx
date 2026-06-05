@@ -2,7 +2,6 @@
 
 import { motion } from "motion/react";
 import { Job } from "@/types/admin";
-import { Tag } from "@/components/ui/Tag";
 
 interface JobPreviewProps {
   job: Omit<Job, "id" | "createdAt" | "updatedAt">;
@@ -38,8 +37,6 @@ export function JobPreview({ job }: JobPreviewProps) {
           {job.title || "—"}
         </h4>
         <div className="flex flex-wrap gap-2">
-          <Tag>{job.department || "—"}</Tag>
-          <Tag>{getJobTypeLabel(job.type)}</Tag>
         </div>
       </div>
 

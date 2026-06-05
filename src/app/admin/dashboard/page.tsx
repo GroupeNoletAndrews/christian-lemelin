@@ -15,7 +15,6 @@ import {
   ImageSquare,
 } from "@phosphor-icons/react";
 import { useAdmin } from "@/lib/admin-context";
-import { Tag } from "@/components/ui/Tag";
 
 const typeLabel = (type: string) =>
   type === "full-time"
@@ -250,10 +249,8 @@ function JobsPanel({
                       <p className="font-sans font-medium text-foreground">{job.title}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <Tag>{job.department}</Tag>
                     </td>
                     <td className="px-6 py-4">
-                      <Tag>{typeLabel(job.type)}</Tag>
                     </td>
                     <td className="px-6 py-4 font-sans text-foreground-muted">
                       {job.location}

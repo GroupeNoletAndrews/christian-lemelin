@@ -81,11 +81,6 @@ export function APropos() {
                   src="https://picsum.photos/seed/ecl-about-equipe-plancher/900/900"
                   alt="Équipe au plancher de l'atelier"
                 />
-                <Frame
-                  ratio="aspect-square"
-                  src="https://picsum.photos/seed/ecl-about-installation-site/900/900"
-                  alt="Installation sur site au Québec"
-                />
               </div>
             </div>
 

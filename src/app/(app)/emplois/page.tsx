@@ -1,152 +1,51 @@
-"use client"
+import type { Metadata } from "next"
+import { JobAccordion } from "@/components/emplois/JobAccordion"
+import { ContactCTA } from "@/components/sections/ContactCTA"
 
-import { useState } from "react"
-import Link from "next/link"
-import { motion } from "motion/react"
-import { useAdmin } from "@/lib/admin-context"
-import { Job } from "@/types/admin"
-import { ApplyModal } from "@/components/emplois/ApplyModal"
+export const metadata: Metadata = {
+  title: "Emplois",
+  description:
+    "Rejoignez Entreprises Christian Lemelin et façonnez votre avenir dans la fabrication métallique sur mesure à Québec. Découvrez nos postes ouverts.",
+}
 
 export default function EmploisPage() {
-  const { jobs } = useAdmin()
-  const [applyJob, setApplyJob] = useState<Job | null>(null)
-
-  const getJobTypeLabel = (type: string) => {
-    switch (type) {
-      case "full-time":
-        return "Temps plein"
-      case "part-time":
-        return "Temps partiel"
-      case "contract":
-        return "Contrat"
-      default:
-        return type
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-background" data-header-theme="light">
+    <div className="bg-background" data-header-theme="light">
       {/* Hero */}
-      <section className="bg-surface border-b border-border pt-40 pb-20">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex flex-col items-center"
-          >
-            <h1 className="mt-6 font-display text-[clamp(2.5rem,6vw,4rem)] font-semibold tracking-tight leading-[1.05] text-foreground">
-              Rejoignez notre équipe
-            </h1>
-            <p className="mt-5 text-lg text-foreground-muted font-sans max-w-[52ch]">
-              Découvrez nos offres d&apos;emploi et prenez part à l&apos;aventure chez Entreprises
-              Christian Lemelin.
-            </p>
-          </motion.div>
+      <section className="pb-6 pt-40 md:pb-10">
+        <div className="mx-auto max-w-[1100px] px-6">
+          <h1 className="max-w-[16ch] font-display text-[clamp(2.5rem,6vw,4.5rem)] font-semibold leading-[1.02] tracking-[-0.02em] text-foreground">
+            Rejoignez notre équipe.
+          </h1>
+          <p className="mt-6 max-w-[52ch] text-lg leading-relaxed text-foreground-muted">
+            Découvrez nos offres d&apos;emploi et prenez part à l&apos;aventure chez Entreprises
+            Christian Lemelin.
+          </p>
         </div>
       </section>
 
-      {/* Jobs */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          {jobs.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6 }}
-              className="text-center py-20"
-            >
-              <p className="text-xl text-foreground font-sans mb-4">
-                Aucune offre d&apos;emploi disponible pour le moment
-              </p>
-              <p className="text-foreground-muted font-sans">
-                Revenez bientôt pour découvrir les dernières opportunités.
-              </p>
-            </motion.div>
-          ) : (
-            <div className="grid gap-4">
-              {jobs.map((job, index) => (
-                <motion.div
-                  key={job.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="bg-surface rounded-2xl border border-border p-8 transition-colors hover:border-foreground/20"
-                >
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-                    <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-                        <h2 className="font-display text-2xl font-semibold text-foreground tracking-tight">
-                          {job.title}
-                        </h2>
-                        <div className="flex flex-wrap gap-2">
-                        </div>
-                      </div>
+      <JobAccordion />
 
-                      <p className="text-foreground-muted font-sans mb-5 leading-relaxed line-clamp-3">
-                        {job.description}
-                      </p>
-
-                      <div className="flex flex-wrap gap-8">
-                        <div>
-                          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground-muted mb-1">
-                            Localisation
-                          </p>
-                          <p className="text-sm font-sans text-foreground">{job.location}</p>
-                        </div>
-                        {job.salary && (
-                          <div>
-                            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground-muted mb-1">
-                              Salaire
-                            </p>
-                            <p className="text-sm font-sans text-foreground">{job.salary}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setApplyJob(job)}
-                      className="md:flex-shrink-0 inline-flex items-center justify-center px-7 py-3.5 bg-accent hover:bg-accent-hover text-white rounded-full font-sans text-sm font-medium transition-colors whitespace-nowrap active:scale-[0.99]"
-                    >
-                      Postuler
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
+      {/* Rejoignez E.C. Lemelin — bloc éditorial sombre */}
+      <section data-header-theme="dark" className="bg-background px-3 py-3 md:px-4 md:py-4">
+        <div className="overflow-hidden rounded-[1.75rem] bg-ink px-6 py-16 md:rounded-[2.5rem] md:px-16 md:py-24">
+          <h2 className="max-w-[16ch] font-display text-[clamp(2rem,5vw,4rem)] font-semibold leading-[1.02] tracking-[-0.02em] text-white">
+            Rejoignez E.C. Lemelin et façonnez votre avenir.
+          </h2>
+          <p className="mt-6 max-w-[54ch] text-lg leading-relaxed text-white/65">
+            Vous valorisez votre expertise et votre engagement ? Chez Entreprises Christian Lemelin,
+            nous vous offrons l&apos;opportunité de repousser les limites de l&apos;innovation et
+            d&apos;exercer pleinement votre savoir-faire.
+          </p>
         </div>
       </section>
 
-      {/* Contact CTA */}
-      <section className="bg-ink text-white py-24 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="flex flex-col items-center"
-          >
-            <h2 className="mt-6 font-display text-[clamp(1.75rem,4vw,2.75rem)] font-semibold tracking-tight leading-[1.1] text-white">
-              Vous n&apos;avez pas trouvé ce que vous cherchez?
-            </h2>
-            <p className="mt-5 text-white/60 font-sans max-w-[48ch]">
-              Envoyez-nous votre CV et votre profil professionnel. Nous gardons les candidatures
-              intéressantes pour les futures opportunités.
-            </p>
-            <Link
-              href="/contact"
-              className="mt-8 inline-flex items-center px-7 py-3.5 bg-accent hover:bg-accent-hover text-white rounded-full font-sans text-sm font-medium transition-colors active:scale-[0.99]"
-            >
-              Nous contacter
-            </Link>
-          </motion.div>
-        </div>
-      </section>
-
-      <ApplyModal job={applyJob} onClose={() => setApplyJob(null)} />
+      <ContactCTA
+        heading="Vous n'avez pas trouvé ce que vous cherchez ?"
+        body="Envoyez-nous votre CV et votre profil professionnel. Nous gardons les candidatures intéressantes pour les futures opportunités."
+        label="Nous contacter"
+        href="/contact"
+      />
     </div>
   )
 }

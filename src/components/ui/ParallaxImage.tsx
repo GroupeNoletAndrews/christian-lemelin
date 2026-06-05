@@ -17,11 +17,14 @@ export function ParallaxImage({
   alt,
   sizes,
   amount = 19,
+  unoptimized = false,
 }: {
   src: string
   alt: string
   sizes?: string
   amount?: number
+  /** Pass for non-whitelisted sources (e.g. admin-uploaded data: URLs). */
+  unoptimized?: boolean
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const reduce = useReducedMotion()
@@ -37,7 +40,14 @@ export function ParallaxImage({
         style={{ y: reduce ? 0 : y }}
         className="absolute inset-x-0 -top-[35%] h-[170%] will-change-transform"
       >
-        <Image src={src} alt={alt} fill sizes={sizes} className="object-cover" />
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes={sizes}
+          unoptimized={unoptimized}
+          className="object-cover"
+        />
       </motion.div>
     </div>
   )

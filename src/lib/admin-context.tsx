@@ -39,7 +39,7 @@ interface AdminContextType {
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined)
 
-const REALISATIONS_STORAGE_KEY = "ecl_realisations_v2"
+const REALISATIONS_STORAGE_KEY = "ecl_realisations_v3"
 
 // Dummy data for initial jobs
 const DUMMY_JOBS: Job[] = [
@@ -69,88 +69,64 @@ const DUMMY_JOBS: Job[] = [
   },
 ]
 
-// Seed réalisations (picsum placeholders, multiple images each so the
-// hover carousel is demonstrable out of the box).
-const seedImages = (seed: string, n: number) =>
-  Array.from(
-    { length: n },
-    (_, i) => `https://picsum.photos/seed/${seed}-${i + 1}/1200/900`
-  )
-
+// Seed réalisations — real project photos (public/assets). Names are
+// descriptive placeholders based on the photo content; remplacer par les
+// vrais titres de projet au besoin.
 const DUMMY_REALISATIONS: Realisation[] = [
   // --- 6 pinned (shown on the home page) ---
   {
     id: "r1",
-    name: "Cuisine centrale CHU de Québec",
-    images: seedImages("ecl-real-hospital-kitchen", 3),
+    name: "Mobilier hospitalier en inox",
+    images: [
+      "/assets/1780581925672-IMG_1281.jpeg",
+      "/assets/1780581931474-IMG_1280.jpeg",
+    ],
     pinned: true,
     createdAt: new Date("2025-10-01"),
     updatedAt: new Date("2025-10-01"),
   },
   {
     id: "r2",
-    name: "Façade laiton — Place Ste-Foy",
-    images: seedImages("ecl-real-brass-facade", 3),
+    name: "Bar lounge — hôtellerie",
+    images: [
+      "/assets/1780581840629-IMG_1294.jpeg",
+      "/assets/1780581884668-IMG_1288.jpeg",
+    ],
     pinned: true,
     createdAt: new Date("2025-09-12"),
     updatedAt: new Date("2025-09-12"),
   },
   {
     id: "r3",
-    name: "Comptoir bar — Hôtel Le Château",
-    images: seedImages("ecl-real-hotel-bar", 4),
+    name: "Bar circulaire en laiton",
+    images: ["/assets/1780581873317-IMG_1291.jpeg"],
     pinned: true,
     createdAt: new Date("2025-08-20"),
     updatedAt: new Date("2025-08-20"),
   },
   {
     id: "r4",
-    name: "Balustrades acier — Villa privée",
-    images: seedImages("ecl-real-steel-railing", 3),
+    name: "Aménagement de restaurant",
+    images: ["/assets/1780581850553-IMG_1293.jpeg"],
     pinned: true,
     createdAt: new Date("2025-07-30"),
     updatedAt: new Date("2025-07-30"),
   },
   {
     id: "r5",
-    name: "Structure industrielle — Aluminerie",
-    images: seedImages("ecl-real-industrial-structure", 3),
+    name: "Cuisine extérieure sur mesure",
+    images: ["/assets/1780581936961-IMG_1277.jpeg"],
     pinned: true,
     createdAt: new Date("2025-07-05"),
     updatedAt: new Date("2025-07-05"),
   },
   {
     id: "r6",
-    name: "Plafond cuivre — Boutique design",
-    images: seedImages("ecl-real-copper-ceiling", 4),
+    name: "Escalier & structure d'atelier",
+    images: ["/assets/1780581858443-IMG_1292.jpeg"],
     pinned: true,
     createdAt: new Date("2025-06-18"),
     updatedAt: new Date("2025-06-18"),
-  },
-  // --- additional réalisations (not pinned — visible on /realisations) ---
-  {
-    id: "r7",
-    name: "Escalier hélicoïdal inox — Siège social",
-    images: seedImages("ecl-real-spiral-staircase", 3),
-    pinned: false,
-    createdAt: new Date("2025-05-22"),
-    updatedAt: new Date("2025-05-22"),
-  },
-  {
-    id: "r8",
-    name: "Mobilier sur mesure — Restaurant Le Clan",
-    images: seedImages("ecl-real-custom-furniture", 3),
-    pinned: false,
-    createdAt: new Date("2025-04-15"),
-    updatedAt: new Date("2025-04-15"),
-  },
-  {
-    id: "r9",
-    name: "Garde-corps verre et acier — Condos Bassin",
-    images: seedImages("ecl-real-glass-guardrail", 3),
-    pinned: false,
-    createdAt: new Date("2025-03-09"),
-    updatedAt: new Date("2025-03-09"),
   },
 ]
 

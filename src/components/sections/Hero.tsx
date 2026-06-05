@@ -53,15 +53,18 @@ export function Hero() {
           variants={container}
           initial="hidden"
           animate={show ? "show" : "hidden"}
-          className="mx-auto w-full max-w-[1400px] px-6 pb-16 md:px-12 md:pb-24"
+          className="w-full max-w-[1400px] px-6 pb-16 md:px-12 md:pb-24"
         >
           <motion.h1
             variants={item}
-            className="font-display text-[clamp(3rem,11vw,9.5rem)] font-semibold leading-[0.9] tracking-[-0.03em] text-white"
+            className="-ml-2 font-display text-[clamp(3rem,11vw,10rem)] font-semibold leading-[1.02] tracking-[-0.03em] text-white md:-ml-6"
           >
-            Christian
-            <br />
-            Lemelin
+            <span className="block -ml-1 md:-ml-3 md:whitespace-nowrap">
+              Les Entreprises
+            </span>
+            <span className="mt-1 block ml-[0.3em] md:mt-2 md:ml-[0.55em] md:whitespace-nowrap">
+              Christian Lemelin
+            </span>
           </motion.h1>
 
           <motion.div

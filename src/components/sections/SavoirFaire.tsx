@@ -8,40 +8,41 @@ import { ArrowLink } from "@/components/ui/ArrowLink"
 
 const services = [
   {
+    title: "Mobilier hospitalier personnalisé",
+    description:
+      "Mobilier sur mesure en acier inoxydable médical, alliant ergonomie, durabilité et hygiène pour hôpitaux, cliniques et laboratoires.",
+    img: "/assets/1780581925672-IMG_1281.jpeg",
+    href: "/solutions/mobilier-hospitalier",
+  },
+  {
     title: "Fabrication sur mesure",
     description:
       "Pièces uniques ou en série, réalisées selon vos plans ou développées avec notre équipe technique.",
-    img: "https://picsum.photos/seed/ecl-fabrication-shop-metal/2000/1400",
+    img: "/assets/1780581858443-IMG_1292.jpeg",
     href: "/fabrication",
   },
   {
-    title: "Découpe laser & plasma",
+    title: "Découpe laser & Lazer tube",
     description:
       "Précision au dixième de millimètre sur toutes épaisseurs, du prototype à la grande série.",
-    img: "https://picsum.photos/seed/ecl-laser-cutting-industrial/2000/1400",
+    img: "/assets/1780581873317-IMG_1291.jpeg",
     href: "/solutions",
   },
   {
     title: "Soudure & assemblage",
     description:
       "Soudeurs certifiés MIG, TIG et structurale pour assemblages industriels et architecturaux exigeants.",
-    img: "https://picsum.photos/seed/ecl-welding-arc-workshop/2000/1400",
+    img: "/assets/1780581884668-IMG_1288.jpeg",
     href: "/solutions",
   },
   {
     title: "Polissage & finitions",
     description:
       "Miroir, satiné, brossé, poudré. Chaque finition exécutée en atelier selon les standards les plus exigeants.",
-    img: "https://picsum.photos/seed/ecl-polished-steel-surface/2000/1400",
+    img: "/assets/1780581936961-IMG_1277.jpeg",
     href: "/fabrication",
   },
-  {
-    title: "Installation sur site",
-    description:
-      "Équipe dédiée partout au Québec. Livraison coordonnée, pose soignée, résultat garanti.",
-    img: "https://picsum.photos/seed/ecl-installation-commercial/2000/1400",
-    href: "/a-propos",
-  },
+
 ]
 
 // Apple "feature block" image crossfade — reproduced 1:1 from skiper-ui Skiper76.
@@ -118,12 +119,13 @@ export function SavoirFaire() {
               exit="exit"
             >
               <Image
-                src={`${services[active].img}?grayscale`}
+                src={services[active].img}
                 alt={services[active].title}
                 fill
+                unoptimized
                 priority={active === 0}
                 sizes="100vw"
-                className="object-cover"
+                className="object-cover grayscale"
               />
             </motion.div>
           </AnimatePresence>

@@ -5,8 +5,9 @@ import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence, type Variants } from "motion/react"
-import { X, ArrowUpRight } from "@phosphor-icons/react"
+import { X } from "@phosphor-icons/react"
 import { useLenis } from "@/components/providers/LenisProvider"
+import { CONTACT } from "@/content"
 
 type HeaderTheme = "dark" | "light"
 
@@ -138,9 +139,9 @@ export function Header() {
           className={`flex h-20 items-center justify-between px-6 transition-colors duration-300 md:px-12 ${
             scrolled && !open
               ? darkBar
-                ? "border-b border-white/10 bg-black/30 backdrop-blur-xl"
-                : "border-b border-border bg-background/70 backdrop-blur-xl"
-              : "border-b border-transparent"
+                ? "bg-black/30 backdrop-blur-xl"
+                : "bg-background/70 backdrop-blur-xl"
+              : "border-transparent"
           }`}
         >
           {/* Logo */}
@@ -244,13 +245,13 @@ export function Header() {
                       </motion.div>
 
                       <motion.div variants={contentV} custom={1} className="mt-8 flex flex-col gap-2 text-lg">
-                        <a href="tel:+14186821750" className="w-fit text-white/85 transition-colors hover:text-white">
-                          418 682-1750
+                        <a href={`tel:${CONTACT.phoneHref}`} className="w-fit text-white/85 transition-colors hover:text-white">
+                          {CONTACT.phoneDisplay}
                         </a>
-                        <a href="mailto:info@eclemelin.com" className="w-fit text-white/85 transition-colors hover:text-white">
-                          info@eclemelin.com
+                        <a href={`mailto:${CONTACT.email}`} className="w-fit text-white/85 transition-colors hover:text-white">
+                          {CONTACT.email}
                         </a>
-                        <span className="text-white/60">Québec, QC, Canada</span>
+                        <span className="text-white/60">{CONTACT.addressLine}, {CONTACT.addressCity}</span>
                       </motion.div>
 
                       <motion.div variants={contentV} custom={2}>

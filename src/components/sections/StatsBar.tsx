@@ -11,7 +11,7 @@ import {
 } from "motion/react"
 
 const stats = [
-  { value: "40+", label: "Années d'expertise" },
+  { value: "20+", label: "Années d'expertise" },
   { value: "2 400+", label: "Projets réalisés" },
   { value: "5", label: "Matériaux maîtrisés" },
   { value: "100%", label: "Fabriqué au Québec" },

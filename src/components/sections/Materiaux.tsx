@@ -6,46 +6,9 @@ import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { useReducedMotion } from "motion/react"
 import Image from "next/image"
 import { ParallaxImage } from "@/components/ui/ParallaxImage"
+import { MATERIALS as materials, imageUrl } from "@/content"
 
 gsap.registerPlugin(ScrollTrigger)
-
-const materials = [
-  {
-    code: "316L",
-    name: "Inox",
-    fullName: "Acier inoxydable",
-    properties: ["Résistant à la corrosion", "Hygiénique & alimentaire", "Haute durabilité"],
-    img: "https://picsum.photos/seed/ecl-stainless-steel-mirror/900/1100",
-  },
-  {
-    code: "A36",
-    name: "Acier",
-    fullName: "Acier structurel",
-    properties: ["Haute résistance", "Soudable partout", "Économique"],
-    img: "https://picsum.photos/seed/ecl-structural-steel-plate/900/1100",
-  },
-  {
-    code: "6061",
-    name: "Aluminium",
-    fullName: "Aluminium série 6000",
-    properties: ["Léger", "Anti-corrosion naturel", "Usinable"],
-    img: "https://picsum.photos/seed/ecl-aluminum-brushed-profile/900/1100",
-  },
-  {
-    code: "C360",
-    name: "Laiton",
-    fullName: "Laiton & bronze",
-    properties: ["Teintes chaudes", "Décoratif", "Finition premium"],
-    img: "https://picsum.photos/seed/ecl-brass-decorative-interior/900/1100",
-  },
-  {
-    code: "C110",
-    name: "Cuivre",
-    fullName: "Cuivre pur",
-    properties: ["Patine unique", "Antimicrobien", "Architectural"],
-    img: "https://picsum.photos/seed/ecl-copper-facade-detail/900/1100",
-  },
-]
 
 export function Materiaux() {
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -86,11 +49,11 @@ export function Materiaux() {
             <article key={mat.code}>
               <div className="relative aspect-[5/4] overflow-hidden rounded-2xl border border-border">
                 {/* TODO: replace with actual material photography / GLB */}
-                <ParallaxImage src={mat.img} alt={mat.name} sizes="100vw" />
+                <ParallaxImage src={imageUrl(mat.cardImage, 900, 1100)} alt={mat.name} sizes="100vw" />
               </div>
               <div className="mt-4 flex items-baseline gap-3">
                 <span className="font-mono text-xs tracking-[0.2em] text-foreground-muted">{mat.code}</span>
-                <h3 className="font-display text-2xl font-semibold text-foreground">{mat.name}</h3>
+                <h3 className="font-display text-2xl font-semibold text-foreground">{mat.shortName}</h3>
               </div>
               <p className="mt-1 text-sm text-foreground-muted">{mat.fullName}</p>
             </article>
@@ -113,7 +76,7 @@ export function Materiaux() {
             <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6">
               {materials.map((mat) => (
                 <div key={mat.code} className="flex items-center gap-4 font-mono text-xs tracking-[0.12em]">
-                  <span className="flex-1 text-foreground">{mat.name}</span>
+                  <span className="flex-1 text-foreground">{mat.shortName}</span>
                   <span className="text-foreground-muted">{mat.code}</span>
                 </div>
               ))}
@@ -125,13 +88,13 @@ export function Materiaux() {
             <div key={mat.code} className="flex h-full w-[34vw] shrink-0 flex-col justify-center px-6">
               <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-border">
                 {/* TODO: replace with actual material photography / interactive GLB */}
-                <Image src={mat.img} alt={mat.name} fill className="object-cover" sizes="34vw" />
+                <Image src={imageUrl(mat.cardImage, 900, 1100)} alt={mat.name} fill className="object-cover" sizes="34vw" />
               </div>
               <div className="mt-5">
                 <div className="flex items-baseline gap-3">
                   <span className="font-mono text-xs tracking-[0.2em] text-foreground-muted">{mat.code}</span>
                   <h3 className="font-display text-[clamp(1.75rem,2.4vw,2.5rem)] font-semibold leading-none text-foreground">
-                    {mat.name}
+                    {mat.shortName}
                   </h3>
                 </div>
                 <p className="mt-2 text-sm text-foreground-muted">{mat.fullName}</p>

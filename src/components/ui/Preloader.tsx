@@ -16,7 +16,6 @@ const words = [
   "Laiton",
   "Cuivre",
   "Sur mesure",
-  "Christian Lemelin",
 ]
 
 const EASE: [number, number, number, number] = [0.76, 0, 0.24, 1]

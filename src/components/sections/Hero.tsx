@@ -53,16 +53,16 @@ export function Hero() {
           variants={container}
           initial="hidden"
           animate={show ? "show" : "hidden"}
-          className="w-full max-w-[1400px] px-6 pb-16 md:px-12 md:pb-24"
+          className="w-full px-6 pb-16 md:px-12 md:pb-24"
         >
           <motion.h1
             variants={item}
-            className="-ml-2 font-display text-[clamp(3rem,11vw,10rem)] font-semibold leading-[1.02] tracking-[-0.03em] text-white md:-ml-6"
+            className="font-display text-[clamp(3rem,11vw,10rem)] font-semibold leading-[1.02] tracking-[-0.03em] text-white"
           >
-            <span className="block -ml-1 md:-ml-3 md:whitespace-nowrap">
+            <span className="block -ml-3 md:-ml-9 md:whitespace-nowrap">
               Les Entreprises
             </span>
-            <span className="mt-1 block ml-[0.3em] md:mt-2 md:ml-[0.55em] md:whitespace-nowrap">
+            <span className="mt-1 block ml-1 md:mt-2 md:ml-16 md:whitespace-nowrap">
               Christian Lemelin
             </span>
           </motion.h1>
@@ -71,7 +71,7 @@ export function Hero() {
             variants={item}
             className="mt-8 grid gap-6 md:grid-cols-[1fr_auto] md:items-end md:gap-12"
           >
-            <p className="max-w-[52ch] text-lg leading-relaxed text-white/80 md:text-xl">
+            <p className="ml-1 max-w-[52ch] text-lg leading-relaxed text-white/80 md:ml-16 md:text-xl">
               Atelier de fabrication métallique sur mesure à Québec. Inox, acier,
               aluminium, laiton et cuivre — travaillés avec la même exigence depuis
               des décennies.

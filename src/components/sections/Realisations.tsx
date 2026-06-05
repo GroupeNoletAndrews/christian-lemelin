@@ -1,9 +1,7 @@
 "use client"
 
 import { motion } from "motion/react"
-import { Eyebrow } from "@/components/ui/Eyebrow"
 import { ArrowLink } from "@/components/ui/ArrowLink"
-import { Tag } from "@/components/ui/Tag"
 import { ParallaxImage } from "@/components/ui/ParallaxImage"
 
 const projects = [
@@ -67,8 +65,7 @@ export function Realisations() {
         {/* Header */}
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <Eyebrow>Réalisations</Eyebrow>
-            <h2 className="mt-6 font-display text-[clamp(2rem,5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
+            <h2 className="font-display text-[clamp(2rem,5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
               Quelques projets récents.
             </h2>
           </div>
@@ -98,10 +95,6 @@ export function Realisations() {
                 <h3 className="font-display text-xl font-medium leading-tight text-foreground">
                   {project.title}
                 </h3>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Tag>{project.category}</Tag>
-                  <Tag>{project.material}</Tag>
-                </div>
               </div>
             </motion.article>
           ))}

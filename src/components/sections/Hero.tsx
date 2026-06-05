@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { motion, type Variants } from "motion/react"
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr"
-import { Eyebrow } from "@/components/ui/Eyebrow"
 
 // Full-bleed looping video hero (pointlaz-inspired) in our OPUS style.
 // The video autoplays/loops with no controls; the text reveals after 3 s.
@@ -23,7 +22,7 @@ export function Hero() {
   const [show, setShow] = useState(false)
 
   useEffect(() => {
-    const t = setTimeout(() => setShow(true), 3000)
+    const t = setTimeout(() => setShow(true), 2000)
     return () => clearTimeout(t)
   }, [])
 
@@ -56,13 +55,9 @@ export function Hero() {
           animate={show ? "show" : "hidden"}
           className="mx-auto w-full max-w-[1400px] px-6 pb-16 md:px-12 md:pb-24"
         >
-          <motion.div variants={item}>
-            <Eyebrow dark>Fabrication métallique · Québec</Eyebrow>
-          </motion.div>
-
           <motion.h1
             variants={item}
-            className="mt-6 font-display text-[clamp(3rem,11vw,9.5rem)] font-semibold leading-[0.9] tracking-[-0.03em] text-white"
+            className="font-display text-[clamp(3rem,11vw,9.5rem)] font-semibold leading-[0.9] tracking-[-0.03em] text-white"
           >
             Christian
             <br />

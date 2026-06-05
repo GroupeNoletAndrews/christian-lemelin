@@ -29,11 +29,11 @@ Tokens définis dans [`src/app/globals.css`](src/app/globals.css) (`@theme inlin
 | `foreground` | `#141414` | Texte principal (noir **neutre**, pas de vert) | `text-foreground` |
 | `foreground-muted` | `rgba(20,20,20,.6)` | Texte secondaire / légendes | `text-foreground-muted` |
 | `ink` | `#111111` | Fond des sections sombres (neutre) | `bg-ink` (texte `text-white`) |
-| `accent` | `#0048f9` | Accent bleu — **uniquement** flèche de lien, point d'eyebrow, fond de bouton | `bg-accent` |
+| `accent` | `#0048f9` | Accent bleu — **uniquement** flèche de lien et fond de bouton | `bg-accent` |
 | `accent-hover` | `#0039c4` | Survol de l'accent (dérivé) | `bg-accent-hover` |
 | `border` | `rgba(151,151,151,.2)` | Séparateurs fins (hairlines) | `border-border` |
 
-⚠️ **Pas de texte bleu.** Le bleu ne sert que pour : la flèche `↗` des liens, le point de l'eyebrow, et le fond des boutons (texte blanc dessus). Jamais pour du texte (titres, chiffres, codes…). Pas de teinte verte nulle part — les noirs sont neutres.
+⚠️ **Pas de texte bleu.** Le bleu ne sert que pour : la flèche `↗` des liens et le fond des boutons (texte blanc dessus). Jamais pour du texte (titres, chiffres, codes…). Pas de teinte verte nulle part — les noirs sont neutres.
 
 > ⚠️ **Migration en cours :** certains composants utilisent encore `text-zinc-*`, `black/8`, `black/12`. À remplacer progressivement par les tokens ci-dessus.
 
@@ -46,11 +46,11 @@ Chargées via `next/font/google` dans [`src/app/layout.tsx`](src/app/layout.tsx)
 | Police | Rôle | Classe |
 |---|---|---|
 | **Onest** (variable) | Titres **et** corps de texte | `font-sans` / `font-display` (par défaut sur `body`) |
-| **Fragment Mono** (400) | Eyebrows, labels, codes, numéros de section (`01 — 05`) | `font-mono` |
+| **Fragment Mono** (400) | Labels, codes | `font-mono` |
 
 **Conventions :**
 - **Titres** : Onest, **casse normale** (pas de capitales), poids medium/semibold, grande taille, `leading` serré (`leading-[1.05]`). OPUS n'utilise pas de capitales condensées.
-- **Eyebrows / labels** : Fragment Mono, petit, `uppercase`, `tracking` large (`tracking-[0.18em]`), souvent en `text-foreground-muted` ou `text-accent`.
+- **Labels** : Fragment Mono, petit, `uppercase`, `tracking` large (`tracking-[0.18em]`), en `text-foreground-muted`.
 - **Corps** : Onest, poids normal, `leading-relaxed`, `text-foreground-muted` pour le secondaire.
 - Tailles fluides via `clamp()` pour les grands titres.
 
@@ -70,13 +70,12 @@ Chargées via `next/font/google` dans [`src/app/layout.tsx`](src/app/layout.tsx)
 ## 5. Composants
 
 **Primitives réutilisables** (dans [`src/components/ui/`](src/components/ui/)) — **à réutiliser, ne pas réinventer** :
-- [`Eyebrow`](src/components/ui/Eyebrow.tsx) — pill arrondie (point bleu + label mono UPPERCASE). Prop `dark` pour sections sombres.
 - [`ArrowLink`](src/components/ui/ArrowLink.tsx) — lien bleu avec flèche `↗`.
-- [`Tag`](src/components/ui/Tag.tsx) — pill outline arrondie. Prop `dark`.
+
+> **Pas de pilules/badges.** Ni eyebrow (pill point bleu + label en tête de section), ni tag (pill outline de catégorie/matériau). Les sections s'ouvrent directement sur leur titre ; les métadonnées s'écrivent en texte simple.
 
 - **Boutons / CTA** : pill `rounded-full`, fond `bg-accent`, **texte blanc** (jamais texte sombre sur le bleu), survol `bg-accent-hover`. Variante secondaire : bordure `border-border` + texte `text-foreground`.
 - **Cartes / panneaux** : `bg-surface`, séparation par `border-border` (hairline) plutôt qu'ombres marquées.
-- **Eyebrow de section** : Fragment Mono + numéro (`01`, `02`…) + label en `uppercase tracking`.
 - **Focus** : contour bleu `#0048f9` (défini globalement via `:focus-visible`). Ne pas le retirer.
 
 ---
@@ -93,22 +92,24 @@ Chargées via `next/font/google` dans [`src/app/layout.tsx`](src/app/layout.tsx)
 
 Captures de référence prises au 1440px. Le layout d'OPUS repose sur ces patterns — **toute nouvelle section doit s'en inspirer.**
 
-- **Navigation** : barre **minimale** transparente (logo à gauche + un seul bouton pill « Menu » bleu à droite), repliée sur **tous** les écrans comme OPUS. Au clic → **overlay plein écran bleu** (`bg-accent`) : liens en très grand **centrés** (Onest), barre contact + bouton « Nous joindre » blanc en bas. Le bouton bascule en « Fermer » (pill blanc, texte foncé). Sticky : fond `backdrop-blur` + hairline au scroll.
+- **Navigation** : barre **minimale** transparente (logo à gauche + un seul bouton pill « Menu » bleu à droite), repliée sur **tous** les écrans comme OPUS. Au clic → **overlay plein écran bleu** (`bg-accent`) : liens en très grand **centrés** (Onest), barre contact + bouton « Nous joindre » blanc en bas. Le bouton bascule en « Fermer » (pill blanc, texte foncé). Sticky : fond `backdrop-blur` + hairline au scroll. **Auto-hide directionnel** : la barre **se cache (slide `translateY(-100%)`) au scroll vers le bas** (après ~120 px) et **réapparaît animée au scroll vers le haut** (`motion.header`, dead-zone de 6 px anti-jitter ; reste visible si le menu est ouvert).
   - **Animation d'ouverture/fermeture (façon pointlaz.com)** : révélation **graduelle ligne par ligne** — chaque lien **monte depuis un masque** (`overflow-hidden`) et un **trait se dessine** (`scaleX`) sous lui, en cascade (`custom={i}`, ~1,7 s). La **fermeture** rejoue l'inverse (liens redescendent dans le masque, traits se rétractent) puis l'overlay s'efface. Variants `overlayV`/`linkV`/`lineV`/`fadeV` dans [`Header.tsx`](src/components/layout/Header.tsx).
 - **Liens** : texte **souligné** (couleur neutre `text-foreground` ou `text-white`), souligné fin `underline-offset`, + flèche **`↗` bleue**. Le texte n'est **jamais** bleu. Composant [`ArrowLink`](src/components/ui/ArrowLink.tsx).
 - **Parallax images** : sur les cartes (Solutions, Réalisations, Matériaux), l'image est sur-dimensionnée (**170%**) et translate verticalement (`amount` ~19%) au scroll → effet marqué « les images me suivent ». Composant [`ParallaxImage`](src/components/ui/ParallaxImage.tsx), respecte `prefers-reduced-motion`, fluide via Lenis.
-- **Hero** : **bannière vidéo plein cadre** (`videoLemelin.mp4`, autoplay/muette/loop, sans contrôles) façon pointlaz, en style OPUS. Contenu ancré en bas à gauche, texte blanc sur dégradé de lisibilité : eyebrow pill + titre **immense** « Christian Lemelin » (Onest) + intro + lien `↗`. Le texte **apparaît après 3 s** (révélation en cascade). `data-header-theme="dark"`. Voir [`Hero.tsx`](src/components/sections/Hero.tsx).
-- **Eyebrow = pill** : `rounded-full`, fond subtil (`bg-surface`/dark), petit **point bleu** + label **UPPERCASE** en Fragment Mono. Ex. « OUR VISION », « OUR PROCESS », « PRICING ». À utiliser en tête de chaque section.
+- **Hero** : **bannière vidéo plein cadre** (`videoLemelin.mp4`, autoplay/muette/loop, sans contrôles) façon pointlaz, en style OPUS. Contenu ancré en bas à gauche, texte blanc sur dégradé de lisibilité : titre **immense** « Christian Lemelin » (Onest) + intro + lien `↗`. Le texte **apparaît après 3 s** (révélation en cascade). `data-header-theme="dark"`. Voir [`Hero.tsx`](src/components/sections/Hero.tsx).
+- **Sections** : pas d'eyebrow ni de pilule — chaque section **s'ouvre directement sur son titre**.
 - **Sections alternées** : blanc `#fff` / crème `#f3f3f1` / **noir neutre `#111111`** (token `ink`, texte blanc — **pas de teinte verte**). Très grand padding vertical (respiration).
 - **Titres** : Onest, **casse normale**, taille géante (`clamp`), `leading` serré. Jamais tout en majuscules.
-- **Stats** : très grands chiffres en **`text-foreground` neutre** (pas de bleu) + petit label gris en dessous.
-- **Liste de services** : **accordéon numéroté** `01`–`05`, grand titre sentence-case à gauche du numéro, `+` à droite, séparateurs hairline pleine largeur.
-- **Cartes process** (section sombre) : `rounded-2xl`, bordure subtile, numéro `01`–`04` + titre ; la carte active est plus claire.
-- **Grille projets** : **masonry asymétrique**, cartes = image `rounded-2xl` contenue + titre dessous + **tag pills** (outline `rounded-full` : Branding, Motion…).
-- **Tarifs / cartes** : `rounded-2xl`, bordure `border-border`, fond crème ; prix géant, bouton (noir/bleu plein = primaire, blanc + bordure = secondaire), liste à puces avec flèches `↗` bleues, divider pointillé. Badge « Best Value » bleu.
+- **Stats** ([`StatsBar.tsx`](src/components/sections/StatsBar.tsx)) : très grands chiffres en **`text-foreground` neutre** (pas de bleu) + petit label gris, **centrés**. Section **fond crème (`bg-background`, sans bordure)** pour **fusionner avec le reste** (plus de bande blanche). Les chiffres sont **animés en compteur** (count-up de 0 → cible) au scroll dans la vue (`useInView` + `animate` sur un `useMotionValue`, formatage FR « 2 400 », suffixes `+`/`%` préservés, `tabular-nums`, fallback `prefers-reduced-motion`). Délimité par des **hairlines qui se dessinent** (`scaleX` 0→1, même easing `[0.76,0,0.24,1]` que le menu). En bas, un **marquee de partenaires** (placeholder) qui **défile de droite à gauche** en boucle continue (deux copies + `x:["0%","-50%"]` linéaire infini, bords fondus par `mask-image`, mono gris + puces).
+- **Liste de services (Savoir-faire)** : **« Apple feature block »** reproduit de skiper-ui *Skiper76* — **bloc arrondi inséré** (`rounded-[2.5rem] overflow-hidden`, `min-h-[100svh]`) sur fond de page **crème** : la section externe garde une **fine marge** (`p-3 md:p-4`) pour laisser **voir le fond clair autour** des coins arrondis. `data-header-theme="dark"` sur la section externe (évite le scintillement du header sur la marge crème). **L'image englobe tout le bloc** (full-bleed `absolute inset-0`, `object-cover`, clippée par les coins arrondis) et fait un **crossfade façon Apple** au changement de service. Par-dessus, à gauche : le titre + des **pastilles-accordéon en verre dépoli** (`backdrop-blur`, `rounded-[1.6rem]`, icône `+` circulée ; la pastille **active** = verre sombre `bg-black/45` qui se **déplie** pour révéler description + lien `↗`). À droite, des **flèches haut/bas** (`CaretUp`/`CaretDown`, cercles en verre) **naviguent le carousel** de façon cyclique (centrées verticalement en desktop, en haut à droite sur mobile). Image **monochrome (`?grayscale`) fortement assombrie** (voiles `bg-black/45` + dégradés `from-black` à gauche/bas) → la section lit **noir minimaliste**, la photo n'est qu'un fond texturé subtil (placeholder ; remplacer par de vraies photos d'atelier monochromes). Empile sur mobile (contenu sur l'image). Voir [`SavoirFaire.tsx`](src/components/sections/SavoirFaire.tsx).
+  - **Transition image (mesurée 1:1 sur le template via MCP Playwright)** : l'entrante surgit **de la droite** (`x:+8%`, `scale 0.92`, `opacity 0`) et **spring** vers l'état de repos (`scale 1.14` d'overscan, `x:0`) après un **décalage ~0,16 s** ; la sortante **glisse vers la gauche** (`x:-8%`, `scale 0.92`) et s'efface aussitôt → le « filmstrip » glisse vers la gauche, léger overshoot spring, très fluide. `AnimatePresence mode="sync"` + `motion/react`. Fallback `prefers-reduced-motion` = simple fondu.
+- **Cartes process** (section sombre) : `rounded-2xl`, bordure subtile, titre ; la carte active est plus claire.
+- **Grille projets** : **masonry asymétrique**, cartes = image `rounded-2xl` contenue + titre dessous.
+- **Tarifs / cartes** : `rounded-2xl`, bordure `border-border`, fond crème ; prix géant, bouton (noir/bleu plein = primaire, blanc + bordure = secondaire), liste à puces avec flèches `↗` bleues, divider pointillé.
 - **Boutons / liens** : pills arrondies ; **primaire** noir ou bleu plein (texte blanc), **secondaire** blanc + `border-border` ; les liens portent une flèche **`↗` bleue**.
 - **Logo strip** clients en gris clair.
 - **Dividers** : hairline `border-border` entre blocs ; pointillés à l'intérieur des cartes.
+- **Page « À propos »** ([`APropos.tsx`](src/components/sections/APropos.tsx)) : mise en page éditoriale **deux colonnes décalées** (la colonne droite descend, `lg:mt-32`), chacune avec une **grille de 3 images** (2 sous-colonnes, ratios variés, `rounded-2xl` + hairline + parallax) et un bloc titre/texte. Reprend le block shadcnblocks « about6 », adapté OPUS. Empile sur mobile (colonne gauche d'abord).
 
 ## 8. Pattern « Carousel + GLB » *(à venir — documenté, pas encore construit)*
 
@@ -160,3 +161,9 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; } /* Firefox / vie
 | 2026-06-02 | **Animation du menu (inspirée pointlaz.com).** Ouverture plus longue (~1,7 s) en **révélation graduelle ligne par ligne** (liens montant depuis un masque + traits se dessinant en cascade) et **animation de fermeture** qui rejoue l'inverse. Variants framer-motion dynamiques (`custom={i}`) dans `Header.tsx`. |
 | 2026-06-03 | **Menu refondu façon pointlaz, en bleu OPUS.** Layout encadré : **cadre + lignes de séparation qui se dessinent** progressivement, **grands liens à gauche**, **infos/contact à droite**, **partenaires (placeholder) en bas**, bouton ✕ pour fermer, scroll-lock Lenis. Fond bleu accent (pas noir) pour respecter OPUS. |
 | 2026-06-03 | **Hero = bannière vidéo plein cadre** (`videoLemelin.mp4`, loop/muet/autoplay) façon pointlaz, style OPUS ; texte (« Christian Lemelin » + intro + lien) révélé **après 3 s**. Remplace le hero à vidéo contenue. |
+| 2026-06-03 | **Retrait des badges et de la numérotation.** Suppression des primitives `Eyebrow` (pill point bleu + label) et `Tag` (pill outline) et de tous leurs usages (Hero, SavoirFaire, Solutions, Réalisations, Matériaux, ContactCTA) → les sections s'ouvrent directement sur leur titre. Retrait de la numérotation de section (`01`–`05`) de l'accordéon Savoir-faire et de la liste d'intro Matériaux. Bleu accent désormais réservé à la flèche `↗` et au fond de bouton (plus de point d'eyebrow). |
+| 2026-06-03 | **Page « À propos » (`/a-propos`).** Nouvelle page reprenant le layout du block shadcnblocks « about6 » : deux colonnes éditoriales décalées, grilles de 3 images (parallax `rounded-2xl`) + blocs de texte, responsive (empile sur mobile). Composants `APropos.tsx` + `app/a-propos/page.tsx`. La route `/a-propos` est celle déjà câblée dans le menu et le footer. |
+| 2026-06-03 | **Savoir-faire — titre agrandi** (`clamp(2rem,5vw,3.75rem)` → `clamp(2.5rem,6vw,4.5rem)`). L'essai d'accordéon piloté par le scroll (pin/scrub) a été **annulé** : retour à l'ouverture au clic. |
+| 2026-06-03 | **Savoir-faire → « Apple feature block » (skiper-ui Skiper76).** Refonte de la section en **plein écran noir** (`min-h-[100svh]`, **container retiré**, `data-header-theme="dark"`). **L'image englobe toute la section** (full-bleed) et fait un **crossfade façon Apple** reproduit à l'identique (mesuré via MCP Playwright : entrée depuis la droite `x:+8%`/`scale 0.92` → repos `scale 1.14` après décalage 0,16 s, **sortie glissée vers la gauche**, spring + overshoot). Par-dessus : titre + **pastilles-accordéon en verre dépoli** (`backdrop-blur`, icône `+`, dépliage description + flèche `↗`). Image **monochrome (`?grayscale`) + voiles noirs** pour un rendu **noir minimaliste** (placeholder). `motion/react` `AnimatePresence`, responsive (empile sur mobile), fallback `prefers-reduced-motion`. |
+| 2026-06-03 | **StatsBar refondu + header auto-hide.** (1) **StatsBar** : fond passé en **crème (`bg-background`, bordure retirée)** pour fusionner avec le reste, chiffres **centrés** et **animés en compteur** (count-up au scroll, formatage FR, fallback reduced-motion), plus d'**espace**, **hairlines qui se dessinent** (façon menu) pour délimiter, et **marquee de partenaires** défilant **droite→gauche** en boucle (bords fondus). (2) **Header** : **auto-hide** — se cache au scroll vers le bas, réapparaît animé au scroll vers le haut (`motion.header`). |
+| 2026-06-03 | **Savoir-faire — cadre arrondi + flèches de navigation.** Le bloc devient un **bloc arrondi inséré** (`rounded-[2.5rem]`, marge `p-3 md:p-4`) qui **laisse voir le fond crème** autour des coins. Ajout de **flèches haut/bas** (`CaretUp`/`CaretDown`, cercles en verre dépoli) pour **parcourir le carousel** de façon cyclique (centrées à droite en desktop, en haut à droite sur mobile) ; chaque navigation rejoue le crossfade Apple. |

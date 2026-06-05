@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { Eyebrow } from "@/components/ui/Eyebrow"
 
 export function ContactCTA() {
   return (
@@ -8,8 +7,7 @@ export function ContactCTA() {
       className="bg-ink py-32 text-white md:py-44"
     >
       <div className="mx-auto flex max-w-[1400px] flex-col items-center px-6 text-center md:px-12">
-        <Eyebrow dark>Contact</Eyebrow>
-        <h2 className="mt-8 max-w-[18ch] font-display text-[clamp(2.5rem,7vw,5.5rem)] font-semibold leading-[1] tracking-[-0.02em] text-white">
+        <h2 className="max-w-[18ch] font-display text-[clamp(2.5rem,7vw,5.5rem)] font-semibold leading-[1] tracking-[-0.02em] text-white">
           Un projet métal en tête ?
         </h2>
         <p className="mt-6 max-w-[46ch] text-lg leading-relaxed text-white/55">

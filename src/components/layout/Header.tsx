@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -76,10 +76,21 @@ export function Header() {
   const [open, setOpen] = useState(false)
   const [theme, setTheme] = useState<HeaderTheme>("light")
   const [scrolled, setScrolled] = useState(false)
+  const [hidden, setHidden] = useState(false)
+  const lastY = useRef(0)
 
   useEffect(() => {
     const update = () => {
-      setScrolled(window.scrollY > 24)
+      const y = window.scrollY
+      setScrolled(y > 24)
+
+      // Hide on scroll down, reveal on scroll up (small dead-zone to avoid jitter)
+      const delta = y - lastY.current
+      if (Math.abs(delta) > 6) {
+        setHidden(delta > 0 && y > 120)
+        lastY.current = y
+      }
+
       const sections = document.querySelectorAll<HTMLElement>("[data-header-theme]")
       let detected: HeaderTheme = "light"
       sections.forEach((el) => {
@@ -118,7 +129,11 @@ export function Header() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50">
+      <motion.header
+        className="fixed inset-x-0 top-0 z-50"
+        animate={{ y: hidden && !open ? "-100%" : "0%" }}
+        transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
+      >
         <div
           className={`flex h-20 items-center justify-between px-6 transition-colors duration-300 md:px-12 ${
             scrolled && !open
@@ -151,7 +166,7 @@ export function Header() {
             Menu
           </button>
         </div>
-      </header>
+      </motion.header>
 
       {/* Full-screen OPUS-blue menu — framed layout, frame/divider lines draw in.
           Big nav links on the left, info on the right, partners at the bottom. */}
@@ -162,7 +177,7 @@ export function Header() {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="fixed inset-0 z-[95] bg-accent text-white"
+            className="fixed inset-0 z-[95] bg-black text-white"
           >
             <div className="h-full w-full p-4 sm:p-6 md:p-8">
               {/* Framed canvas — outer lines draw around everything */}

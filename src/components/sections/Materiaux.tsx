@@ -5,7 +5,6 @@ import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { useReducedMotion } from "motion/react"
 import Image from "next/image"
-import { Eyebrow } from "@/components/ui/Eyebrow"
 import { ParallaxImage } from "@/components/ui/ParallaxImage"
 
 gsap.registerPlugin(ScrollTrigger)
@@ -78,8 +77,7 @@ export function Materiaux() {
       {/* Mobile: vertical stack of contained cards */}
       <div className="md:hidden">
         <div className="px-6 pb-10 pt-24">
-          <Eyebrow>Matériaux</Eyebrow>
-          <h2 className="mt-6 font-display text-[clamp(2rem,9vw,2.75rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
+          <h2 className="font-display text-[clamp(2rem,9vw,2.75rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
             Une maîtrise complète de la gamme.
           </h2>
         </div>
@@ -105,8 +103,7 @@ export function Materiaux() {
         <div ref={trackRef} className="flex h-[100dvh] items-center">
           {/* Intro panel */}
           <div className="flex h-full w-[40vw] shrink-0 flex-col justify-center px-14 xl:px-20">
-            <Eyebrow>Matériaux</Eyebrow>
-            <h2 className="mt-6 font-display text-[clamp(2.25rem,3.8vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
+            <h2 className="font-display text-[clamp(2.25rem,3.8vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
               Une maîtrise complète de la gamme.
             </h2>
             <p className="mt-6 max-w-[36ch] leading-relaxed text-foreground-muted">
@@ -114,9 +111,8 @@ export function Materiaux() {
               exigence depuis des décennies.
             </p>
             <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6">
-              {materials.map((mat, i) => (
+              {materials.map((mat) => (
                 <div key={mat.code} className="flex items-center gap-4 font-mono text-xs tracking-[0.12em]">
-                  <span className="text-foreground-muted">{String(i + 1).padStart(2, "0")}</span>
                   <span className="flex-1 text-foreground">{mat.name}</span>
                   <span className="text-foreground-muted">{mat.code}</span>
                 </div>

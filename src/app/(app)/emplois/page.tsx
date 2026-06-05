@@ -5,8 +5,6 @@ import Link from "next/link"
 import { motion } from "motion/react"
 import { useAdmin } from "@/lib/admin-context"
 import { Job } from "@/types/admin"
-import { Eyebrow } from "@/components/ui/Eyebrow"
-import { Tag } from "@/components/ui/Tag"
 import { ApplyModal } from "@/components/emplois/ApplyModal"
 
 export default function EmploisPage() {
@@ -37,7 +35,6 @@ export default function EmploisPage() {
             transition={{ duration: 0.6 }}
             className="flex flex-col items-center"
           >
-            <Eyebrow>Carrières</Eyebrow>
             <h1 className="mt-6 font-display text-[clamp(2.5rem,6vw,4rem)] font-semibold tracking-tight leading-[1.05] text-foreground">
               Rejoignez notre équipe
             </h1>
@@ -83,8 +80,6 @@ export default function EmploisPage() {
                           {job.title}
                         </h2>
                         <div className="flex flex-wrap gap-2">
-                          <Tag>{job.department}</Tag>
-                          <Tag>{getJobTypeLabel(job.type)}</Tag>
                         </div>
                       </div>
 
@@ -134,7 +129,6 @@ export default function EmploisPage() {
             transition={{ duration: 0.6 }}
             className="flex flex-col items-center"
           >
-            <Eyebrow dark>Candidature spontanée</Eyebrow>
             <h2 className="mt-6 font-display text-[clamp(1.75rem,4vw,2.75rem)] font-semibold tracking-tight leading-[1.1] text-white">
               Vous n&apos;avez pas trouvé ce que vous cherchez?
             </h2>

@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { useAdmin } from "@/lib/admin-context"
-import { Eyebrow } from "@/components/ui/Eyebrow"
 import { RealisationCard } from "@/components/realisations/RealisationCard"
 
 export default function RealisationsPage() {
@@ -13,7 +12,6 @@ export default function RealisationsPage() {
       {/* Hero */}
       <section className="border-b border-border bg-surface pt-40 pb-20">
         <div className="mx-auto max-w-[1400px] px-6 md:px-12">
-          <Eyebrow>Réalisations</Eyebrow>
           <h1 className="mt-6 max-w-[16ch] font-display text-[clamp(2.5rem,7vw,5rem)] font-semibold leading-[0.98] tracking-[-0.02em] text-foreground">
             Nos projets en métal.
           </h1>
@@ -60,7 +58,6 @@ export default function RealisationsPage() {
       {/* Contact CTA */}
       <section className="bg-ink px-6 py-24 text-white">
         <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          <Eyebrow dark>Votre projet</Eyebrow>
           <h2 className="mt-6 font-display text-[clamp(1.75rem,4vw,2.75rem)] font-semibold leading-[1.1] tracking-tight text-white">
             Un projet en métal en tête?
           </h2>

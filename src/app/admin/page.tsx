@@ -7,7 +7,6 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { useAdmin } from "@/lib/admin-context";
-import { Eyebrow } from "@/components/ui/Eyebrow";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -61,7 +60,6 @@ export default function AdminLoginPage() {
             priority
             className="h-9 w-auto mb-8"
           />
-          <Eyebrow>Espace admin</Eyebrow>
           <h1 className="mt-5 font-display text-4xl font-semibold tracking-tight text-foreground">
             Connexion
           </h1>

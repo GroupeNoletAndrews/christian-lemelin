@@ -25,7 +25,12 @@ export function Realisations() {
         {pinned.length > 0 ? (
           <div className="mt-14 gap-6 [column-fill:_balance] sm:columns-2 lg:columns-3">
             {pinned.map((r, i) => (
-              <RealisationCard key={r.id} realisation={r} index={i} />
+              <RealisationCard
+                key={r.id}
+                realisation={r}
+                index={i}
+                href={`/realisations?featured=${r.id}`}
+              />
             ))}
           </div>
         ) : (

@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 import { RealisationsGallery } from "@/components/realisations/RealisationsGallery"
 import { ContactCTA } from "@/components/sections/ContactCTA"
 
@@ -24,7 +25,9 @@ export default function RealisationsPage() {
         </div>
       </section>
 
-      <RealisationsGallery />
+      <Suspense>
+        <RealisationsGallery />
+      </Suspense>
 
       <ContactCTA
         heading="Un projet en métal en tête ?"

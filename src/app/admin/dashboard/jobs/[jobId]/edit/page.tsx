@@ -72,7 +72,9 @@ export default function JobFormPage() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (
@@ -85,16 +87,21 @@ export default function JobFormPage() {
       return;
     }
 
-    if (isEditMode && jobId) {
-      updateJob(jobId, {
-        ...formData,
-        updatedAt: new Date(),
-      });
-    } else {
-      addJob(formData);
+    setIsSaving(true);
+    try {
+      if (isEditMode && jobId) {
+        await updateJob(jobId, {
+          ...formData,
+          updatedAt: new Date(),
+        });
+      } else {
+        await addJob(formData);
+      }
+      router.push("/admin/dashboard");
+    } catch {
+      alert("L'enregistrement a échoué. Veuillez réessayer.");
+      setIsSaving(false);
     }
-
-    router.push("/admin/dashboard");
   };
 
   const labelClass =
@@ -256,7 +263,8 @@ export default function JobFormPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-6 py-3 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors font-sans text-sm font-medium active:scale-[0.99]"
+                    disabled={isSaving}
+                    className="flex-1 px-6 py-3 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors font-sans text-sm font-medium active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isEditMode ? "Mettre à jour" : "Créer"} l&apos;emploi
                   </button>

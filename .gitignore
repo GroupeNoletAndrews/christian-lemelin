@@ -1,6 +1,6 @@
-# Nestjs specific
-/dist
-/node_modules
+
+node_modules
+dist
 /build
 /tmp
 
@@ -15,11 +15,14 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# dotenv environment variable files
+# dotenv environment variable files (keep *.example committed)
 .env
 .env.development
 .env.test
 .env.production
+.env.local
+.env.prod
+.env.docker
 
 
 
@@ -27,4 +30,7 @@ lerna-debug.log*
 .temp
 .tmp
 
-
+# Playwright / e2e artifacts
+/test-results
+/playwright-report
+/playwright/.cache

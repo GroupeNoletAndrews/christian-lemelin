@@ -58,7 +58,7 @@ export default function RealisationFormPage() {
   const pinLimitReached = otherPinned >= maxPinned;
   const canPin = !pinLimitReached;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -77,13 +77,16 @@ export default function RealisationFormPage() {
       pinned: pinned && canPin,
     };
 
-    if (isEditMode && id) {
-      updateRealisation(id, data);
-    } else {
-      addRealisation(data);
+    try {
+      if (isEditMode && id) {
+        await updateRealisation(id, data);
+      } else {
+        await addRealisation(data);
+      }
+      router.push("/admin/dashboard#realisations");
+    } catch {
+      setError("L'enregistrement a échoué. Veuillez réessayer.");
     }
-
-    router.push("/admin/dashboard#realisations");
   };
 
   const labelClass =

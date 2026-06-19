@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, CheckCircle, Paperclip } from "@phosphor-icons/react";
 import { Job } from "@/types/admin";
+import { api } from "@/lib/api";
 
 interface ApplyModalProps {
   job: Job | null;
@@ -13,6 +14,8 @@ interface ApplyModalProps {
 export function ApplyModal({ job, onClose }: ApplyModalProps) {
   const [submitted, setSubmitted] = useState(false);
   const [fileName, setFileName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Reset state whenever a new job is opened
@@ -20,6 +23,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
     if (job) {
       setSubmitted(false);
       setFileName("");
+      setError("");
     }
   }, [job]);
 
@@ -38,10 +42,23 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
     };
   }, [job, onClose]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // No backend yet — just acknowledge the application.
-    setSubmitted(true);
+    if (!job) return;
+    setError("");
+    setSubmitting(true);
+    try {
+      const fd = new FormData(e.currentTarget);
+      fd.append("jobId", job.id);
+      const file = fileRef.current?.files?.[0];
+      if (file) fd.append("cv", file);
+      await api.applications.create(fd);
+      setSubmitted(true);
+    } catch {
+      setError("L'envoi a échoué. Veuillez réessayer.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const labelClass =
@@ -122,6 +139,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                     </label>
                     <input
                       id="ap-name"
+                      name="name"
                       type="text"
                       required
                       placeholder="Votre nom"
@@ -136,6 +154,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                       </label>
                       <input
                         id="ap-email"
+                        name="email"
                         type="email"
                         required
                         placeholder="vous@exemple.com"
@@ -151,6 +170,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                       </label>
                       <input
                         id="ap-phone"
+                        name="phone"
                         type="tel"
                         placeholder="418 000-0000"
                         className={fieldClass}
@@ -167,6 +187,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                     </label>
                     <textarea
                       id="ap-message"
+                      name="message"
                       rows={4}
                       placeholder="Parlez-nous de votre expérience..."
                       className={`${fieldClass} resize-none`}
@@ -200,11 +221,18 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                     />
                   </div>
 
+                  {error && (
+                    <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                      {error}
+                    </p>
+                  )}
+
                   <button
                     type="submit"
-                    className="w-full rounded-full bg-accent px-6 py-3 font-sans text-sm font-medium text-white transition-colors hover:bg-accent-hover active:scale-[0.99]"
+                    disabled={submitting}
+                    className="w-full rounded-full bg-accent px-6 py-3 font-sans text-sm font-medium text-white transition-colors hover:bg-accent-hover active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Envoyer ma candidature
+                    {submitting ? "Envoi..." : "Envoyer ma candidature"}
                   </button>
                 </form>
               </>

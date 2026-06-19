@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { Plus } from "@phosphor-icons/react"
 import { useAdmin } from "@/lib/admin-context"
@@ -32,6 +32,12 @@ export function JobAccordion() {
   const reduce = useReducedMotion()
   const [openId, setOpenId] = useState<string | null>(jobs[0]?.id ?? null)
   const [applyJob, setApplyJob] = useState<Job | null>(null)
+
+  // Jobs hydrate asynchronously from the API; open the first one once it lands
+  // (without clobbering a choice the user already made).
+  useEffect(() => {
+    setOpenId((cur) => cur ?? jobs[0]?.id ?? null)
+  }, [jobs])
 
   if (jobs.length === 0) {
     return (

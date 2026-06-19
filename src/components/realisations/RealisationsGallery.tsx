@@ -1,5 +1,7 @@
 "use client"
 
+import { useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { motion, useReducedMotion } from "motion/react"
 import { useAdmin } from "@/lib/admin-context"
 import { RealisationCard } from "@/components/realisations/RealisationCard"
@@ -10,11 +12,17 @@ import { ArrowLink } from "@/components/ui/ArrowLink"
 const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 // Galerie éditoriale : projet vedette plein cadre + masonry pour le reste.
-// Robuste à un nombre N dynamique (contexte admin / localStorage, hydraté après
-// mount) : gère N=0 (état vide), N=1 (vedette seule), N≥2 (vedette + masonry).
+// La vedette suit l'ordre admin (position) par défaut ; on peut arriver avec
+// ?featured=<id> (clic depuis l'accueil) et cliquer un autre projet pour le
+// passer en grand. Robuste à N dynamique (N=0 vide, N=1 vedette seule, N≥2).
 export function RealisationsGallery() {
   const { realisations } = useAdmin()
   const reduce = useReducedMotion()
+  const params = useSearchParams()
+  const [featuredId, setFeaturedId] = useState<string | null>(
+    params.get("featured"),
+  )
+  const topRef = useRef<HTMLDivElement>(null)
 
   if (realisations.length === 0) {
     return (
@@ -34,18 +42,27 @@ export function RealisationsGallery() {
     )
   }
 
-  const items = [...realisations].sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-  )
-  const lead = items[0]
-  const rest = items.slice(1)
+  // Already in the admin-defined order (position) as returned by the API.
+  const items = realisations
+  const lead = items.find((r) => r.id === featuredId) ?? items[0]
+  const rest = items.filter((r) => r.id !== lead.id)
   const leadCover = lead.images[0] || ""
+
+  const feature = (id: string) => {
+    setFeaturedId(id)
+    topRef.current?.scrollIntoView({
+      behavior: reduce ? "auto" : "smooth",
+      block: "start",
+    })
+  }
 
   return (
     <section className="bg-background pb-24 pt-4 md:pb-32">
       <div className="mx-auto max-w-[1400px] px-6 md:px-12">
-        {/* Projet vedette */}
+        {/* Projet vedette (re-anime au changement via key) */}
         <motion.div
+          ref={topRef}
+          key={lead.id}
           initial={reduce ? undefined : { opacity: 0, scale: 1.02 }}
           animate={reduce ? undefined : { opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, ease: EASE_OUT }}
@@ -68,7 +85,7 @@ export function RealisationsGallery() {
           </div>
         </motion.div>
 
-        {/* Reste — masonry */}
+        {/* Reste — masonry (clic = passe en vedette) */}
         {rest.length > 0 && (
           <>
             <div className="mb-10 mt-16 flex items-baseline justify-between gap-4">
@@ -82,7 +99,12 @@ export function RealisationsGallery() {
             <DrawLine className="mb-10" />
             <div className="gap-6 [column-fill:_balance] sm:columns-2 lg:columns-3">
               {rest.map((r, i) => (
-                <RealisationCard key={r.id} realisation={r} index={i + 1} />
+                <RealisationCard
+                  key={r.id}
+                  realisation={r}
+                  index={i + 1}
+                  onSelect={() => feature(r.id)}
+                />
               ))}
             </div>
           </>

@@ -5,20 +5,27 @@ import React, {
   useContext,
   useState,
   useEffect,
-  useRef,
+  useCallback,
   ReactNode,
 } from "react"
 import { Job, Realisation, MAX_PINNED_REALISATIONS } from "@/types/admin"
+import {
+  api,
+  ApiError,
+  ApiJob,
+  ApiRealisation,
+  setAuthToken,
+} from "@/lib/api"
 
 interface AdminContextType {
   isAuthenticated: boolean
   username: string
   jobs: Job[]
-  login: (username: string, password: string) => boolean
+  login: (username: string, password: string) => Promise<boolean>
   logout: () => void
-  addJob: (job: Omit<Job, "id" | "createdAt" | "updatedAt">) => void
-  updateJob: (id: string, job: Omit<Job, "id" | "createdAt">) => void
-  deleteJob: (id: string) => void
+  addJob: (job: Omit<Job, "id" | "createdAt" | "updatedAt">) => Promise<void>
+  updateJob: (id: string, job: Omit<Job, "id" | "createdAt">) => Promise<void>
+  deleteJob: (id: string) => Promise<void>
   getJob: (id: string) => Job | undefined
   // Réalisations
   realisations: Realisation[]
@@ -26,260 +33,215 @@ interface AdminContextType {
   maxPinned: number
   addRealisation: (
     data: Omit<Realisation, "id" | "createdAt" | "updatedAt">
-  ) => void
+  ) => Promise<void>
   updateRealisation: (
     id: string,
     data: Omit<Realisation, "id" | "createdAt" | "updatedAt">
-  ) => void
-  deleteRealisation: (id: string) => void
+  ) => Promise<void>
+  deleteRealisation: (id: string) => Promise<void>
   getRealisation: (id: string) => Realisation | undefined
   /** Toggle pinned state. Returns false if it would exceed the pin limit. */
-  togglePinned: (id: string) => boolean
+  togglePinned: (id: string) => Promise<boolean>
+  /** Move a réalisation one step earlier ("up") or later ("down") in the order. */
+  moveRealisation: (id: string, direction: "up" | "down") => Promise<void>
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined)
 
-const REALISATIONS_STORAGE_KEY = "ecl_realisations_v3"
+// ---- Revive API payloads (ISO date strings) into the app's Date-based types ----
 
-// Dummy data for initial jobs
-const DUMMY_JOBS: Job[] = [
-  {
-    id: "1",
-    title: "Ingénieur Fabrication Métallique",
-    description:
-      "Nous cherchons un ingénieur expérimenté en fabrication métallique pour rejoindre notre équipe. Responsable du design et de l'optimisation des processus de production.",
-    location: "Québec, QC",
-    type: "full-time",
-    department: "Ingénierie",
-    salary: "65 000 - 85 000 $/an",
-    createdAt: new Date("2025-12-01"),
-    updatedAt: new Date("2025-12-01"),
-  },
-  {
-    id: "2",
-    title: "Soudeur Qualifié",
-    description:
-      "Recherchons soudeur TIG/MIG avec au moins 5 ans d'expérience. Travail sur inox, acier et aluminium.",
-    location: "Québec, QC",
-    type: "full-time",
-    department: "Production",
-    salary: "55 000 - 70 000 $/an",
-    createdAt: new Date("2025-11-15"),
-    updatedAt: new Date("2025-11-15"),
-  },
-]
+function reviveJob(j: ApiJob): Job {
+  return {
+    id: j.id,
+    title: j.title,
+    description: j.description,
+    location: j.location,
+    type: j.type as Job["type"],
+    department: j.department,
+    salary: j.salary,
+    createdAt: new Date(j.createdAt),
+    updatedAt: new Date(j.updatedAt),
+  }
+}
 
-// Seed réalisations — real project photos (public/assets). Names are
-// descriptive placeholders based on the photo content; remplacer par les
-// vrais titres de projet au besoin.
-const DUMMY_REALISATIONS: Realisation[] = [
-  // --- 6 pinned (shown on the home page) ---
-  {
-    id: "r1",
-    name: "Mobilier hospitalier en inox",
-    images: [
-      "/assets/1780581925672-IMG_1281.jpeg",
-      "/assets/1780581931474-IMG_1280.jpeg",
-    ],
-    pinned: true,
-    createdAt: new Date("2025-10-01"),
-    updatedAt: new Date("2025-10-01"),
-  },
-  {
-    id: "r2",
-    name: "Bar lounge — hôtellerie",
-    images: [
-      "/assets/1780581840629-IMG_1294.jpeg",
-      "/assets/1780581884668-IMG_1288.jpeg",
-    ],
-    pinned: true,
-    createdAt: new Date("2025-09-12"),
-    updatedAt: new Date("2025-09-12"),
-  },
-  {
-    id: "r3",
-    name: "Bar circulaire en laiton",
-    images: ["/assets/1780581873317-IMG_1291.jpeg"],
-    pinned: true,
-    createdAt: new Date("2025-08-20"),
-    updatedAt: new Date("2025-08-20"),
-  },
-  {
-    id: "r4",
-    name: "Aménagement de restaurant",
-    images: ["/assets/1780581850553-IMG_1293.jpeg"],
-    pinned: true,
-    createdAt: new Date("2025-07-30"),
-    updatedAt: new Date("2025-07-30"),
-  },
-  {
-    id: "r5",
-    name: "Cuisine extérieure sur mesure",
-    images: ["/assets/1780581936961-IMG_1277.jpeg"],
-    pinned: true,
-    createdAt: new Date("2025-07-05"),
-    updatedAt: new Date("2025-07-05"),
-  },
-  {
-    id: "r6",
-    name: "Escalier & structure d'atelier",
-    images: ["/assets/1780581858443-IMG_1292.jpeg"],
-    pinned: true,
-    createdAt: new Date("2025-06-18"),
-    updatedAt: new Date("2025-06-18"),
-  },
-]
-
-function reviveRealisations(raw: string): Realisation[] | null {
-  try {
-    const parsed = JSON.parse(raw) as Realisation[]
-    if (!Array.isArray(parsed)) return null
-    return parsed.map((r) => ({
-      ...r,
-      createdAt: new Date(r.createdAt),
-      updatedAt: new Date(r.updatedAt),
-      images: Array.isArray(r.images) ? r.images : [],
-    }))
-  } catch {
-    return null
+function reviveRealisation(r: ApiRealisation): Realisation {
+  return {
+    id: r.id,
+    name: r.name,
+    images: Array.isArray(r.images) ? r.images : [],
+    pinned: r.pinned,
+    createdAt: new Date(r.createdAt),
+    updatedAt: new Date(r.updatedAt),
   }
 }
 
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [username, setUsername] = useState("")
-  const [jobs, setJobs] = useState<Job[]>(DUMMY_JOBS)
-  const [realisations, setRealisations] =
-    useState<Realisation[]>(DUMMY_REALISATIONS)
-  const hydrated = useRef(false)
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [realisations, setRealisations] = useState<Realisation[]>([])
 
-  // Load persisted réalisations on mount
+  // Hydrate public data from the backend on mount.
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(REALISATIONS_STORAGE_KEY)
-      if (stored) {
-        const revived = reviveRealisations(stored)
-        if (revived) setRealisations(revived)
-      }
-    } catch {
-      // localStorage unavailable — fall back to in-memory seed
+    let cancelled = false
+    api.jobs
+      .list()
+      .then((rows) => {
+        if (!cancelled) setJobs(rows.map(reviveJob))
+      })
+      .catch((e) => console.warn("Chargement des emplois impossible:", e))
+    api.realisations
+      .list()
+      .then((rows) => {
+        if (!cancelled) setRealisations(rows.map(reviveRealisation))
+      })
+      .catch((e) => console.warn("Chargement des réalisations impossible:", e))
+    return () => {
+      cancelled = true
     }
-    hydrated.current = true
   }, [])
 
-  // Persist réalisations after hydration
-  useEffect(() => {
-    if (!hydrated.current) return
+  const login = useCallback(async (user: string, password: string) => {
     try {
-      window.localStorage.setItem(
-        REALISATIONS_STORAGE_KEY,
-        JSON.stringify(realisations)
-      )
-    } catch {
-      // Most likely QuotaExceededError — too many/large images for localStorage
-      console.warn(
-        "Impossible d'enregistrer les réalisations (quota du navigateur dépassé). " +
-          "Réduisez le nombre ou la taille des images."
-      )
-    }
-  }, [realisations])
-
-  const login = (user: string, password: string) => {
-    // Frontend only - any credentials work
-    if (user && password) {
+      const { token, username: name } = await api.auth.login(user, password)
+      setAuthToken(token)
       setIsAuthenticated(true)
-      setUsername(user)
+      setUsername(name)
       return true
+    } catch (e) {
+      // 401 = wrong username/password → return false (caller shows that).
+      if (e instanceof ApiError && e.status === 401) return false
+      // Anything else (API down, network, CORS, 5xx) is NOT a credential
+      // problem — re-throw so the caller can show a distinct message.
+      throw e
     }
-    return false
-  }
+  }, [])
 
-  const logout = () => {
+  const logout = useCallback(() => {
+    setAuthToken(null)
     setIsAuthenticated(false)
     setUsername("")
-  }
+  }, [])
 
-  const addJob = (jobData: Omit<Job, "id" | "createdAt" | "updatedAt">) => {
-    const newJob: Job = {
-      ...jobData,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
-    setJobs([...jobs, newJob])
-  }
+  // --- Jobs ---
+  const addJob = useCallback(
+    async (jobData: Omit<Job, "id" | "createdAt" | "updatedAt">) => {
+      const created = await api.jobs.create({
+        title: jobData.title,
+        description: jobData.description,
+        location: jobData.location,
+        type: jobData.type,
+        department: jobData.department,
+        salary: jobData.salary,
+      })
+      setJobs((prev) => [reviveJob(created), ...prev])
+    },
+    []
+  )
 
-  const updateJob = (id: string, jobData: Omit<Job, "id" | "createdAt">) => {
-    setJobs(
-      jobs.map((job) =>
-        job.id === id
-          ? {
-              ...jobData,
-              id,
-              createdAt: job.createdAt,
-            }
-          : job
-      )
-    )
-  }
+  const updateJob = useCallback(
+    async (id: string, jobData: Omit<Job, "id" | "createdAt">) => {
+      const updated = await api.jobs.update(id, {
+        title: jobData.title,
+        description: jobData.description,
+        location: jobData.location,
+        type: jobData.type,
+        department: jobData.department,
+        salary: jobData.salary,
+      })
+      setJobs((prev) => prev.map((j) => (j.id === id ? reviveJob(updated) : j)))
+    },
+    []
+  )
 
-  const deleteJob = (id: string) => {
-    setJobs(jobs.filter((job) => job.id !== id))
-  }
+  const deleteJob = useCallback(async (id: string) => {
+    await api.jobs.remove(id)
+    setJobs((prev) => prev.filter((j) => j.id !== id))
+  }, [])
 
-  const getJob = (id: string) => {
-    return jobs.find((job) => job.id === id)
-  }
+  const getJob = useCallback(
+    (id: string) => jobs.find((job) => job.id === id),
+    [jobs]
+  )
 
   // --- Réalisations ---
   const pinnedCount = realisations.filter((r) => r.pinned).length
 
-  const addRealisation = (
-    data: Omit<Realisation, "id" | "createdAt" | "updatedAt">
-  ) => {
-    const capped =
-      data.pinned && pinnedCount >= MAX_PINNED_REALISATIONS
-        ? { ...data, pinned: false }
-        : data
-    const now = new Date()
-    setRealisations((prev) => [
-      ...prev,
-      { ...capped, id: now.getTime().toString(), createdAt: now, updatedAt: now },
-    ])
-  }
+  const addRealisation = useCallback(
+    async (data: Omit<Realisation, "id" | "createdAt" | "updatedAt">) => {
+      const created = await api.realisations.create({
+        name: data.name,
+        images: data.images,
+        pinned: data.pinned,
+      })
+      // New réalisations go to the end (matches the backend's position order).
+      setRealisations((prev) => [...prev, reviveRealisation(created)])
+    },
+    []
+  )
 
-  const updateRealisation = (
-    id: string,
-    data: Omit<Realisation, "id" | "createdAt" | "updatedAt">
-  ) => {
-    setRealisations((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? { ...data, id, createdAt: r.createdAt, updatedAt: new Date() }
-          : r
+  const updateRealisation = useCallback(
+    async (
+      id: string,
+      data: Omit<Realisation, "id" | "createdAt" | "updatedAt">
+    ) => {
+      const updated = await api.realisations.update(id, {
+        name: data.name,
+        images: data.images,
+        pinned: data.pinned,
+      })
+      setRealisations((prev) =>
+        prev.map((r) => (r.id === id ? reviveRealisation(updated) : r))
       )
-    )
-  }
+    },
+    []
+  )
 
-  const deleteRealisation = (id: string) => {
+  const deleteRealisation = useCallback(async (id: string) => {
+    await api.realisations.remove(id)
     setRealisations((prev) => prev.filter((r) => r.id !== id))
-  }
+  }, [])
 
-  const getRealisation = (id: string) => realisations.find((r) => r.id === id)
+  const getRealisation = useCallback(
+    (id: string) => realisations.find((r) => r.id === id),
+    [realisations]
+  )
 
-  const togglePinned = (id: string) => {
-    const target = realisations.find((r) => r.id === id)
-    if (!target) return false
-    if (!target.pinned && pinnedCount >= MAX_PINNED_REALISATIONS) {
-      return false
-    }
-    setRealisations((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, pinned: !r.pinned, updatedAt: new Date() } : r
+  const togglePinned = useCallback(async (id: string) => {
+    try {
+      const updated = await api.realisations.togglePin(id)
+      setRealisations((prev) =>
+        prev.map((r) => (r.id === id ? reviveRealisation(updated) : r))
       )
-    )
-    return true
-  }
+      return true
+    } catch (e) {
+      // 409 → pin limit reached (caller shows the limit alert).
+      if (e instanceof ApiError && e.status === 409) return false
+      // Any other failure (auth/network/500) is a real error — surface it.
+      throw e
+    }
+  }, [])
+
+  const moveRealisation = useCallback(
+    async (id: string, direction: "up" | "down") => {
+      const idx = realisations.findIndex((r) => r.id === id)
+      if (idx === -1) return
+      const swapWith = direction === "up" ? idx - 1 : idx + 1
+      if (swapWith < 0 || swapWith >= realisations.length) return
+
+      const previous = realisations
+      const next = [...realisations]
+      ;[next[idx], next[swapWith]] = [next[swapWith], next[idx]]
+      setRealisations(next) // optimistic
+      try {
+        await api.realisations.reorder(next.map((r) => r.id))
+      } catch (e) {
+        console.error("Réordonnancement échoué:", e)
+        setRealisations(previous) // revert
+      }
+    },
+    [realisations]
+  )
 
   return (
     <AdminContext.Provider
@@ -301,6 +263,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         deleteRealisation,
         getRealisation,
         togglePinned,
+        moveRealisation,
       }}
     >
       {children}

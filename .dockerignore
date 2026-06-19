@@ -1,0 +1,19 @@
+# Frontend build context (repo root). Exclude the backend service, deps, and
+# everything not needed to build the Next app.
+node_modules
+.next
+.git
+.gitignore
+backend
+e2e
+playwright.config.ts
+playwright-report
+test-results
+scripts
+npm-debug.log*
+.env
+.env.*
+README.md
+Dockerfile
+.dockerignore
+docker-compose.yml

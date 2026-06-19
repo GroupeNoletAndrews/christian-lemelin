@@ -7,6 +7,7 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { useAdmin } from "@/lib/admin-context";
+import { ApiError } from "@/lib/api";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -21,15 +22,26 @@ export default function AdminLoginPage() {
     setError("");
     setIsLoading(true);
 
-    // Simulate network delay
-    setTimeout(() => {
-      if (login(username, password)) {
+    try {
+      const ok = await login(username, password);
+      if (ok) {
         router.push("/admin/dashboard");
-      } else {
-        setError("Identifiants invalides");
-        setIsLoading(false);
+        return;
       }
-    }, 500);
+      setError("Identifiants invalides");
+    } catch (err) {
+      // The server WAS reached but returned an error (e.g. 400/500): show a
+      // generic message. A thrown non-ApiError means the request never reached
+      // the backend (down / CORS / network).
+      if (err instanceof ApiError) {
+        setError("Une erreur est survenue. Veuillez réessayer.");
+      } else {
+        setError(
+          "Impossible de joindre le serveur. Vérifiez que l'API backend est démarrée (port 3001)."
+        );
+      }
+    }
+    setIsLoading(false);
   };
 
   const inputClass =
@@ -134,7 +146,7 @@ export default function AdminLoginPage() {
           {/* Demo credentials */}
           <div className="mt-6 pt-6 border-t border-border">
             <p className="text-xs text-foreground-muted font-sans text-center mb-3">
-              Mode développement — utilisez n&apos;importe quels identifiants
+              Identifiants par défaut (modifiable côté serveur)
             </p>
             <div className="bg-background border border-border rounded-lg p-3 text-xs font-mono text-foreground-muted text-center">
               admin / password

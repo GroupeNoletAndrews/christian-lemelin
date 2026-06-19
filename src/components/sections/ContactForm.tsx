@@ -2,11 +2,34 @@
 
 import { useState } from "react"
 import { CheckCircle } from "@phosphor-icons/react"
+import { api } from "@/lib/api"
 
-// Formulaire de contact — pas de backend pour l'instant : accuse réception.
+// Formulaire de contact — envoie au backend (POST /contact).
 // Réutilise les styles de champ d'ApplyModal pour rester cohérent.
 export function ContactForm() {
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState("")
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setError("")
+    setSubmitting(true)
+    try {
+      const fd = new FormData(e.currentTarget)
+      await api.contact.create({
+        name: String(fd.get("name") ?? ""),
+        email: String(fd.get("email") ?? ""),
+        phone: (fd.get("phone") as string) || undefined,
+        message: String(fd.get("message") ?? ""),
+      })
+      setSubmitted(true)
+    } catch {
+      setError("L'envoi a échoué. Veuillez réessayer.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const labelClass =
     "mb-2 block font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted"
@@ -30,10 +53,7 @@ export function ContactForm() {
 
   return (
     <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        setSubmitted(true)
-      }}
+      onSubmit={handleSubmit}
       className="rounded-2xl border border-border bg-surface p-6 md:p-8"
     >
       <div className="space-y-5">
@@ -41,7 +61,7 @@ export function ContactForm() {
           <label htmlFor="ct-name" className={labelClass}>
             Nom complet <span className="text-accent">*</span>
           </label>
-          <input id="ct-name" type="text" required placeholder="Votre nom" className={fieldClass} />
+          <input id="ct-name" name="name" type="text" required placeholder="Votre nom" className={fieldClass} />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -50,6 +70,7 @@ export function ContactForm() {
             </label>
             <input
               id="ct-email"
+              name="email"
               type="email"
               required
               placeholder="vous@exemple.com"
@@ -61,7 +82,7 @@ export function ContactForm() {
               Téléphone{" "}
               <span className="normal-case tracking-normal text-foreground-muted">(optionnel)</span>
             </label>
-            <input id="ct-phone" type="tel" placeholder="(418) 000-0000" className={fieldClass} />
+            <input id="ct-phone" name="phone" type="tel" placeholder="(418) 000-0000" className={fieldClass} />
           </div>
         </div>
         <div>
@@ -70,17 +91,24 @@ export function ContactForm() {
           </label>
           <textarea
             id="ct-message"
+            name="message"
             required
             rows={5}
             placeholder="Décrivez votre projet, vos matériaux et vos échéances…"
             className={`${fieldClass} resize-none`}
           />
         </div>
+        {error && (
+          <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+            {error}
+          </p>
+        )}
         <button
           type="submit"
-          className="w-full rounded-full bg-accent px-6 py-3.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover active:scale-[0.99]"
+          disabled={submitting}
+          className="w-full rounded-full bg-accent px-6 py-3.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Envoyer le message
+          {submitting ? "Envoi..." : "Envoyer le message"}
         </button>
       </div>
     </form>

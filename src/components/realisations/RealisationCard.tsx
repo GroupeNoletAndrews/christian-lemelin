@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import {
   motion,
   useScroll,
@@ -27,10 +28,16 @@ export function RealisationCard({
   realisation,
   index = 0,
   ratio,
+  href,
+  onSelect,
 }: {
   realisation: Realisation
   index?: number
   ratio?: string
+  /** If set, the card links here (e.g. /realisations?featured=id). */
+  href?: string
+  /** If set, clicking the card calls this (e.g. feature it in place). */
+  onSelect?: () => void
 }) {
   const cardRatio = ratio ?? RATIOS[index % RATIOS.length]
   const images = realisation.images.length ? realisation.images : [""]
@@ -62,7 +69,7 @@ export function RealisationCard({
     stop()
     timer.current = setInterval(() => {
       setActive((i) => (i + 1) % images.length)
-    }, 3000)
+    }, 1800)
   }
 
   const reset = () => {
@@ -83,46 +90,70 @@ export function RealisationCard({
       onMouseEnter={start}
       onMouseLeave={reset}
     >
-      <div
-        ref={frameRef}
-        className={`relative ${cardRatio} overflow-hidden rounded-2xl border border-border bg-surface-elevated`}
-      >
-        {/* Oversized, parallax-translating image stack (carousel) */}
-        <motion.div
-          style={{ y: reduce ? 0 : y }}
-          className="absolute inset-x-0 -top-[35%] h-[170%] will-change-transform"
-        >
-          {images.map((src, i) =>
-            src ? (
-              <Image
-                key={i}
-                src={src}
-                alt={realisation.name}
-                fill
-                unoptimized
-                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                className={`object-cover transition-opacity duration-500 ${
-                  i === active ? "opacity-100" : "opacity-0"
-                }`}
-              />
-            ) : null
-          )}
-        </motion.div>
+      {(() => {
+        const frame = (
+          <div
+            ref={frameRef}
+            className={`relative ${cardRatio} overflow-hidden rounded-2xl border border-border bg-surface-elevated`}
+          >
+            {/* Oversized, parallax-translating image stack (carousel) */}
+            <motion.div
+              style={{ y: reduce ? 0 : y }}
+              className="absolute inset-x-0 -top-[35%] h-[170%] will-change-transform"
+            >
+              {images.map((src, i) =>
+                src ? (
+                  <Image
+                    key={i}
+                    src={src}
+                    alt={realisation.name}
+                    fill
+                    unoptimized
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className={`object-cover transition-opacity duration-500 ${
+                      i === active ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
+                ) : null
+              )}
+            </motion.div>
 
-        {/* Carousel indicator (fixed on the frame, not parallaxed) */}
-        {images.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 flex gap-1.5">
-            {images.map((_, i) => (
-              <span
-                key={i}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i === active ? "w-4 bg-white" : "w-1.5 bg-white/50"
-                }`}
-              />
-            ))}
+            {/* Carousel indicator (fixed on the frame, not parallaxed) */}
+            {images.length > 1 && (
+              <div className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 flex gap-1.5">
+                {images.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      i === active ? "w-4 bg-white" : "w-1.5 bg-white/50"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        )
+        if (href) {
+          return (
+            <Link href={href} aria-label={realisation.name} className="block cursor-pointer">
+              {frame}
+            </Link>
+          )
+        }
+        if (onSelect) {
+          return (
+            <button
+              type="button"
+              onClick={onSelect}
+              aria-label={realisation.name}
+              className="block w-full cursor-pointer text-left"
+            >
+              {frame}
+            </button>
+          )
+        }
+        return frame
+      })()}
 
       <div className="mt-4">
         <h3 className="font-display text-xl font-medium leading-tight text-foreground">

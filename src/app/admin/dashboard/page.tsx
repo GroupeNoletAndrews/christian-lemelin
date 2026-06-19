@@ -11,6 +11,7 @@ import {
   Plus,
   SignOut,
   ArrowLeft,
+  ArrowRight,
   PushPin,
   ImageSquare,
 } from "@phosphor-icons/react";
@@ -38,6 +39,7 @@ export default function AdminDashboard() {
     maxPinned,
     togglePinned,
     deleteRealisation,
+    moveRealisation,
   } = useAdmin();
 
   // Land on the réalisations tab when returning from a réalisation action
@@ -64,23 +66,36 @@ export default function AdminDashboard() {
     router.push("/admin");
   };
 
-  const handleDeleteJob = (id: string) => {
+  const handleDeleteJob = async (id: string) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer ce poste?")) {
-      deleteJob(id);
+      try {
+        await deleteJob(id);
+      } catch {
+        window.alert("La suppression a échoué. Veuillez réessayer.");
+      }
     }
   };
 
-  const handleDeleteRealisation = (id: string) => {
+  const handleDeleteRealisation = async (id: string) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer cette réalisation?")) {
-      deleteRealisation(id);
+      try {
+        await deleteRealisation(id);
+      } catch {
+        window.alert("La suppression a échoué. Veuillez réessayer.");
+      }
     }
   };
 
-  const handleTogglePin = (id: string) => {
-    if (!togglePinned(id)) {
-      window.alert(
-        `Limite atteinte : un maximum de ${maxPinned} réalisations peuvent être épinglées à l'accueil.`
-      );
+  const handleTogglePin = async (id: string) => {
+    try {
+      const ok = await togglePinned(id);
+      if (!ok) {
+        window.alert(
+          `Limite atteinte : un maximum de ${maxPinned} réalisations peuvent être épinglées à l'accueil.`
+        );
+      }
+    } catch {
+      window.alert("L'action a échoué. Veuillez réessayer.");
     }
   };
 
@@ -173,6 +188,7 @@ export default function AdminDashboard() {
             realisations={realisations}
             onTogglePin={handleTogglePin}
             onDelete={handleDeleteRealisation}
+            onMove={moveRealisation}
           />
         )}
       </main>
@@ -248,9 +264,11 @@ function JobsPanel({
                     <td className="px-6 py-4">
                       <p className="font-sans font-medium text-foreground">{job.title}</p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 font-sans text-foreground-muted">
+                      {job.department}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 font-sans text-foreground-muted">
+                      {typeLabel(job.type)}
                     </td>
                     <td className="px-6 py-4 font-sans text-foreground-muted">
                       {job.location}
@@ -290,10 +308,12 @@ function RealisationsPanel({
   realisations,
   onTogglePin,
   onDelete,
+  onMove,
 }: {
   realisations: ReturnType<typeof useAdmin>["realisations"];
   onTogglePin: (id: string) => void;
   onDelete: (id: string) => void;
+  onMove: (id: string, direction: "up" | "down") => void;
 }) {
   return (
     <div>
@@ -328,9 +348,13 @@ function RealisationsPanel({
           {realisations.map((r, index) => (
             <motion.div
               key={r.id}
+              layout
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
+              transition={{
+                delay: index * 0.05,
+                layout: { type: "spring", stiffness: 600, damping: 44 },
+              }}
               className="bg-surface rounded-2xl border border-border overflow-hidden flex flex-col"
             >
               <div className="relative aspect-[4/3] bg-surface-elevated">
@@ -367,7 +391,23 @@ function RealisationsPanel({
                   </h3>
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    onClick={() => onMove(r.id, "up")}
+                    disabled={index === 0}
+                    aria-label="Déplacer avant"
+                    className="p-2 rounded-lg text-foreground hover:bg-surface-elevated transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                  <button
+                    onClick={() => onMove(r.id, "down")}
+                    disabled={index === realisations.length - 1}
+                    aria-label="Déplacer après"
+                    className="p-2 rounded-lg text-foreground hover:bg-surface-elevated transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ArrowRight size={16} />
+                  </button>
                   <button
                     onClick={() => onTogglePin(r.id)}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-sans transition-colors ${

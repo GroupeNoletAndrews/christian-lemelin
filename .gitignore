@@ -34,3 +34,6 @@ lerna-debug.log*
 /test-results
 /playwright-report
 /playwright/.cache
+
+# Local Windows/WSL dev helper (not portable to non-WSL hosts)
+/dev.ps1

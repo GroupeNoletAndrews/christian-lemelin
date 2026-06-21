@@ -45,7 +45,10 @@ export class ApplicationsController {
     @Body() dto: CreateApplicationDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.applications.create(dto, file?.path ?? null);
+    const cv = file
+      ? { path: file.path, originalname: file.originalname }
+      : null;
+    return this.applications.create(dto, cv);
   }
 
   @UseGuards(JwtAuthGuard)

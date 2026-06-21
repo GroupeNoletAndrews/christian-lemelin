@@ -5,7 +5,11 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // rawBody: true exposes req.rawBody (a Buffer) alongside the parsed body — the
+  // Resend/Svix webhook signature is computed over the exact raw payload.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   // Allowlisted origins (comma-separated). In prod set CORS_ORIGIN to the real
   // frontend URL(s). When CORS_ALLOW_LOCALHOST=true (set in the dev compose) we

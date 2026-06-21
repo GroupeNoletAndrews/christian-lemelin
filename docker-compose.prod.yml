@@ -26,6 +26,12 @@ services:
       SEED_DEMO_DATA: "false"
       SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:-admin}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?set a strong SEED_ADMIN_PASSWORD}
+      # Email notifications (Resend). MAIL_FROM must be on a verified domain; MAIL_TO
+      # is the real company inbox. See .env.prod.example.
+      RESEND_API_KEY: ${RESEND_API_KEY:?set RESEND_API_KEY to your Resend API key}
+      MAIL_FROM: ${MAIL_FROM:?set MAIL_FROM to a verified-domain sender address}
+      MAIL_TO: ${MAIL_TO:?set MAIL_TO to the company recipient address}
+      RESEND_WEBHOOK_SECRET: ${RESEND_WEBHOOK_SECRET:-}
     ports:
       - "3001:3001"
     volumes:

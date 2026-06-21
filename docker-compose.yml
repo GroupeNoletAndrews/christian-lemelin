@@ -35,6 +35,13 @@ services:
       JSON_BODY_LIMIT: 25mb
       SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:-admin}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-password}
+      # Email notifications (Resend). Put RESEND_API_KEY in .env (gitignored) to
+      # enable sending; without it the forms still work but no email is sent.
+      # Dev defaults use Resend test addresses — no domain verification needed.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-Entreprises Christian Lemelin <onboarding@resend.dev>}
+      MAIL_TO: ${MAIL_TO:-delivered@resend.dev}
+      RESEND_WEBHOOK_SECRET: ${RESEND_WEBHOOK_SECRET:-}
     ports:
       - "3001:3001"
     volumes:
@@ -62,6 +69,19 @@ services:
       - "3000:3000"
     depends_on:
       backend:
+        condition: service_healthy
+
+  # Dev-only web DB client at http://localhost:8080
+  # (login — System: PostgreSQL, Server: db, Username/Password/Database: app/app/app).
+  adminer:
+    image: adminer:4.8.1
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      db:
         condition: service_healthy
 
 volumes:

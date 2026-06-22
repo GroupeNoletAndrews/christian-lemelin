@@ -220,7 +220,10 @@ export default function JobFormPage() {
                   </div>
                   <div>
                     <label htmlFor="salary" className={labelClass}>
-                      Salaire <span className="text-foreground-muted normal-case tracking-normal">(optionnel)</span>
+                      Salaire{" "}
+                      <span className="text-foreground-muted normal-case tracking-normal">
+                        (optionnel)
+                      </span>
                     </label>
                     <input
                       id="salary"
@@ -266,7 +269,7 @@ export default function JobFormPage() {
                     disabled={isSaving}
                     className="flex-1 px-6 py-3 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors font-sans text-sm font-medium active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isEditMode ? "Mettre à jour" : "Créer"} l&apos;emploi
+                    {isEditMode ? "Mettre à jour l'emploi" : "Créer l'emploi"}
                   </button>
                 </div>
               </div>

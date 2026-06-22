@@ -6,12 +6,29 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "motion/react";
 import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   Trash,
   PencilSimple,
   Plus,
   SignOut,
   ArrowLeft,
-  ArrowRight,
+  DotsSixVertical,
   PushPin,
   ImageSquare,
 } from "@phosphor-icons/react";
@@ -39,7 +56,7 @@ export default function AdminDashboard() {
     maxPinned,
     togglePinned,
     deleteRealisation,
-    moveRealisation,
+    reorderRealisations,
   } = useAdmin();
 
   // Land on the réalisations tab when returning from a réalisation action
@@ -188,7 +205,7 @@ export default function AdminDashboard() {
             realisations={realisations}
             onTogglePin={handleTogglePin}
             onDelete={handleDeleteRealisation}
-            onMove={moveRealisation}
+            onReorder={reorderRealisations}
           />
         )}
       </main>
@@ -308,13 +325,40 @@ function RealisationsPanel({
   realisations,
   onTogglePin,
   onDelete,
-  onMove,
+  onReorder,
 }: {
   realisations: ReturnType<typeof useAdmin>["realisations"];
   onTogglePin: (id: string) => void;
   onDelete: (id: string) => void;
-  onMove: (id: string, direction: "up" | "down") => void;
+  onReorder: (orderedIds: string[]) => void;
 }) {
+  // Local working order so drag-and-drop stays smooth. The backend list is the
+  // source of truth: when it changes (add / delete / pin / revert) we re-sync the
+  // working order during render — React's documented pattern for prop-driven state.
+  const [order, setOrder] = useState(realisations);
+  const [prevSource, setPrevSource] = useState(realisations);
+  if (realisations !== prevSource) {
+    setPrevSource(realisations);
+    setOrder(realisations);
+  }
+
+  const sensors = useSensors(
+    // Small activation distance so a click on the handle doesn't start a drag.
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = order.findIndex((r) => r.id === active.id);
+    const newIndex = order.findIndex((r) => r.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const next = arrayMove(order, oldIndex, newIndex);
+    setOrder(next); // optimistic, local
+    onReorder(next.map((r) => r.id)); // persist; context reverts on API failure
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -344,101 +388,142 @@ function RealisationsPanel({
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {realisations.map((r, index) => (
-            <motion.div
-              key={r.id}
-              layout
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                delay: index * 0.05,
-                layout: { type: "spring", stiffness: 600, damping: 44 },
-              }}
-              className="bg-surface rounded-2xl border border-border overflow-hidden flex flex-col"
+        <>
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted mb-4">
+            Glissez-déposez pour réordonner
+          </p>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={order.map((r) => r.id)}
+              strategy={rectSortingStrategy}
             >
-              <div className="relative aspect-[4/3] bg-surface-elevated">
-                {r.images[0] ? (
-                  <Image
-                    src={r.images[0]}
-                    alt={r.name}
-                    fill
-                    unoptimized
-                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                    className="object-cover"
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {order.map((r) => (
+                  <SortableRealisationCard
+                    key={r.id}
+                    realisation={r}
+                    onTogglePin={onTogglePin}
+                    onDelete={onDelete}
                   />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-foreground-muted">
-                    <ImageSquare size={28} />
-                  </div>
-                )}
-                {r.pinned && (
-                  <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-white">
-                    <PushPin size={11} weight="fill" />
-                    Accueil
-                  </span>
-                )}
-                <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-foreground/70 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-white">
-                  <ImageSquare size={11} />
-                  {r.images.length}
-                </span>
+                ))}
               </div>
-
-              <div className="p-5 flex flex-col gap-3 flex-1">
-                <div className="flex-1">
-                  <h3 className="font-display text-lg font-medium text-foreground leading-tight">
-                    {r.name}
-                  </h3>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <button
-                    onClick={() => onMove(r.id, "up")}
-                    disabled={index === 0}
-                    aria-label="Déplacer avant"
-                    className="p-2 rounded-lg text-foreground hover:bg-surface-elevated transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <ArrowLeft size={16} />
-                  </button>
-                  <button
-                    onClick={() => onMove(r.id, "down")}
-                    disabled={index === realisations.length - 1}
-                    aria-label="Déplacer après"
-                    className="p-2 rounded-lg text-foreground hover:bg-surface-elevated transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <ArrowRight size={16} />
-                  </button>
-                  <button
-                    onClick={() => onTogglePin(r.id)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-sans transition-colors ${
-                      r.pinned
-                        ? "bg-accent text-white hover:bg-accent-hover"
-                        : "border border-border text-foreground hover:bg-surface-elevated"
-                    }`}
-                  >
-                    <PushPin size={14} weight={r.pinned ? "fill" : "regular"} />
-                    {r.pinned ? "Épinglée" : "Épingler"}
-                  </button>
-                  <Link
-                    href={`/admin/dashboard/realisations/${r.id}/edit`}
-                    aria-label="Modifier"
-                    className="ml-auto p-2 hover:bg-surface-elevated rounded-lg transition-colors text-foreground"
-                  >
-                    <PencilSimple size={18} />
-                  </Link>
-                  <button
-                    onClick={() => onDelete(r.id)}
-                    aria-label="Supprimer"
-                    className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-600"
-                  >
-                    <Trash size={18} />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+            </SortableContext>
+          </DndContext>
+        </>
       )}
+    </div>
+  );
+}
+
+function SortableRealisationCard({
+  realisation: r,
+  onTogglePin,
+  onDelete,
+}: {
+  realisation: ReturnType<typeof useAdmin>["realisations"][number];
+  onTogglePin: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: r.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 20 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bg-surface rounded-2xl border overflow-hidden flex flex-col ${
+        isDragging ? "border-accent/40 shadow-xl" : "border-border"
+      }`}
+    >
+      <div className="relative aspect-[4/3] bg-surface-elevated">
+        {r.images[0] ? (
+          <Image
+            src={r.images[0]}
+            alt={r.name}
+            fill
+            unoptimized
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-foreground-muted">
+            <ImageSquare size={28} />
+          </div>
+        )}
+        {r.pinned && (
+          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-white">
+            <PushPin size={11} weight="fill" />
+            Accueil
+          </span>
+        )}
+        <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-foreground/70 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-white">
+          <ImageSquare size={11} />
+          {r.images.length}
+        </span>
+      </div>
+
+      <div className="p-5 flex flex-col gap-3 flex-1">
+        <div className="flex-1">
+          <h3 className="font-display text-lg font-medium text-foreground leading-tight">
+            {r.name}
+          </h3>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {/* Drag handle — dragging is bound to this grip so the action
+              buttons stay clickable. */}
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            aria-label="Glisser pour réordonner"
+            className="p-2 rounded-lg text-foreground-muted hover:text-foreground hover:bg-surface-elevated transition-colors cursor-grab active:cursor-grabbing touch-none"
+          >
+            <DotsSixVertical size={18} />
+          </button>
+          <button
+            onClick={() => onTogglePin(r.id)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-sans transition-colors ${
+              r.pinned
+                ? "bg-accent text-white hover:bg-accent-hover"
+                : "border border-border text-foreground hover:bg-surface-elevated"
+            }`}
+          >
+            <PushPin size={14} weight={r.pinned ? "fill" : "regular"} />
+            {r.pinned ? "Épinglée" : "Épingler"}
+          </button>
+          <Link
+            href={`/admin/dashboard/realisations/${r.id}/edit`}
+            aria-label="Modifier"
+            className="ml-auto p-2 hover:bg-surface-elevated rounded-lg transition-colors text-foreground"
+          >
+            <PencilSimple size={18} />
+          </Link>
+          <button
+            onClick={() => onDelete(r.id)}
+            aria-label="Supprimer"
+            className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-600"
+          >
+            <Trash size={18} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -42,8 +42,8 @@ interface AdminContextType {
   getRealisation: (id: string) => Realisation | undefined
   /** Toggle pinned state. Returns false if it would exceed the pin limit. */
   togglePinned: (id: string) => Promise<boolean>
-  /** Move a réalisation one step earlier ("up") or later ("down") in the order. */
-  moveRealisation: (id: string, direction: "up" | "down") => Promise<void>
+  /** Persist a new réalisations order (drag-and-drop). Optimistic, reverts on failure. */
+  reorderRealisations: (orderedIds: string[]) => Promise<void>
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined)
@@ -222,19 +222,23 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const moveRealisation = useCallback(
-    async (id: string, direction: "up" | "down") => {
-      const idx = realisations.findIndex((r) => r.id === id)
-      if (idx === -1) return
-      const swapWith = direction === "up" ? idx - 1 : idx + 1
-      if (swapWith < 0 || swapWith >= realisations.length) return
-
+  const reorderRealisations = useCallback(
+    async (orderedIds: string[]) => {
       const previous = realisations
-      const next = [...realisations]
-      ;[next[idx], next[swapWith]] = [next[swapWith], next[idx]]
+      const byId = new Map(previous.map((r) => [r.id, r]))
+      const next = orderedIds
+        .map((id) => byId.get(id))
+        .filter((r): r is Realisation => r !== undefined)
+      // Bail if the ids don't line up with our list or the order is unchanged.
+      if (
+        next.length !== previous.length ||
+        next.every((r, i) => r.id === previous[i].id)
+      ) {
+        return
+      }
       setRealisations(next) // optimistic
       try {
-        await api.realisations.reorder(next.map((r) => r.id))
+        await api.realisations.reorder(orderedIds)
       } catch (e) {
         console.error("Réordonnancement échoué:", e)
         setRealisations(previous) // revert
@@ -263,7 +267,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         deleteRealisation,
         getRealisation,
         togglePinned,
-        moveRealisation,
+        reorderRealisations,
       }}
     >
       {children}

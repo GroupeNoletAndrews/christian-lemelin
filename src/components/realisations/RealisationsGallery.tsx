@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { motion, useReducedMotion } from "motion/react"
+import { AnimatePresence, motion, useReducedMotion } from "motion/react"
+import { CaretLeft, CaretRight } from "@phosphor-icons/react"
 import { useAdmin } from "@/lib/admin-context"
 import { RealisationCard } from "@/components/realisations/RealisationCard"
 import { ParallaxImage } from "@/components/ui/ParallaxImage"
@@ -22,6 +23,9 @@ export function RealisationsGallery() {
   const [featuredId, setFeaturedId] = useState<string | null>(
     params.get("featured"),
   )
+  // Which photo of the featured project is shown (hero carousel).
+  const [leadImg, setLeadImg] = useState(0)
+  const [prevLeadId, setPrevLeadId] = useState<string | null>(null)
   const topRef = useRef<HTMLDivElement>(null)
 
   if (realisations.length === 0) {
@@ -46,7 +50,18 @@ export function RealisationsGallery() {
   const items = realisations
   const lead = items.find((r) => r.id === featuredId) ?? items[0]
   const rest = items.filter((r) => r.id !== lead.id)
-  const leadCover = lead.images[0] || ""
+
+  // Reset the hero photo whenever the featured project changes.
+  if (lead.id !== prevLeadId) {
+    setPrevLeadId(lead.id)
+    setLeadImg(0)
+  }
+
+  const leadImages = lead.images.length ? lead.images : [""]
+  const currentLeadSrc = leadImages[leadImg] ?? ""
+  const prevImg = () =>
+    setLeadImg((i) => (i - 1 + leadImages.length) % leadImages.length)
+  const nextImg = () => setLeadImg((i) => (i + 1) % leadImages.length)
 
   const feature = (id: string) => {
     setFeaturedId(id)
@@ -68,17 +83,68 @@ export function RealisationsGallery() {
           transition={{ duration: 0.8, ease: EASE_OUT }}
           className="relative aspect-[16/10] w-full overflow-hidden rounded-[1.5rem] border border-border md:aspect-[21/9] md:rounded-[2rem]"
         >
-          {leadCover && (
-            <ParallaxImage
-              src={leadCover}
-              alt={lead.name}
-              sizes="100vw"
-              amount={14}
-              unoptimized
-            />
-          )}
+          {/* Photos (fondu enchaîné au changement) */}
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={leadImg}
+              className="absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduce ? 0 : 0.4, ease: "easeInOut" }}
+            >
+              {currentLeadSrc && (
+                <ParallaxImage
+                  src={currentLeadSrc}
+                  alt={lead.name}
+                  sizes="100vw"
+                  amount={14}
+                  unoptimized
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-6 md:p-10">
+
+          {/* Navigation des photos (si la vedette en a plusieurs) */}
+          {leadImages.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={prevImg}
+                aria-label="Photo précédente"
+                className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 p-2.5 text-white backdrop-blur-sm transition-colors hover:bg-black/60 md:left-5"
+              >
+                <CaretLeft size={20} weight="bold" />
+              </button>
+              <button
+                type="button"
+                onClick={nextImg}
+                aria-label="Photo suivante"
+                className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 p-2.5 text-white backdrop-blur-sm transition-colors hover:bg-black/60 md:right-5"
+              >
+                <CaretRight size={20} weight="bold" />
+              </button>
+              <div className="absolute right-4 top-4 z-10 flex gap-1.5 md:right-6 md:top-6">
+                {leadImages.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setLeadImg(i)}
+                    aria-label={`Voir la photo ${i + 1}`}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === leadImg
+                        ? "w-5 bg-white"
+                        : "w-1.5 bg-white/50 hover:bg-white/80"
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 p-6 md:p-10">
             <h2 className="max-w-[24ch] font-display text-[clamp(1.5rem,4vw,3.25rem)] font-semibold leading-[1.04] tracking-[-0.01em] text-white">
               {lead.name}
             </h2>

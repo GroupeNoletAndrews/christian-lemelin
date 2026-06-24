@@ -9,6 +9,7 @@ import { LoginSchema, parseBody } from "@/lib/server/validation"
 export const runtime = "nodejs"
 
 export async function POST(req: NextRequest) {
+  
   try {
     const { username, password } = parseBody(LoginSchema, await readJson(req))
     const admin = await prisma.adminUser.findUnique({ where: { username } })

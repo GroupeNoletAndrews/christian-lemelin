@@ -61,14 +61,12 @@ lerna-debug.log*
 .env.development
 .env.test
 .env.production
-
-
+backend/.env
 
 # temp directory
 .temp
 .tmp
 
-
-
 # Sentry Config File
 .env.sentry-build-plugin
+backend/.env

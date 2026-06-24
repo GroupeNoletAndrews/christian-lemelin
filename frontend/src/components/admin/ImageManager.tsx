@@ -9,7 +9,7 @@ import {
   UploadSimple,
   Star,
 } from "@phosphor-icons/react";
-import { filesToCompressedDataUrls } from "@/lib/image-utils";
+import { uploadRealisationImages } from "@/lib/uploads";
 
 interface ImageManagerProps {
   images: string[];
@@ -29,7 +29,7 @@ export function ImageManager({ images, onChange }: ImageManagerProps) {
     if (!fileList || fileList.length === 0) return;
     setIsBusy(true);
     try {
-      const added = await filesToCompressedDataUrls(Array.from(fileList));
+      const added = await uploadRealisationImages(Array.from(fileList));
       if (added.length) onChange([...images, ...added]);
     } finally {
       setIsBusy(false);

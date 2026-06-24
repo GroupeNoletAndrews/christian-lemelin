@@ -1,0 +1,82 @@
+// Prisma schema for Entreprises Christian Lemelin.
+//
+// Runs inside the Next.js app (Vercel). At runtime DATABASE_URL points at the
+// Supabase transaction pooler (Supavisor, port 6543, ?pgbouncer=true&connection_limit=1);
+// the Prisma CLI (migrate/seed) uses DIRECT_URL (direct/session connection, port 5432).
+// In local dev both can point at the same local/Supabase Postgres.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model AdminUser {
+  id           String   @id @default(uuid()) @db.Uuid
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("admin_users")
+}
+
+model Job {
+  id           String        @id @default(uuid()) @db.Uuid
+  title        String
+  description  String
+  location     String
+  // 'full-time' | 'part-time' | 'contract' — validated at the API layer.
+  type         String
+  department   String
+  salary       String?
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  applications Application[]
+
+  @@map("jobs")
+}
+
+model Realisation {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  images    String[]
+  pinned    Boolean  @default(false)
+  // Admin-controlled display order (ascending). New réalisations append to the end.
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([pinned])
+  @@index([position])
+  @@map("realisations")
+}
+
+model Application {
+  id        String   @id @default(uuid()) @db.Uuid
+  jobId     String?  @map("job_id") @db.Uuid
+  job       Job?     @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  name      String
+  email     String
+  phone     String?
+  message   String?
+  // Supabase Storage object key for the uploaded CV (was a local disk path).
+  cvPath    String?  @map("cv_path")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("applications")
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  email     String
+  phone     String?
+  message   String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("contact_messages")
+}

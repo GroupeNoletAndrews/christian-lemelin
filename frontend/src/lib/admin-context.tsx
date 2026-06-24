@@ -9,13 +9,7 @@ import React, {
   ReactNode,
 } from "react"
 import { Job, Realisation, MAX_PINNED_REALISATIONS } from "@/types/admin"
-import {
-  api,
-  ApiError,
-  ApiJob,
-  ApiRealisation,
-  setAuthToken,
-} from "@/lib/api"
+import { api, ApiError, ApiJob, ApiRealisation } from "@/lib/api"
 
 interface AdminContextType {
   isAuthenticated: boolean
@@ -81,7 +75,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>([])
   const [realisations, setRealisations] = useState<Realisation[]>([])
 
-  // Hydrate public data from the backend on mount.
+  // Hydrate public data + restore the admin session (httpOnly cookie) on mount.
   useEffect(() => {
     let cancelled = false
     api.jobs
@@ -96,6 +90,18 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setRealisations(rows.map(reviveRealisation))
       })
       .catch((e) => console.warn("Chargement des réalisations impossible:", e))
+    // The session cookie is httpOnly, so ask the server who we are.
+    api.auth
+      .session()
+      .then(({ username: name }) => {
+        if (!cancelled) {
+          setIsAuthenticated(true)
+          setUsername(name)
+        }
+      })
+      .catch(() => {
+        /* not logged in — stay anonymous */
+      })
     return () => {
       cancelled = true
     }
@@ -103,22 +109,22 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (user: string, password: string) => {
     try {
-      const { token, username: name } = await api.auth.login(user, password)
-      setAuthToken(token)
+      const { username: name } = await api.auth.login(user, password)
+      // The server set an httpOnly session cookie; no token to keep client-side.
       setIsAuthenticated(true)
       setUsername(name)
       return true
     } catch (e) {
       // 401 = wrong username/password → return false (caller shows that).
       if (e instanceof ApiError && e.status === 401) return false
-      // Anything else (API down, network, CORS, 5xx) is NOT a credential
-      // problem — re-throw so the caller can show a distinct message.
+      // Anything else (API down, network, 5xx) is NOT a credential problem —
+      // re-throw so the caller can show a distinct message.
       throw e
     }
   }, [])
 
   const logout = useCallback(() => {
-    setAuthToken(null)
+    void api.auth.logout().catch(() => {})
     setIsAuthenticated(false)
     setUsername("")
   }, [])

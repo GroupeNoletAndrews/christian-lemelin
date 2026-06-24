@@ -1,18 +1,16 @@
 // Client-side image helpers for the admin réalisations manager.
 //
-// There is no backend/image server, so uploaded pictures are stored as
-// data URLs in the browser (localStorage). To keep within the ~5MB
-// localStorage budget, every uploaded image is downscaled and re-encoded
-// as JPEG before it is stored.
+// Images are uploaded to Supabase Storage (public bucket). Before upload each
+// picture is downscaled and re-encoded as JPEG to keep files small.
 
 const MAX_DIMENSION = 1600
 const JPEG_QUALITY = 0.82
 
 /**
  * Read an image File, downscale it so its longest edge is at most
- * MAX_DIMENSION, and return a compressed JPEG data URL.
+ * MAX_DIMENSION, and return a compressed JPEG Blob ready to upload.
  */
-export function fileToCompressedDataUrl(file: File): Promise<string> {
+export function fileToCompressedBlob(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith("image/")) {
       reject(new Error("Le fichier n'est pas une image"))
@@ -39,18 +37,15 @@ export function fileToCompressedDataUrl(file: File): Promise<string> {
           return
         }
         ctx.drawImage(img, 0, 0, w, h)
-        resolve(canvas.toDataURL("image/jpeg", JPEG_QUALITY))
+        canvas.toBlob(
+          (blob) =>
+            blob ? resolve(blob) : reject(new Error("Encodage JPEG impossible")),
+          "image/jpeg",
+          JPEG_QUALITY,
+        )
       }
       img.src = reader.result as string
     }
     reader.readAsDataURL(file)
   })
-}
-
-/** Compress a list of files, skipping any that fail. */
-export async function filesToCompressedDataUrls(files: File[]): Promise<string[]> {
-  const results = await Promise.allSettled(files.map(fileToCompressedDataUrl))
-  return results
-    .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
-    .map((r) => r.value)
 }

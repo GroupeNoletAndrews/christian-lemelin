@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, CheckCircle, Paperclip } from "@phosphor-icons/react";
 import { Job } from "@/types/admin";
 import { api } from "@/lib/api";
+import { uploadCv } from "@/lib/uploads";
 
 interface ApplyModalProps {
   job: Job | null;
@@ -49,10 +50,17 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
     setSubmitting(true);
     try {
       const fd = new FormData(e.currentTarget);
-      fd.append("jobId", job.id);
+      // Upload the CV (if any) straight to storage, then send JSON metadata.
       const file = fileRef.current?.files?.[0];
-      if (file) fd.append("cv", file);
-      await api.applications.create(fd);
+      const cv = file ? await uploadCv(file) : undefined;
+      await api.applications.create({
+        name: String(fd.get("name") ?? ""),
+        email: String(fd.get("email") ?? ""),
+        phone: (fd.get("phone") as string) || undefined,
+        message: (fd.get("message") as string) || undefined,
+        jobId: job.id,
+        ...cv,
+      });
       setSubmitted(true);
     } catch {
       setError("L'envoi a échoué. Veuillez réessayer.");

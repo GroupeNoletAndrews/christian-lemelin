@@ -1,11 +1,10 @@
-
 node_modules
-dist
-/build
+.next
 /tmp
 
-.next
- 
+# TypeScript incremental build cache
+*.tsbuildinfo
+
 # Logs
 logs
 *.log
@@ -24,51 +23,12 @@ lerna-debug.log*
 .env.prod
 .env.docker
 
-
-
 # temp directory
 .temp
 .tmp
 
-# Playwright / e2e artifacts (now under frontend/ — keep unanchored)
-test-results
-playwright-report
-playwright/.cache
+# Sentry build-plugin auth token
+.env.sentry-build-plugin
 
 # Local Windows/WSL dev helper (not portable to non-WSL hosts)
 /dev.ps1
-# Nestjs specific
-/dist
-/node_modules
-/frontend/node_modules
-/backend/node_modules
-/build
-/tmp
-
-.next
- 
-# Logs
-logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-
-# dotenv environment variable files
-.env
-.env.development
-.env.test
-.env.production
-
-
-
-# temp directory
-.temp
-.tmp
-
-
-
-# Sentry Config File
-.env.sentry-build-plugin

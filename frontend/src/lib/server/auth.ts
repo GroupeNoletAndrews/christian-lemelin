@@ -6,7 +6,9 @@ import { COOKIE_NAME } from "./cookies"
 const ALG = "HS256"
 
 function secretKey(): Uint8Array {
-  const secret = process.env.JWT_SECRET ?? "dev-secret-change-me"
+  // `||` (not `??`) so an empty-string env var falls back too — an empty key
+  // makes jose throw "Zero-length key is not supported".
+  const secret = process.env.JWT_SECRET || "dev-secret-change-me"
   return new TextEncoder().encode(secret)
 }
 

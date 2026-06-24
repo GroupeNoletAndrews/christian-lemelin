@@ -20,8 +20,6 @@ Browser ─▶ Next.js app (Vercel)
 
 Réalisations have an **admin-controlled display order** (drag-and-drop in the dashboard; persisted via `PATCH /api/realisations/reorder`). On `/realisations` the first is shown as a large **featured** project; home-page cards deep-link via `?featured=<id>`.
 
-> The old NestJS API (`backend/`) and the Docker stack (`docker-compose*.yml`, `DOCKER.md`) are **legacy** — superseded by this single deployment and safe to delete. Vercel only builds `frontend/`.
-
 ---
 
 ## Prerequisites
@@ -94,19 +92,11 @@ npm run dev            # http://localhost:3000
 - Point `DATABASE_URL`/`DIRECT_URL` (in `frontend/.env`) at your Supabase project. **Tip:** use a *separate* Supabase project for dev so you never write to prod.
 - The API is same-origin — no separate backend process to start.
 
-### Tests (Playwright E2E)
-
-```bash
-cd frontend
-npx playwright install chromium   # one-time
-npm run test:e2e
-```
-
 ---
 
 ## Deploy to Vercel
 
-The project is a monorepo, so the important setting is the **root directory**.
+The app lives in the `frontend/` subdirectory, so the important setting is the **root directory**.
 
 1. **Project Settings → General**
    - **Root Directory = `frontend`**

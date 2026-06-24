@@ -4,228 +4,161 @@ Marketing site + admin dashboard for managing **emplois** (jobs) and **réalisat
 
 ## Architecture
 
-Three services, wired end to end:
+A **single Next.js 16 app** deployed as **one Vercel project** — the marketing site, the `/admin` dashboard, and the API all ship together (same origin, no CORS).
 
 ```
-Browser ─▶ frontend (Next.js 16, :3000) ─▶ backend (NestJS + Prisma, :3001) ─▶ Postgres
+Browser ─▶ Next.js app (Vercel)
+              ├─ pages / admin (React)
+              ├─ /api/* route handlers ──▶ Supabase Postgres (Prisma)
+              └─ uploads ────────────────▶ Supabase Storage
 ```
 
-- **frontend** — Next.js app in `frontend/`. Talks to the backend over HTTP using `NEXT_PUBLIC_API_URL`.
-- **backend** — `backend/` NestJS REST API (Prisma ORM, JWT auth with bcryptjs). Modules: `auth`, `jobs`, `realisations`, `applications`, `contact`, `health`.
-- **database** — **local Postgres** (Docker) in dev, **Supabase** (managed Postgres) in prod. The backend selects between them purely via `DATABASE_URL` — no code changes.
+- **API** — route handlers in [`frontend/src/app/api/`](frontend/src/app/api/); business logic in [`frontend/src/lib/server/`](frontend/src/lib/server/) (Prisma singleton, jose auth, Resend mail, Supabase storage, zod validation). Endpoints: `auth` (login/logout/session), `jobs`, `realisations` (+ `reorder`, `[id]/pin`), `applications` (+ `upload-url`), `contact`, `health`, `webhooks/resend`.
+- **Database** — **Supabase** (managed Postgres) via Prisma. Runtime uses the transaction pooler; migrations/seed use the direct connection.
+- **Storage** — **Supabase Storage**: a private `cvs` bucket (job-application CVs) and a public `images` bucket (réalisation images). Files upload **straight from the browser** via short-lived signed URLs, so they never pass through a serverless function (bypassing Vercel's 4.5 MB body cap).
+- **Auth** — admin login is a row in `admin_users` (bcrypt-hashed). On success the server sets a **jose HS256 JWT in an httpOnly cookie**; `requireAdmin()` guards every protected route handler. Default seeded credentials: **`admin` / `password`** (change in prod).
 
-The admin login lives in the DB (`admin_users`, bcryptjs-hashed). Default seeded credentials: **`admin` / `password`**.
+Réalisations have an **admin-controlled display order** (drag-and-drop in the dashboard; persisted via `PATCH /api/realisations/reorder`). On `/realisations` the first is shown as a large **featured** project; home-page cards deep-link via `?featured=<id>`.
 
-Réalisations have an **admin-controlled display order** (reorder with the arrows in the dashboard; persisted via `PATCH /realisations/reorder`) that's respected everywhere. On `/realisations` the first one is shown as a large **featured** project; clicking another features it, and home-page cards deep-link to it via `?featured=<id>`.
+> The old NestJS API (`backend/`) and the Docker stack (`docker-compose*.yml`, `DOCKER.md`) are **legacy** — superseded by this single deployment and safe to delete. Vercel only builds `frontend/`.
 
 ---
 
 ## Prerequisites
 
-- **Docker Engine** (via WSL2 on Windows — no Docker Desktop needed). One-time setup is in **[DOCKER.md](DOCKER.md)**.
-- Node.js 20+ (only needed for the hot-reload dev option and running tests).
-
-> On Windows, run all `docker`/`docker compose` commands **inside WSL** (`wsl -d Ubuntu`), from the repo directory. Docker does not exist on the Windows side.
+- **Node.js 20+**
+- A **Supabase** project (free tier is fine) — for the Postgres database and Storage.
+- A **Vercel** account/project (the app is already at `https://christian-lemelin.vercel.app`).
 
 ---
 
-## Development
+## Environment variables
 
-### Option A — full stack in Docker (simplest)
+Two scopes:
 
-```bash
-# inside WSL, in the repo directory
-docker compose up --build          # from the repo root, inside WSL
-```
-
-- Frontend → http://localhost:3000
-- Backend  → http://localhost:3001 (`/health`, `/jobs`, `/realisations`)
-- Postgres → localhost:5432  (user/pass/db: `app`/`app`/`app`)
-- Admin → http://localhost:3000/admin — **admin / password**
-
-On first boot the backend applies migrations (`prisma migrate deploy`) and seeds the admin user + demo jobs/réalisations. Stop with `docker compose down` (add `-v` to wipe the database).
-
-### Option B — frontend hot-reload
-
-Run the DB + backend in Docker, the frontend on the host (fast refresh):
-
-```bash
-docker compose up -d db backend    # inside WSL (repo root) — starts ONLY db + backend
-cd frontend && npm install         # once
-npm run dev                        # http://localhost:3000  (run from frontend/)
-```
-
-The dev frontend calls the backend at `http://localhost:3001` (override with `NEXT_PUBLIC_API_URL` in `frontend/.env.local`). In dev the backend's CORS accepts **any localhost port**, so this works even if Next picks a different port.
-
-> Don't run the Docker `frontend` service at the same time as `npm run dev` — they'd both want port 3000. Option B starts only `db` + `backend`.
-
-### Configuration (dev)
-
-Env files are **split per concern**, each next to the thing that reads it — no key lives in two places. Defaults are dev-safe, so all three are optional in dev. Copy the matching `.example` to create the real (gitignored) file:
-
-| File | Read by | Holds |
+| Scope | Where (local) | On Vercel |
 |---|---|---|
-| root `.env` | `docker compose` (orchestration only) | `POSTGRES_*` (db service) + `NEXT_PUBLIC_API_URL` (frontend build arg) — copy from `.env.example` |
-| `frontend/.env.local` | `next dev` / `next build` | `NEXT_PUBLIC_*` (reach the browser) — copy from `frontend/.env.example` |
-| `backend/.env` | the backend — **in Docker *and* on the host** | `JWT_*`, `CORS_ORIGIN`, `SEED_*`, `RESEND_*`, `MAIL_*`, `PORT`, `JSON_BODY_LIMIT` — copy from `backend/.env.example` |
+| `DATABASE_URL`, `DIRECT_URL` | `frontend/.env` (the **Prisma CLI** only reads `.env`) | Project → Settings → Environment Variables |
+| everything else | `frontend/.env.local` | same |
 
-`backend/.env` is the **single source of truth** for backend config: in Docker it's loaded into the container via `env_file:` in `docker-compose.yml`. The compose file then overrides only the few values that *must* differ inside the container — `DATABASE_URL` (Postgres host is the `db` service, not localhost), `UPLOADS_DIR` (a mounted volume path), and `CORS_ALLOW_LOCALHOST=true` (dev convenience). (Prod is different: `docker-compose.prod.yml` takes its secrets from the root `.env.prod` via `--env-file`, never `backend/.env`.)
+Copy [`frontend/.env.example`](frontend/.env.example) and fill in real values. Both `.env` and `.env.local` are gitignored.
+
+| Variable | Scope | Value |
+|---|---|---|
+| `DATABASE_URL` | server | Supabase **transaction pooler** (port `6543`) + `?pgbouncer=true&connection_limit=1` |
+| `DIRECT_URL` | server | Supabase **direct/session** connection (port `5432`) — used by migrate/seed |
+| `JWT_SECRET` | server | a long random string (e.g. `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`) |
+| `JWT_EXPIRES_IN` | server | `7d` (optional) |
+| `SUPABASE_URL` | server | `https://<ref>.supabase.co` |
+| `SUPABASE_SECRET_KEY` | server | the `sb_secret_…` key (Storage admin — **never expose**) |
+| `NEXT_PUBLIC_SUPABASE_URL` | **client** | `https://<ref>.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | **client** | the `sb_publishable_…` key (safe to expose) |
+| `RESEND_API_KEY` | server | Resend key (optional — without it, email is disabled) |
+| `MAIL_FROM` / `MAIL_TO` | server | sender (verified domain in prod) / company inbox |
+| `RESEND_WEBHOOK_SECRET` | server | optional (verifies Resend webhook signatures) |
+| `SEED_ADMIN_USERNAME` / `SEED_ADMIN_PASSWORD` | server | admin login created by the seed |
+| `SEED_DEMO_DATA` | server | `false` in prod (no demo content; admin still created) |
+
+Get the two connection strings from **Supabase → Project Settings → Database → Connection string** (the "Transaction pooler" and "Session/Direct" tabs).
+
+---
+
+## Supabase setup (one-time)
+
+1. **Create the Storage buckets** (Dashboard → Storage):
+   - `cvs` — **Private**
+   - `images` — **Public**
+2. **Baseline the existing schema.** This DB already contains the app's tables, so tell Prisma the two committed migrations are already applied (otherwise `migrate deploy` fails with `P3005`). Run once, locally, with `frontend/.env` filled in:
+   ```bash
+   cd frontend
+   npx prisma migrate resolve --applied 20260618000000_init
+   npx prisma migrate resolve --applied 20260619000000_realisation_position
+   ```
+   > A brand-new/empty Supabase DB needs no baselining — `migrate deploy` creates everything.
+3. **Seed the admin user** (and optionally demo content) — run once, locally:
+   ```bash
+   npm run db:seed          # uses DIRECT_URL; SEED_DEMO_DATA=false → admin only
+   ```
+
+---
+
+## Local development
+
+```bash
+cd frontend
+npm install            # also runs `prisma generate` (postinstall)
+npm run dev            # http://localhost:3000
+```
+
+- App → http://localhost:3000 · Admin → http://localhost:3000/admin
+- Point `DATABASE_URL`/`DIRECT_URL` (in `frontend/.env`) at your Supabase project. **Tip:** use a *separate* Supabase project for dev so you never write to prod.
+- The API is same-origin — no separate backend process to start.
 
 ### Tests (Playwright E2E)
 
-With the stack running (Option A):
-
 ```bash
-cd frontend                        # Playwright + the e2e/ suite live here
-npx playwright install chromium    # one-time
-npm run test:e2e                   # 17 tests: every route + admin flows
+cd frontend
+npx playwright install chromium   # one-time
+npm run test:e2e
 ```
-
-### Viewing the database (Adminer)
-
-The dev stack includes **[Adminer](https://www.adminer.org/)**, a lightweight web DB client, at **http://localhost:8080** (it starts with `docker compose up`). Log in with:
-
-| Field | Value |
-|---|---|
-| System | PostgreSQL |
-| Server | `db` |
-| Username / Password | `app` / `app` |
-| Database | `app` |
-
-Adminer runs inside the compose network and connects to the `db` service directly, so it works on any host OS with no Postgres client or port-forwarding setup. It's **dev-only** — not included in `docker-compose.prod.yml`.
 
 ---
 
-## Production (Supabase database)
+## Deploy to Vercel
 
-In prod there is **no local Postgres** — the backend points at **Supabase**. Frontend + backend run as containers (or deploy them separately; see below).
+The project is a monorepo, so the important setting is the **root directory**.
 
-### 1. Configure
+1. **Project Settings → General**
+   - **Root Directory = `frontend`**
+   - Framework Preset: **Next.js** (auto-detected)
+   - Build Command: leave default — Vercel runs the `vercel-build` script (`prisma generate && prisma migrate deploy && next build`). `migrate deploy` applies any new migrations at build time (the DB must be baselined first, see above).
+2. **Project Settings → Environment Variables** — add every variable from the table above (Production + Preview + Development). Server vars (no `NEXT_PUBLIC_`) stay server-side; only `NEXT_PUBLIC_*` reach the browser.
+3. **Deploy** (push to the connected branch, or "Redeploy"). After the first deploy, confirm:
+   - `https://<your-app>/api/health` → `{"status":"ok"}`
+   - log in at `https://<your-app>/admin`
 
-```bash
-cp .env.prod.example .env.prod     # then fill in real values
-```
-
-Set in `.env.prod`:
-
-| Var | Value |
-|---|---|
-| `DATABASE_URL` | Supabase connection string (Project → Settings → Database). **Include `?sslmode=require`.** |
-| `JWT_SECRET` | a long random string |
-| `CORS_ORIGIN` | your frontend's public origin(s), comma-separated |
-| `NEXT_PUBLIC_API_URL` | the public URL the browser uses to reach the backend |
-| `SEED_ADMIN_PASSWORD` | a strong admin password |
-
-### 2. Deploy (single host, via compose)
-
-> ⚠️ If your Supabase database is **not empty** (a reused project, or tables left by a prior `db push`), baseline it first — see "Pointing at an existing Supabase DB" below — otherwise `migrate deploy` fails with `P3005` and the backend container crash-loops. A brand-new/empty Supabase project needs no baselining.
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod up --build -d
-```
-
-On first start the backend runs `prisma migrate deploy` against Supabase (creating the tables) and seeds **only the admin user** (`SEED_DEMO_DATA=false` — no demo content). CORS stays strict because `CORS_ALLOW_LOCALHOST` is left unset in prod — only the `CORS_ORIGIN` allowlist is accepted. (`NODE_ENV` does not affect CORS; the container runs `production` in dev too.)
-
-### 2b. Deploy frontend/backend separately (e.g. Vercel + a Node host)
-
-- **Frontend**: build with `NEXT_PUBLIC_API_URL` set to the public backend URL (it's baked at build time).
-- **Backend**: run the `backend/` image with `DATABASE_URL` (Supabase), `JWT_SECRET`, `CORS_ORIGIN` (the frontend origin), `SEED_DEMO_DATA=false`, and **leave `CORS_ALLOW_LOCALHOST` unset** (this is what keeps CORS locked to `CORS_ORIGIN`).
-
-### Pointing at an existing Supabase DB
-
-If the Supabase database already has this app's tables — a reused project, or because you applied schema changes **by hand** in the Supabase SQL editor — baseline each migration whose schema is already present, once, so `migrate deploy` won't try to recreate it (which fails with `P3005`):
-
-```bash
-cd backend
-DATABASE_URL="<supabase-url>" npx prisma migrate resolve --applied 20260618000000_init
-DATABASE_URL="<supabase-url>" npx prisma migrate resolve --applied 20260619000000_realisation_position
-```
-
-The migrations live in `backend/prisma/migrations/` — baseline whichever ones already exist in your Supabase DB. (Example: if you hand-ran the `position`-column SQL, baseline `20260619000000_realisation_position`.)
-
----
-
-## Dev vs prod at a glance
-
-| | Dev | Prod |
-|---|---|---|
-| Database | Local Postgres (Docker `db`) | **Supabase** (managed) |
-| Compose file | `docker-compose.yml` | `docker-compose.prod.yml` |
-| `DATABASE_URL` | `postgresql://app:app@db:5432/app` | Supabase string (`?sslmode=require`) |
-| CORS | any `localhost:*` allowed | strict (`CORS_ORIGIN` only) |
-| Seed | admin + demo content | admin only (`SEED_DEMO_DATA=false`) |
-| Schema | `prisma migrate deploy` (auto) | `prisma migrate deploy` (auto) |
-| Email (Resend) | test addresses (`onboarding@`/`delivered@resend.dev`) | verified-domain sender → real company inbox |
+> Adding env vars: **Vercel Dashboard** → your project → **Settings → Environment Variables** → add name/value, pick the environments, **Save**, then **Redeploy** (env changes only apply to new deployments). Or via CLI: `vercel env add NAME production`. You can also paste a whole `.env` in the dashboard's bulk editor.
 
 ---
 
 ## Changing the database schema
 
-1. Edit `backend/prisma/schema.prisma`.
-2. With the dev DB running, create a migration:
+1. Edit [`frontend/prisma/schema.prisma`](frontend/prisma/schema.prisma).
+2. Create a migration against your dev DB:
    ```bash
-   cd backend
-   DATABASE_URL="postgresql://app:app@localhost:5432/app" npm run migrate:dev -- --name your_change
+   cd frontend
+   npm run db:migrate -- --name your_change      # prisma migrate dev
    ```
-3. Commit the generated folder under `backend/prisma/migrations/`. Both dev and prod apply it automatically via `migrate deploy` on the next deploy.
+3. Commit the generated folder under `frontend/prisma/migrations/`. The next Vercel deploy applies it automatically via `prisma migrate deploy` (the `vercel-build` step). Keep the seed ([`frontend/prisma/seed.ts`](frontend/prisma/seed.ts)) in sync.
 
 ---
 
 ## Email notifications (Resend)
 
-Both public forms — **« Nous joindre »** ([`ContactForm`](frontend/src/components/sections/ContactForm.tsx)) and the **job application** modal ([`ApplyModal`](frontend/src/components/emplois/ApplyModal.tsx)) — still save to the database as before, and now **also email a notification to the company** via [Resend](https://resend.com). The email is rendered to match the site's OPUS design (cream/white card, hairline rows, the single blue accent on the reply button); the application email attaches the uploaded CV when present. The submitter's address is set as `Reply-To`, so the company can reply straight from its inbox.
+Both public forms — **« Nous joindre »** ([`ContactForm`](frontend/src/components/sections/ContactForm.tsx)) and the **job application** modal ([`ApplyModal`](frontend/src/components/emplois/ApplyModal.tsx)) — save to the database and **also email a notification to the company** via [Resend](https://resend.com). The email is rendered to match the site's OPUS design; the application email attaches the uploaded CV (fetched from the `cvs` bucket). The submitter's address is set as `Reply-To`.
 
-All of this lives in the backend ([`backend/src/mail/`](backend/src/mail/)) so the API key never reaches the browser. Sending is **best-effort** — if Resend is down or unconfigured, the form still succeeds (the data is persisted) and the failure is logged.
-
-### Configuration
-
-Like CORS and seeding, the dev/prod split is driven by **env vars**, not `NODE_ENV`:
+This lives in [`frontend/src/lib/server/mail/`](frontend/src/lib/server/mail/) so the API key never reaches the browser. Sending is **best-effort** — if Resend is down or unconfigured, the form still succeeds (the data is persisted) and the failure is logged.
 
 | Var | Dev default | Prod |
 |---|---|---|
-| `RESEND_API_KEY` | — (put it in `.env`) | your Resend key |
-| `MAIL_FROM` | `Entreprises Christian Lemelin <onboarding@resend.dev>` (Resend's shared sender — **no domain verification needed**) | an address on a domain you've **verified** in Resend |
-| `MAIL_TO` | `delivered@resend.dev` ([Resend test inbox](https://resend.com/docs/dashboard/emails/send-test-emails)) | the real company address |
+| `RESEND_API_KEY` | — (email disabled if unset) | your Resend key |
+| `MAIL_FROM` | `… <onboarding@resend.dev>` (no domain verification needed) | an address on a **verified** domain |
+| `MAIL_TO` | `delivered@resend.dev` (Resend test inbox) | the real company address |
 | `RESEND_WEBHOOK_SECRET` | optional | recommended (verifies webhook calls) |
 
-If `RESEND_API_KEY` is unset, email is simply disabled (a warning is logged at startup).
+Webhook endpoint: `POST /api/webhooks/resend` (logs delivery events; verifies the Svix signature when `RESEND_WEBHOOK_SECRET` is set).
 
-### Dev / testing
+---
 
-1. Put your key in the gitignored root `.env` (read by docker-compose):
-   ```
-   RESEND_API_KEY=re_...
-   ```
-2. Start the stack (`docker compose up`). With only the key set, `MAIL_FROM`/`MAIL_TO` fall back to the **Resend test addresses** above — no domain to verify.
-3. Submit either form. Per Resend's [test-email guide](https://resend.com/docs/dashboard/emails/send-test-emails), `delivered@resend.dev` always simulates a successful delivery; swap `MAIL_TO` to `bounced@resend.dev` / `complained@resend.dev` to exercise those paths. Test sends appear in your Resend dashboard and count against quota.
+## Monitoring (Sentry)
 
-### Webhooks (delivery events)
-
-`POST /webhooks/resend` receives Resend events (`email.sent` / `delivered` / `bounced` / `opened` …) and logs them. To try it locally (per the [webhooks intro](https://resend.com/docs/webhooks/introduction)), expose the backend with a tunnel and register the URL in the Resend dashboard:
-
-```bash
-# e.g. ngrok, the Resend CLI, or VS Code port forwarding
-ngrok http 3001
-# then add https://<tunnel>/webhooks/resend in Resend → Webhooks
-```
-
-Set `RESEND_WEBHOOK_SECRET` (the endpoint's **Signing secret** in the dashboard) to enforce Svix signature verification; without it, calls are accepted unsigned (fine for local testing).
-
-### Going to production
-
-1. **Verify your sending domain** in the Resend dashboard and set `MAIL_FROM` to an address on it (`onboarding@resend.dev` is dev-only).
-2. Set `MAIL_TO` to the real company inbox — the placeholder in `.env.prod.example` is a **dummy**; replace it.
-3. Provide `RESEND_API_KEY` (and ideally `RESEND_WEBHOOK_SECRET`) in `.env.prod`. The prod compose requires the key, sender, and recipient (fails fast if missing).
-
-> 🔐 Treat the API key like any secret — it lives only in gitignored `.env`/`.env.prod`. If a key has ever been shared in plaintext (chat, a ticket, a commit), **rotate it** in the Resend dashboard.
+Errors are reported to **Sentry** ([`frontend/sentry.server.config.ts`](frontend/sentry.server.config.ts), [`frontend/sentry.edge.config.ts`](frontend/sentry.edge.config.ts), [`frontend/src/instrumentation-client.ts`](frontend/src/instrumentation-client.ts)). Optionally set `SENTRY_AUTH_TOKEN` in the build env to upload source maps. A Sentry→Discord relay lives at `POST /api/monitoring/discord` (set `DISCORD_MONITORING_WEBHOOK_URL` + `SENTRY_DISCORD_RELAY_SECRET`).
 
 ---
 
 ## Troubleshooting
 
-- **Admin login says "Identifiants invalides" / "Impossible de joindre le serveur"** — the second message means the frontend can't reach the backend API. Confirm the backend is up (`curl http://localhost:3001/health`) and that `NEXT_PUBLIC_API_URL` is correct.
-- **`docker: command not found`** — you're in a Windows shell. Run inside WSL (`wsl -d Ubuntu`).
-- **`Catastrophic failure` / `Wsl/Service/E_UNEXPECTED`** — reset WSL: `wsl --shutdown`, then retry.
-- **`Cannot connect to the Docker daemon`** — systemd starts it a few seconds after the distro boots; otherwise `sudo service docker start`.
-- **Form notification emails aren't arriving** — check the backend logs. `RESEND_API_KEY is not set` means email is disabled (set it in `.env`). In dev, mail goes to `delivered@resend.dev` (a Resend **test inbox**, not a real address) — confirm the send in the Resend dashboard, not your own inbox. In prod, a `403`/domain error means `MAIL_FROM` is on an unverified domain.
-- More WSL/Docker setup detail: **[DOCKER.md](DOCKER.md)**.
+- **`P3005` on deploy / "database schema is not empty"** — baseline the existing migrations (see Supabase setup, step 2) before `migrate deploy` runs.
+- **Admin login fails to reach the server** — check the route handlers are deployed and `DATABASE_URL` is the pooler URL with `?pgbouncer=true`.
+- **CV/image upload fails** — confirm the `cvs` (private) and `images` (public) buckets exist and `SUPABASE_SECRET_KEY` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set.
+- **Emails not arriving** — `RESEND_API_KEY` unset disables email. In dev, mail goes to `delivered@resend.dev` (a Resend test inbox); confirm in the Resend dashboard.

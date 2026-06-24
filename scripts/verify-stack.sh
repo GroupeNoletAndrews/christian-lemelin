@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Wait for the backend to be healthy, then report endpoint status + seed counts.
 set -u
-cd "/mnt/c/GNA/Christian Lemelin/christian-lemelin" 2>/dev/null || true
+cd "/mnt/c/GNA/christian-lemelin" 2>/dev/null || true
 
 echo "=== compose ps ==="
 docker compose ps 2>/dev/null || true

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Diagnose admin login: hit the API directly, inspect the seeded user + CORS.
 set -u
-cd "/mnt/c/GNA/Christian Lemelin/christian-lemelin" 2>/dev/null || true
+cd "/mnt/c/GNA/christian-lemelin" 2>/dev/null || true
 
 echo "=== waiting for backend /health ==="
 for i in $(seq 1 60); do

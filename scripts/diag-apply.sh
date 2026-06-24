@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Submit a test job application, then show where it landed in the DB.
 set -u
-cd "/mnt/c/GNA/Christian Lemelin/christian-lemelin" 2>/dev/null || true
+cd "/mnt/c/GNA/christian-lemelin" 2>/dev/null || true
 
 echo "=== POST /applications (test submission, no CV) ==="
 curl -s -o /tmp/apply.out -w "HTTP %{http_code}\n" \

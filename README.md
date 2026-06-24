@@ -10,7 +10,7 @@ Three services, wired end to end:
 Browser ─▶ frontend (Next.js 16, :3000) ─▶ backend (NestJS + Prisma, :3001) ─▶ Postgres
 ```
 
-- **frontend** — Next.js app at the repo root. Talks to the backend over HTTP using `NEXT_PUBLIC_API_URL`.
+- **frontend** — Next.js app in `frontend/`. Talks to the backend over HTTP using `NEXT_PUBLIC_API_URL`.
 - **backend** — `backend/` NestJS REST API (Prisma ORM, JWT auth with bcryptjs). Modules: `auth`, `jobs`, `realisations`, `applications`, `contact`, `health`.
 - **database** — **local Postgres** (Docker) in dev, **Supabase** (managed Postgres) in prod. The backend selects between them purely via `DATABASE_URL` — no code changes.
 
@@ -35,7 +35,7 @@ Réalisations have an **admin-controlled display order** (reorder with the arrow
 
 ```bash
 # inside WSL, in the repo directory
-docker compose up --build          # or: npm run docker:up
+docker compose up --build          # from the repo root, inside WSL
 ```
 
 - Frontend → http://localhost:3000
@@ -50,24 +50,33 @@ On first boot the backend applies migrations (`prisma migrate deploy`) and seeds
 Run the DB + backend in Docker, the frontend on the host (fast refresh):
 
 ```bash
-docker compose up -d db backend    # inside WSL — starts ONLY db + backend
-npm install                        # once
-npm run dev                        # http://localhost:3000
+docker compose up -d db backend    # inside WSL (repo root) — starts ONLY db + backend
+cd frontend && npm install         # once
+npm run dev                        # http://localhost:3000  (run from frontend/)
 ```
 
-The dev frontend calls the backend at `http://localhost:3001` (override with `NEXT_PUBLIC_API_URL` in `.env.local`). In dev the backend's CORS accepts **any localhost port**, so this works even if Next picks a different port.
+The dev frontend calls the backend at `http://localhost:3001` (override with `NEXT_PUBLIC_API_URL` in `frontend/.env.local`). In dev the backend's CORS accepts **any localhost port**, so this works even if Next picks a different port.
 
 > Don't run the Docker `frontend` service at the same time as `npm run dev` — they'd both want port 3000. Option B starts only `db` + `backend`.
 
 ### Configuration (dev)
 
-Defaults are dev-safe, so `.env` is optional. To override, copy `.env.example` → `.env`. Backend-only vars: `backend/.env.example`.
+Env files are **split per concern**, each next to the thing that reads it — no key lives in two places. Defaults are dev-safe, so all three are optional in dev. Copy the matching `.example` to create the real (gitignored) file:
+
+| File | Read by | Holds |
+|---|---|---|
+| root `.env` | `docker compose` (orchestration only) | `POSTGRES_*` (db service) + `NEXT_PUBLIC_API_URL` (frontend build arg) — copy from `.env.example` |
+| `frontend/.env.local` | `next dev` / `next build` | `NEXT_PUBLIC_*` (reach the browser) — copy from `frontend/.env.example` |
+| `backend/.env` | the backend — **in Docker *and* on the host** | `JWT_*`, `CORS_ORIGIN`, `SEED_*`, `RESEND_*`, `MAIL_*`, `PORT`, `JSON_BODY_LIMIT` — copy from `backend/.env.example` |
+
+`backend/.env` is the **single source of truth** for backend config: in Docker it's loaded into the container via `env_file:` in `docker-compose.yml`. The compose file then overrides only the few values that *must* differ inside the container — `DATABASE_URL` (Postgres host is the `db` service, not localhost), `UPLOADS_DIR` (a mounted volume path), and `CORS_ALLOW_LOCALHOST=true` (dev convenience). (Prod is different: `docker-compose.prod.yml` takes its secrets from the root `.env.prod` via `--env-file`, never `backend/.env`.)
 
 ### Tests (Playwright E2E)
 
 With the stack running (Option A):
 
 ```bash
+cd frontend                        # Playwright + the e2e/ suite live here
 npx playwright install chromium    # one-time
 npm run test:e2e                   # 17 tests: every route + admin flows
 ```
@@ -164,7 +173,7 @@ The migrations live in `backend/prisma/migrations/` — baseline whichever ones 
 
 ## Email notifications (Resend)
 
-Both public forms — **« Nous joindre »** ([`ContactForm`](src/components/sections/ContactForm.tsx)) and the **job application** modal ([`ApplyModal`](src/components/emplois/ApplyModal.tsx)) — still save to the database as before, and now **also email a notification to the company** via [Resend](https://resend.com). The email is rendered to match the site's OPUS design (cream/white card, hairline rows, the single blue accent on the reply button); the application email attaches the uploaded CV when present. The submitter's address is set as `Reply-To`, so the company can reply straight from its inbox.
+Both public forms — **« Nous joindre »** ([`ContactForm`](frontend/src/components/sections/ContactForm.tsx)) and the **job application** modal ([`ApplyModal`](frontend/src/components/emplois/ApplyModal.tsx)) — still save to the database as before, and now **also email a notification to the company** via [Resend](https://resend.com). The email is rendered to match the site's OPUS design (cream/white card, hairline rows, the single blue accent on the reply button); the application email attaches the uploaded CV when present. The submitter's address is set as `Reply-To`, so the company can reply straight from its inbox.
 
 All of this lives in the backend ([`backend/src/mail/`](backend/src/mail/)) so the API key never reaches the browser. Sending is **best-effort** — if Resend is down or unconfigured, the form still succeeds (the data is persisted) and the failure is logged.
 

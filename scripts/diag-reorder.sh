@@ -2,7 +2,7 @@
 # Verify the réalisation ordering feature: migration applied, positions backfilled,
 # and the reorder endpoint actually changes the order end to end.
 set -u
-cd "/mnt/c/GNA/Christian Lemelin/christian-lemelin" 2>/dev/null || true
+cd "/mnt/c/GNA/christian-lemelin" 2>/dev/null || true
 
 for i in $(seq 1 60); do
   [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/health)" = "200" ] && break

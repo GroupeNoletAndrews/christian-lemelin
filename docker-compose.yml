@@ -23,25 +23,22 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
+    # Backend app config (JWT_*, CORS_ORIGIN, SEED_*, RESEND_*, MAIL_*, PORT,
+    # JSON_BODY_LIMIT) has its single source of truth in backend/.env — loaded
+    # into the container from there. The backend code also ships dev-safe
+    # fallbacks, so a missing backend/.env still boots in dev (required: false).
+    env_file:
+      - path: ./backend/.env
+        required: false
     environment:
+      # Only values that MUST differ INSIDE the container go here; these OVERRIDE
+      # anything coming from env_file above:
+      #   • Postgres host is the `db` service, not localhost.
+      #   • uploads is a mounted volume at a container path.
+      #   • CORS: in dev, also accept any localhost port (Next hot-reload).
       DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-app}@db:5432/${POSTGRES_DB:-app}
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      PORT: "3001"
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
-      # Dev convenience: accept any localhost port (e.g. `next dev` hot-reload).
-      CORS_ALLOW_LOCALHOST: "true"
       UPLOADS_DIR: /app/uploads
-      JSON_BODY_LIMIT: 25mb
-      SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:-admin}
-      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-password}
-      # Email notifications (Resend). Put RESEND_API_KEY in .env (gitignored) to
-      # enable sending; without it the forms still work but no email is sent.
-      # Dev defaults use Resend test addresses — no domain verification needed.
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      MAIL_FROM: ${MAIL_FROM:-Entreprises Christian Lemelin <onboarding@resend.dev>}
-      MAIL_TO: ${MAIL_TO:-delivered@resend.dev}
-      RESEND_WEBHOOK_SECRET: ${RESEND_WEBHOOK_SECRET:-}
+      CORS_ALLOW_LOCALHOST: "true"
     ports:
       - "3001:3001"
     volumes:
@@ -60,7 +57,7 @@ services:
 
   frontend:
     build:
-      context: .
+      context: ./frontend
       args:
         # Baked into the browser bundle — must be reachable from the host browser.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}

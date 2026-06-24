@@ -16,13 +16,13 @@ yarn-error.log*
 lerna-debug.log*
 
 # dotenv environment variable files (keep *.example committed)
-.env
-.env.development
-.env.test
-.env.production
-.env.local
-.env.prod
-.env.docker
+# .env
+# .env.development
+# .env.test
+# .env.production
+# .env.local
+# .env.prod
+# .env.docker
 
 
 
@@ -30,10 +30,10 @@ lerna-debug.log*
 .temp
 .tmp
 
-# Playwright / e2e artifacts
-/test-results
-/playwright-report
-/playwright/.cache
+# Playwright / e2e artifacts (now under frontend/ — keep unanchored)
+test-results
+playwright-report
+playwright/.cache
 
 # Local Windows/WSL dev helper (not portable to non-WSL hosts)
 /dev.ps1

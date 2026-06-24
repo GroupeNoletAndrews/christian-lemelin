@@ -45,7 +45,7 @@ services:
 
   frontend:
     build:
-      context: .
+      context: ./frontend
       args:
         # Baked into the browser bundle — the PUBLIC URL the browser uses to reach the API.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL to your public backend URL}

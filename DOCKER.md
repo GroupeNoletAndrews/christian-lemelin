@@ -6,7 +6,7 @@ Three services, wired end to end:
 Browser ─▶ frontend (Next.js, :3000) ─▶ backend (NestJS + Prisma, :3001) ─▶ db (Postgres, :5432)
 ```
 
-- **frontend** — the Next.js app at the repo root, built as a standalone image.
+- **frontend** — the Next.js app in `frontend/`, built as a standalone image.
 - **backend** — `backend/` NestJS REST API using **Prisma** over Postgres, JWT auth (bcryptjs).
 - **db** — plain `postgres:16-alpine`.
 
@@ -32,7 +32,7 @@ wsl --install -d Ubuntu
 Then, **inside the Ubuntu (WSL) shell**, from the repo:
 
 ```bash
-cd "/mnt/c/GNA/Christian Lemelin/christian-lemelin"
+cd /mnt/c/GNA/christian-lemelin
 bash scripts/setup-docker-wsl.sh   # installs docker.io + compose v2, enables systemd
 ```
 
@@ -50,7 +50,7 @@ docker compose version
 From **inside WSL**, in the repo directory:
 
 ```bash
-docker compose up --build        # or: npm run docker:up
+docker compose up --build        # from the repo root
 ```
 
 - Frontend: <http://localhost:3000>
@@ -84,6 +84,7 @@ browser calls it), so changing it requires `docker compose up --build`.
 With the stack running:
 
 ```bash
+cd frontend                       # Playwright + e2e/ live in the frontend package
 npx playwright install chromium   # one-time, downloads the browser
 npm run test:e2e                  # smoke every route + admin flows
 ```

@@ -18,21 +18,40 @@ export function Materiaux() {
   useEffect(() => {
     if (reduce || !wrapRef.current || !trackRef.current) return
     const ctx = gsap.context(() => {
-      const distance = trackRef.current!.scrollWidth - window.innerWidth
+      // Functions (not a captured number) so `invalidateOnRefresh` recomputes
+      // both the scroll length AND the track translation on every refresh.
+      const distance = () => trackRef.current!.scrollWidth - window.innerWidth
       gsap.to(trackRef.current, {
-        x: -distance,
+        x: () => -distance(),
         ease: "none",
         scrollTrigger: {
           trigger: wrapRef.current,
           start: "top top",
-          end: () => `+=${distance}`,
+          end: () => `+=${distance()}`,
           pin: true,
           scrub: 1,
           invalidateOnRefresh: true,
         },
       })
     }, wrapRef)
-    return () => ctx.revert()
+
+    // The pin is measured at mount — but the Preloader locks scroll
+    // (`body{overflow:hidden}` + `lenis.stop()`), and `display:swap` fonts and
+    // lazy images all reflow the page afterward. Without a refresh the
+    // pin-spacer keeps its stale height and the next section overlaps this one
+    // (intermittent, prod-only). Recompute once the layout settles.
+    const refresh = () => ScrollTrigger.refresh()
+    document.fonts?.ready?.then(refresh)
+    window.addEventListener("load", refresh)
+    window.addEventListener("eclemelin:preloader-done", refresh)
+    const t = window.setTimeout(refresh, 3200) // fallback ≈ Preloader dismissal
+
+    return () => {
+      window.clearTimeout(t)
+      window.removeEventListener("load", refresh)
+      window.removeEventListener("eclemelin:preloader-done", refresh)
+      ctx.revert()
+    }
   }, [reduce])
 
   return (

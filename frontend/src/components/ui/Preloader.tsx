@@ -50,6 +50,9 @@ export function Preloader() {
     } else {
       lenis?.start()
       document.body.style.overflow = ""
+      // Scroll just got unlocked and the page reflowed — let pinned
+      // ScrollTriggers (e.g. Materiaux) re-measure against the real layout.
+      window.dispatchEvent(new Event("eclemelin:preloader-done"))
     }
     return () => {
       document.body.style.overflow = ""

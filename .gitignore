@@ -5,6 +5,9 @@ node_modules
 # TypeScript incremental build cache
 *.tsbuildinfo
 
+# Local secret backups (e.g. .env.prod.bak)
+*.bak
+
 # Logs
 logs
 *.log

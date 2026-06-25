@@ -25,8 +25,8 @@ Réalisations have an **admin-controlled display order** (drag-and-drop in the d
 ## Prerequisites
 
 - **Node.js 20+**
-- A **Supabase** project (free tier is fine) — for the Postgres database and Storage.
-- A **Vercel** account/project (the app is already at `https://christian-lemelin.vercel.app`).
+- For **local dev**: a **Docker-compatible runtime** (Docker Desktop / Docker Engine / Rancher / Podman / OrbStack) + the **Supabase CLI** — runs the whole database + storage stack on your machine. *(Or, instead, a remote Supabase project — see [Local development](#local-development).)*
+- For **deploy**: a **Supabase** project (Postgres + Storage) and a **Vercel** account/project (the app is already at `https://christian-lemelin.vercel.app`).
 
 ---
 
@@ -82,14 +82,101 @@ Get the two connection strings from **Supabase → Project Settings → Database
 
 ## Local development
 
+The recommended local stack runs a **full Supabase instance** (Postgres + Storage + Studio) on your machine via the [Supabase CLI](https://supabase.com/docs/guides/local-development) — so you never touch production. It needs a **Docker-compatible runtime**.
+
+> **Windows + Docker Engine in WSL2:** run the Supabase CLI **inside WSL** (that's where the Docker daemon lives). `npm` / Prisma / `next dev` can stay on Windows — WSL2 forwards `localhost`. Make sure the Docker daemon is up before `supabase start`.
+>
+> ⚠️ **Keep a WSL terminal open while developing.** WSL2 shuts its VM down once no WSL process is running, which stops the Supabase containers and makes `localhost:54322` unreachable from Windows (Prisma → `P1001`, app → DB errors). Leave a WSL session open (the one you ran `supabase start` in is fine). If the DB suddenly becomes unreachable, the VM went idle — reopen/refresh a WSL session. For a permanent fix, enable [mirrored networking](https://learn.microsoft.com/windows/wsl/networking#mirrored-mode-networking) (`networkingMode=mirrored` in `%USERPROFILE%\.wslconfig`, then `wsl --shutdown`).
+
+### First-time setup (new machine)
+
+**1. Install the Supabase CLI** — one-time (Linux/WSL, no sudo). The release tarball ships **two** binaries (`supabase` + `supabase-go`) that must stay side by side — extract the whole archive, don't move a single file out of it:
 ```bash
-cd frontend
-npm install            # also runs `prisma generate` (postinstall)
-npm run dev            # http://localhost:3000
+mkdir -p ~/.local/share/supabase && cd /tmp
+url=$(curl -fsSL https://api.github.com/repos/supabase/cli/releases/latest | grep -oE 'https://[^"]*_linux_amd64\.tar\.gz' | head -1)
+curl -fsSL "$url" | tar -xz -C ~/.local/share/supabase
+echo 'export PATH="$HOME/.local/share/supabase:$PATH"' >> ~/.bashrc && export PATH="$HOME/.local/share/supabase:$PATH"
+supabase --version
+```
+*(macOS: `brew install supabase/tap/supabase`.)*
+
+**2. Start the stack** — from the repo root (where `supabase/` lives). The first run pulls the Docker images (a few minutes); if you hit a registry **`Rate exceeded`**, just rerun — already-pulled layers are cached:
+```bash
+supabase start     # Postgres :54322 · API/Storage :54321 · Studio :54323
+                   # buckets `cvs` (private) + `images` (public) auto-created from supabase/config.toml
+supabase status    # reprints the local URLs + keys at any time
 ```
 
-- App → http://localhost:3000 · Admin → http://localhost:3000/admin
-- Point `DATABASE_URL`/`DIRECT_URL` (in `frontend/.env`) at your Supabase project. **Tip:** use a *separate* Supabase project for dev so you never write to prod.
+**3. Wire the app at the local stack** — create `frontend/.env` and `frontend/.env.local` (both gitignored) with the **local** values printed by `supabase start`:
+
+`frontend/.env` (read by the Prisma CLI — no pooler locally, so both URLs are identical):
+```
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+DIRECT_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+```
+`frontend/.env.local` (read by `next dev`):
+```
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<Publishable key from `supabase status`>
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_SECRET_KEY=<Secret key from `supabase status`>
+JWT_SECRET=any-long-random-string-for-local
+SEED_DEMO_DATA=true
+```
+> The current CLI prints keys in the new `sb_publishable_…` / `sb_secret_…` format — copy them verbatim from `supabase status`.
+
+**4. Schema, seed, run** — where Node lives (e.g. Windows):
+```bash
+cd frontend
+npm install         # also runs `prisma generate` (postinstall)
+npm run db:deploy   # applies Prisma migrations to the local DB
+npm run db:seed     # creates the admin user + demo content
+npm run dev         # http://localhost:3000
+```
+
+### Daily startup (already set up — e.g. right after `git pull`)
+
+Two terminals:
+```bash
+# 1) WSL — LEAVE THIS OPEN (keeps the DB alive — see the warning above)
+cd /mnt/c/GNA/christian-lemelin
+~/.local/share/supabase/supabase start     # fast — images cached, data persists across restarts
+```
+```powershell
+# 2) Windows
+cd C:\GNA\christian-lemelin\frontend
+npm run dev                                 # http://localhost:3000
+```
+- Re-run `npm install` **only** if dependencies changed since the pull.
+- Re-run `npm run db:deploy` **only** if new migrations landed (`frontend/prisma/migrations/`).
+- Re-run `npm run db:seed` **only** to (re)create the admin/demo data — local data otherwise persists in the Docker volumes between `supabase start`/`stop`.
+- Stop everything with `supabase stop` (add `--no-backup` to also **wipe** the local DB).
+
+### Local URLs & credentials
+
+| What | URL / value |
+|---|---|
+| App | http://localhost:3000 |
+| Admin dashboard | http://localhost:3000/admin — log in with **`admin` / `password`** |
+| **Supabase Studio** (browse/edit the DB) | **http://localhost:54323** |
+| Mailpit (catches emails sent locally) | http://localhost:54324 |
+| Postgres (psql / DBeaver / TablePlus) | `postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
+| Supabase API / Storage gateway | http://localhost:54321 |
+
+> All of these respond **only while the WSL VM is alive** — keep a WSL terminal open.
+
+### Troubleshooting
+
+- **`P1001: Can't reach database server at 127.0.0.1:54322`** — the WSL VM went idle and stopped the containers. Reopen a WSL terminal, run `supabase start` (or `supabase status`), then retry — and keep that terminal open. (Permanent fix: WSL [mirrored networking](https://learn.microsoft.com/windows/wsl/networking#mirrored-mode-networking).)
+- **`supabase start` → `address already in use` (54321/54322)** — a previous stack is still up: `supabase stop`, then `supabase start`.
+- **`Could not find the supabase-go binary`** — the CLI was installed with only the `supabase` shim. Reinstall by extracting the **entire** tarball into one directory (step 1).
+- **Registry `Rate exceeded` during `supabase start`** — transient pull-rate limit; just rerun (cached layers make the retry fast).
+- **Storage upload / key errors** — the keys in `.env.local` must match the current `supabase status` output.
+
+### Alternative — no Docker
+
+Point the same vars at a **separate remote Supabase project** (see [Supabase setup](#supabase-setup-one-time)). **Never point local dev at the production project** — `npm run db:migrate` / `db:seed` would mutate prod.
+
 - The API is same-origin — no separate backend process to start.
 
 ---

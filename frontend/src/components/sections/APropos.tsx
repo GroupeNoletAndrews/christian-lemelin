@@ -1,4 +1,5 @@
 import { ParallaxImage } from "@/components/ui/ParallaxImage"
+import { imageUrl } from "@/content/image"
 
 // Page /a-propos — mise en page reprise du block shadcnblocks « about6 » :
 // deux colonnes éditoriales décalées verticalement, chacune avec une grille
@@ -8,17 +9,25 @@ import { ParallaxImage } from "@/components/ui/ParallaxImage"
 
 // Cadre d'image OPUS : ratio + coins arrondis + hairline, avec parallax dedans.
 function Frame({
-  src,
+  seed,
   alt,
   ratio,
+  w,
+  h,
 }: {
-  src: string
+  seed: string
   alt: string
   ratio: string
+  w: number
+  h: number
 }) {
   return (
     <div className={`relative ${ratio} overflow-hidden rounded-2xl border border-border`}>
-      <ParallaxImage src={src} alt={alt} sizes="(min-width: 1024px) 25vw, 45vw" />
+      <ParallaxImage
+        src={imageUrl({ seed, alt }, w, h)}
+        alt={alt}
+        sizes="(min-width: 1024px) 25vw, 45vw"
+      />
     </div>
   )
 }
@@ -49,19 +58,25 @@ export function APropos() {
             <div className="grid grid-cols-2 gap-4">
               <Frame
                 ratio="aspect-[3/4]"
-                src="https://picsum.photos/seed/ecl-about-atelier-large/900/1200"
+                seed="ecl-about-atelier-large"
                 alt="Atelier de fabrication métallique"
+                w={900}
+                h={1200}
               />
               <div className="flex flex-col gap-4">
                 <Frame
                   ratio="aspect-square"
-                  src="https://picsum.photos/seed/ecl-about-soudure-tig/900/900"
+                  seed="ecl-about-soudure-tig"
                   alt="Soudure TIG sur inox"
+                  w={900}
+                  h={900}
                 />
                 <Frame
                   ratio="aspect-square"
-                  src="https://picsum.photos/seed/ecl-about-decoupe-laser/900/900"
+                  seed="ecl-about-decoupe-laser"
                   alt="Découpe laser de précision"
+                  w={900}
+                  h={900}
                 />
               </div>
             </div>
@@ -72,14 +87,18 @@ export function APropos() {
             <div className="grid grid-cols-2 gap-4">
               <Frame
                 ratio="aspect-[3/4]"
-                src="https://picsum.photos/seed/ecl-about-finitions-poli/900/1200"
+                seed="ecl-about-finitions-poli"
                 alt="Finition et polissage en atelier"
+                w={900}
+                h={1200}
               />
               <div className="flex flex-col gap-4">
                 <Frame
                   ratio="aspect-square"
-                  src="https://picsum.photos/seed/ecl-about-equipe-plancher/900/900"
+                  seed="ecl-about-equipe-plancher"
                   alt="Équipe au plancher de l'atelier"
+                  w={900}
+                  h={900}
                 />
               </div>
             </div>

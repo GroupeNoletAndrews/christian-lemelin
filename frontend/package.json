@@ -5,13 +5,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "vercel-build": "prisma generate && prisma migrate deploy && prisma db seed && next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && prisma db seed && tsx scripts/gen-media-manifest.ts && next build",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
     "db:seed": "prisma db seed",
     "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy"
+    "db:deploy": "prisma migrate deploy",
+    "media:sync": "tsx scripts/sync-site-media.ts",
+    "media:manifest": "tsx scripts/gen-media-manifest.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

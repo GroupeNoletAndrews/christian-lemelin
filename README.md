@@ -15,7 +15,7 @@ Browser ─▶ Next.js app (Vercel)
 
 - **API** — route handlers in [`frontend/src/app/api/`](frontend/src/app/api/); business logic in [`frontend/src/lib/server/`](frontend/src/lib/server/) (Prisma singleton, jose auth, Resend mail, Supabase storage, zod validation). Endpoints: `auth` (login/logout/session), `jobs`, `realisations` (+ `reorder`, `[id]/pin`), `applications` (+ `upload-url`), `contact`, `health`, `webhooks/resend`.
 - **Database** — **Supabase** (managed Postgres) via Prisma. Runtime uses the transaction pooler; migrations/seed use the direct connection.
-- **Storage** — **Supabase Storage**: a private `cvs` bucket (job-application CVs) and a public `images` bucket (réalisation images). Files upload **straight from the browser** via short-lived signed URLs, so they never pass through a serverless function (bypassing Vercel's 4.5 MB body cap).
+- **Storage** — **Supabase Storage**: one **public** `christian-alain` bucket for all site photos & videos (`photos/{a-propos,fabrication,logo,realisations,solutions}` + `videos/`) and a **private** `cvs` bucket for job-application CVs. Files upload **straight from the browser** via short-lived signed URLs, so they never pass through a serverless function (bypassing Vercel's 4.5 MB body cap). See [Media & Storage](#media--storage).
 - **Auth** — admin login is a row in `admin_users` (bcrypt-hashed). On success the server sets a **jose HS256 JWT in an httpOnly cookie**; `requireAdmin()` guards every protected route handler. Default seeded credentials: **`admin` / `password`** (change in prod).
 
 Réalisations have an **admin-controlled display order** (drag-and-drop in the dashboard; persisted via `PATCH /api/realisations/reorder`). On `/realisations` the first is shown as a large **featured** project; home-page cards deep-link via `?featured=<id>`.
@@ -64,8 +64,14 @@ Get the two connection strings from **Supabase → Project Settings → Database
 ## Supabase setup (one-time)
 
 1. **Create the Storage buckets** (Dashboard → Storage):
-   - `cvs` — **Private**
-   - `images` — **Public**
+   - `cvs` — **Private** (job-application CVs)
+   - `christian-alain` — **Public** (all site photos & videos)
+
+   Then upload the static site assets + demo images to the public bucket (see [Media & Storage](#media--storage)):
+   ```bash
+   cd frontend
+   SUPABASE_URL="https://<ref>.supabase.co" SUPABASE_SECRET_KEY="sb_secret_…" npm run media:sync
+   ```
 2. **Baseline the existing schema.** This DB already contains the app's tables, so tell Prisma the two committed migrations are already applied (otherwise `migrate deploy` fails with `P3005`). Run once, locally, with `frontend/.env` filled in:
    ```bash
    cd frontend
@@ -103,7 +109,7 @@ supabase --version
 **2. Start the stack** — from the repo root (where `supabase/` lives). The first run pulls the Docker images (a few minutes); if you hit a registry **`Rate exceeded`**, just rerun — already-pulled layers are cached:
 ```bash
 supabase start     # Postgres :54322 · API/Storage :54321 · Studio :54323
-                   # buckets `cvs` (private) + `images` (public) auto-created from supabase/config.toml
+                   # buckets `cvs` (private) + `christian-alain` (public) auto-created from supabase/config.toml
 supabase status    # reprints the local URLs + keys at any time
 ```
 
@@ -131,6 +137,7 @@ cd frontend
 npm install         # also runs `prisma generate` (postinstall)
 npm run db:deploy   # applies Prisma migrations to the local DB
 npm run db:seed     # creates the admin user + demo content
+npm run media:sync  # uploads logo/video/photos + demo images to the local bucket
 npm run dev         # http://localhost:3000
 ```
 
@@ -150,6 +157,7 @@ npm run dev                                 # http://localhost:3000
 - Re-run `npm install` **only** if dependencies changed since the pull.
 - Re-run `npm run db:deploy` **only** if new migrations landed (`frontend/prisma/migrations/`).
 - Re-run `npm run db:seed` **only** to (re)create the admin/demo data — local data otherwise persists in the Docker volumes between `supabase start`/`stop`.
+- Re-run `npm run media:sync` **only** if you wiped the local stack (`supabase stop --no-backup`) — uploaded media otherwise persists too.
 - Stop everything with `supabase stop` (add `--no-backup` to also **wipe** the local DB).
 
 ### Local URLs & credentials
@@ -181,6 +189,64 @@ Point the same vars at a **separate remote Supabase project** (see [Supabase set
 
 ---
 
+## Media & Storage
+
+All site **photos and videos** live in one **public** Supabase bucket, **`christian-alain`**, organised to mirror production:
+
+```
+christian-alain/                 (public)
+  photos/
+    a-propos/        — À-propos page photos
+    fabrication/     — Savoir-Faire + materials (inox, acier, …)
+    logo/            — logo_eclemelin.png
+    realisations/    — réalisation images (admin uploads)
+    solutions/       — Solutions detail pages
+  videos/            — hero video, etc.
+```
+
+Job-application **CVs** stay in a **separate private** bucket, **`cvs`** — resumes must never be publicly downloadable. Both buckets are created automatically for the local stack from [`supabase/config.toml`](supabase/config.toml); in a remote/prod project create them once (see [Supabase setup](#supabase-setup-one-time)).
+
+The shared, secret-free helper is [`frontend/src/lib/media.ts`](frontend/src/lib/media.ts).
+
+### How images resolve (dev ↔ prod)
+
+The DB stores a **storage key** (e.g. `photos/realisations/bar-lounge-1.jpg`), never a full URL. `mediaUrl()` builds the public URL from the **current environment's** `NEXT_PUBLIC_SUPABASE_URL` at render time — so a réalisation added in dev shows dev images and in prod shows prod images, with no environment baked into the data.
+
+### Réalisation uploads (admin)
+
+Each picture added in `/admin` is compressed to JPEG and uploaded straight from the browser to `photos/realisations/`, **named after the project + a picture number** — e.g. project "Bar lounge — hôtellerie" → `bar-lounge-hotellerie-1.jpg`, `-2.jpg`, … *(Enter the project name first: the upload button is disabled until you do, so files are named correctly.)*
+
+### Marketing-section photos (placeholder → real)
+
+Section images (À-propos, Solutions, Materials, Installations…) fall back to a [picsum](https://picsum.photos) **placeholder** until a real photo exists in the matching folder. To replace one:
+
+1. Upload the photo to the right folder, **named after its seed** — e.g. `photos/a-propos/ecl-about-atelier-large.jpg`. Seeds live in [`frontend/src/content/*.ts`](frontend/src/content/) (and [`APropos.tsx`](frontend/src/components/sections/APropos.tsx)); the seed→folder mapping is in [`frontend/src/content/image.ts`](frontend/src/content/image.ts).
+2. Refresh the manifest of available photos:
+   ```bash
+   cd frontend
+   npm run media:manifest      # re-lists the bucket → src/content/media-manifest.ts
+   ```
+3. That image now loads from Supabase; everything un-photographed stays on its placeholder.
+
+### Syncing static assets to a bucket
+
+The static assets (logo, hero video, Savoir-Faire photos) + demo réalisation images live in `frontend/public`. Upload them to the **current environment's** bucket — and regenerate the manifest — with:
+
+```bash
+cd frontend
+npm run media:sync          # uploads static assets + demo images to the bucket
+```
+
+This only **uploads** files; it doesn't touch the manifest. Run `npm run media:manifest` separately when you add real **section** photos (above). `media:sync` reads `.env.local`/`.env` like the app, so it targets **local** by default. To populate **prod**, run it with the prod credentials in the env:
+
+```bash
+SUPABASE_URL="https://<ref>.supabase.co" SUPABASE_SECRET_KEY="sb_secret_…" npm run media:sync
+```
+
+> On Vercel the manifest is regenerated against the prod bucket at build time (part of `vercel-build`). Run `media:sync` against prod **once** (and again whenever the static assets change) so the logo/video/section photos exist there.
+
+---
+
 ## Deploy to Vercel
 
 The app lives in the `frontend/` subdirectory, so the important setting is the **root directory**.
@@ -188,7 +254,7 @@ The app lives in the `frontend/` subdirectory, so the important setting is the *
 1. **Project Settings → General**
    - **Root Directory = `frontend`**
    - Framework Preset: **Next.js** (auto-detected)
-   - Build Command: leave default — Vercel runs the `vercel-build` script (`prisma generate && prisma migrate deploy && next build`). `migrate deploy` applies any new migrations at build time (the DB must be baselined first, see above).
+   - Build Command: leave default — Vercel runs the `vercel-build` script (`prisma generate && prisma migrate deploy && prisma db seed && gen-media-manifest && next build`). `migrate deploy` applies new migrations and the manifest step lists the prod bucket's photos, both at build time (the DB must be baselined first, see above).
 2. **Project Settings → Environment Variables** — add every variable from the table above (Production + Preview + Development). Server vars (no `NEXT_PUBLIC_`) stay server-side; only `NEXT_PUBLIC_*` reach the browser.
 3. **Deploy** (push to the connected branch, or "Redeploy"). After the first deploy, confirm:
    - `https://<your-app>/api/health` → `{"status":"ok"}`
@@ -237,5 +303,6 @@ Errors are reported to **Sentry** ([`frontend/sentry.server.config.ts`](frontend
 
 - **`P3005` on deploy / "database schema is not empty"** — baseline the existing migrations (see Supabase setup, step 2) before `migrate deploy` runs.
 - **Admin login fails to reach the server** — check the route handlers are deployed and `DATABASE_URL` is the pooler URL with `?pgbouncer=true`.
-- **CV/image upload fails** — confirm the `cvs` (private) and `images` (public) buckets exist and `SUPABASE_SECRET_KEY` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set.
+- **CV/image upload fails** — confirm the `cvs` (private) and `christian-alain` (public) buckets exist and `SUPABASE_SECRET_KEY` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set.
+- **Images 404 locally** — the local `christian-alain` bucket is empty; run `npm run media:sync` to upload them.
 - **Emails not arriving** — `RESEND_API_KEY` unset disables email. In dev, mail goes to `delivered@resend.dev` (a Resend test inbox); confirm in the Resend dashboard.

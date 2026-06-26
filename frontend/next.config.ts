@@ -3,15 +3,30 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    // The Next image optimizer refuses to fetch from a private IP, so it can't
+    // optimise images served by the LOCAL Supabase stack (127.0.0.1). Skip
+    // optimisation in dev (perf there is irrelevant); prod keeps it on.
+    unoptimized: process.env.NODE_ENV !== "production",
     remotePatterns: [
       {
         protocol: "https",
         hostname: "picsum.photos",
       },
       {
-        // Supabase Storage public bucket (réalisation images).
+        // Supabase Storage public bucket (prod — site photos + réalisations).
         protocol: "https",
         hostname: "*.supabase.co",
+      },
+      {
+        // Local Supabase stack (dev) — http://127.0.0.1:54321 / localhost.
+        protocol: "http",
+        hostname: "127.0.0.1",
+        port: "54321",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "54321",
       },
     ],
   },

@@ -117,11 +117,15 @@ enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 
-# App buckets — auto-created on `supabase start` (mirror prod: cvs private, images public).
+# App buckets — auto-created on `supabase start` (mirror prod):
+#   - cvs             PRIVATE  — job-application CVs (downloaded server-side)
+#   - christian-alain PUBLIC   — all site photos & videos (photos/{a-propos,
+#                                fabrication,logo,realisations,solutions} + videos/)
+# Populate the public bucket's static assets locally with: npm run media:sync
 [storage.buckets.cvs]
 public = false
 
-[storage.buckets.images]
+[storage.buckets."christian-alain"]
 public = true
 
 # Allow connections via S3 compatible clients

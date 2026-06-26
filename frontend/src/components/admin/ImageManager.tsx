@@ -10,26 +10,40 @@ import {
   Star,
 } from "@phosphor-icons/react";
 import { uploadRealisationImages } from "@/lib/uploads";
+import { mediaUrl, realisationImageIndex } from "@/lib/media";
 
 interface ImageManagerProps {
   images: string[];
   onChange: (images: string[]) => void;
+  /** Project name — pictures are stored as <project-slug>-<n>.jpg. */
+  projectName: string;
 }
 
 /**
  * Upload, reorder, and remove the pictures of a réalisation.
- * The first image (index 0) is the cover. Images are stored as compressed
- * data URLs by the parent form.
+ * The first image (index 0) is the cover. `images` holds Supabase storage keys
+ * (photos/realisations/<slug>-<n>.jpg), resolved to URLs with mediaUrl().
  */
-export function ImageManager({ images, onChange }: ImageManagerProps) {
+export function ImageManager({ images, onChange, projectName }: ImageManagerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const hasName = projectName.trim().length > 0;
 
   const handleFiles = async (fileList: FileList | null) => {
-    if (!fileList || fileList.length === 0) return;
+    if (!fileList || fileList.length === 0 || !hasName) return;
     setIsBusy(true);
     try {
-      const added = await uploadRealisationImages(Array.from(fileList));
+      // Number new pictures from the HIGHEST existing number (not the count) so
+      // removing a middle photo then adding one never reuses/overwrites a number.
+      const highest = images.reduce(
+        (max, img) => Math.max(max, realisationImageIndex(img)),
+        0,
+      );
+      const added = await uploadRealisationImages(
+        Array.from(fileList),
+        projectName,
+        highest,
+      );
       if (added.length) onChange([...images, ...added]);
     } finally {
       setIsBusy(false);
@@ -64,14 +78,16 @@ export function ImageManager({ images, onChange }: ImageManagerProps) {
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        disabled={isBusy}
-        className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-xl border border-dashed border-border bg-background text-foreground-muted hover:border-accent hover:text-foreground transition-colors disabled:opacity-60"
+        disabled={isBusy || !hasName}
+        className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-xl border border-dashed border-border bg-background text-foreground-muted hover:border-accent hover:text-foreground transition-colors disabled:opacity-60 disabled:hover:border-border disabled:hover:text-foreground-muted"
       >
         <UploadSimple size={22} />
         <span className="font-sans text-sm">
           {isBusy
             ? "Traitement des images..."
-            : "Cliquez pour téléverser des images"}
+            : hasName
+              ? "Cliquez pour téléverser des images"
+              : "Entrez d'abord le nom de la réalisation"}
         </span>
         <span className="font-mono text-[10px] uppercase tracking-[0.14em]">
           JPEG, PNG, WebP
@@ -95,7 +111,7 @@ export function ImageManager({ images, onChange }: ImageManagerProps) {
               className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-surface-elevated"
             >
               <Image
-                src={src}
+                src={mediaUrl(src)}
                 alt={`Image ${i + 1}`}
                 fill
                 unoptimized

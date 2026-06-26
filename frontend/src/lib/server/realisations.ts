@@ -1,5 +1,6 @@
 import { prisma } from "./prisma"
 import { AppError } from "./http"
+import { deleteMediaObjects } from "./storage"
 
 /** Mirrors MAX_PINNED_REALISATIONS in src/types/admin.ts. */
 export const MAX_PINNED = 6
@@ -49,7 +50,7 @@ export async function updateRealisation(
   id: string,
   dto: { name: string; images: string[]; pinned?: boolean },
 ) {
-  return prisma.$transaction(async (tx) => {
+  const { updated, removed } = await prisma.$transaction(async (tx) => {
     const current = await tx.realisation.findUnique({ where: { id } })
     if (!current) throw new AppError(404, "Réalisation introuvable")
 
@@ -64,16 +65,27 @@ export async function updateRealisation(
       }
     }
 
-    return tx.realisation.update({
+    // Images dropped from the réalisation become orphaned objects to clean up.
+    const next = new Set(dto.images)
+    const removed = current.images.filter((img) => !next.has(img))
+
+    const updated = await tx.realisation.update({
       where: { id },
       data: { name: dto.name, images: dto.images, pinned: wantPinned },
     })
+    return { updated, removed }
   })
+
+  // Best-effort, after the row is safely updated.
+  if (removed.length) await deleteMediaObjects(removed)
+  return updated
 }
 
 export async function deleteRealisation(id: string): Promise<void> {
-  await getRealisation(id)
+  const realisation = await getRealisation(id)
   await prisma.realisation.delete({ where: { id } })
+  // Best-effort: remove the réalisation's images from the public bucket.
+  await deleteMediaObjects(realisation.images)
 }
 
 /** Toggle pinned; enforce the cap atomically. */

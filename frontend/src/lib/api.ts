@@ -92,9 +92,6 @@ interface SignedUpload {
   path: string
   token: string
 }
-interface ImageUpload extends SignedUpload {
-  publicUrl: string
-}
 
 export const api = {
   auth: {
@@ -138,10 +135,10 @@ export const api = {
       }),
     remove: (id: string) =>
       request<void>(`/realisations/${id}`, { method: "DELETE" }),
-    uploadUrl: (filename: string) =>
-      request<ImageUpload>("/realisations/upload-url", {
+    uploadUrl: (projectName: string, index: number, filename: string) =>
+      request<SignedUpload>("/realisations/upload-url", {
         method: "POST",
-        body: JSON.stringify({ filename }),
+        body: JSON.stringify({ projectName, index, filename }),
       }),
   },
   applications: {

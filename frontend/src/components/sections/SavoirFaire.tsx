@@ -5,41 +5,42 @@ import Image from "next/image"
 import { Plus, CaretUp, CaretDown } from "@phosphor-icons/react"
 import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react"
 import { ArrowLink } from "@/components/ui/ArrowLink"
+import { mediaUrl, SITE_MEDIA } from "@/lib/media"
 
 const services = [
   {
     title: "Mobilier hospitalier personnalisé",
     description:
       "Mobilier sur mesure en acier inoxydable médical, alliant ergonomie, durabilité et hygiène pour hôpitaux, cliniques et laboratoires.",
-    img: "/assets/1780581925672-IMG_1281.jpeg",
+    img: mediaUrl(SITE_MEDIA.savoirFaire.mobilier),
     href: "/solutions/mobilier-hospitalier",
   },
   {
     title: "Fabrication sur mesure",
     description:
       "Pièces uniques ou en série, réalisées selon vos plans ou développées avec notre équipe technique.",
-    img: "/assets/1780581858443-IMG_1292.jpeg",
+    img: mediaUrl(SITE_MEDIA.savoirFaire.fabrication),
     href: "/fabrication",
   },
   {
     title: "Découpe laser & Lazer tube",
     description:
       "Précision au dixième de millimètre sur toutes épaisseurs, du prototype à la grande série.",
-    img: "/assets/1780581873317-IMG_1291.jpeg",
+    img: mediaUrl(SITE_MEDIA.savoirFaire.decoupeLaser),
     href: "/solutions",
   },
   {
     title: "Soudure & assemblage",
     description:
       "Soudeurs certifiés MIG, TIG et structurale pour assemblages industriels et architecturaux exigeants.",
-    img: "/assets/1780581884668-IMG_1288.jpeg",
+    img: mediaUrl(SITE_MEDIA.savoirFaire.soudure),
     href: "/solutions",
   },
   {
     title: "Polissage & finitions",
     description:
       "Miroir, satiné, brossé, poudré. Chaque finition exécutée en atelier selon les standards les plus exigeants.",
-    img: "/assets/1780581936961-IMG_1277.jpeg",
+    img: mediaUrl(SITE_MEDIA.savoirFaire.polissage),
     href: "/fabrication",
   },
 

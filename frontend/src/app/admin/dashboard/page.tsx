@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "motion/react";
+import { mediaUrl } from "@/lib/media";
 import {
   DndContext,
   closestCenter,
@@ -454,7 +455,7 @@ function SortableRealisationCard({
       <div className="relative aspect-[4/3] bg-surface-elevated">
         {r.images[0] ? (
           <Image
-            src={r.images[0]}
+            src={mediaUrl(r.images[0])}
             alt={r.name}
             fill
             unoptimized

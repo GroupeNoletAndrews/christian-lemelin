@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { CaretLeft, CaretRight } from "@phosphor-icons/react"
 import { useAdmin } from "@/lib/admin-context"
 import { RealisationCard } from "@/components/realisations/RealisationCard"
+import { mediaUrl } from "@/lib/media"
 import { ParallaxImage } from "@/components/ui/ParallaxImage"
 import { DrawLine } from "@/components/ui/DrawLine"
 import { ArrowLink } from "@/components/ui/ArrowLink"
@@ -95,7 +96,7 @@ export function RealisationsGallery() {
             >
               {currentLeadSrc && (
                 <ParallaxImage
-                  src={currentLeadSrc}
+                  src={mediaUrl(currentLeadSrc)}
                   alt={lead.name}
                   sizes="100vw"
                   amount={14}

@@ -53,6 +53,14 @@ export const UploadUrlSchema = z.object({
   contentType: z.string().optional(),
 })
 
+// Réalisation image upload: the final storage key is named after the project
+// + a 1-based picture number (e.g. photos/realisations/<slug>-<index>.<ext>).
+export const ImageUploadUrlSchema = z.object({
+  projectName: z.string().min(1),
+  index: z.number().int().positive(),
+  filename: z.string().min(1),
+})
+
 /** Validate `data` against `schema`, throwing AppError(400) with a readable message. */
 export function parseBody<T>(schema: z.ZodType<T>, data: unknown): T {
   const result = schema.safeParse(data)

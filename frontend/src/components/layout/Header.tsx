@@ -8,6 +8,7 @@ import { motion, AnimatePresence, type Variants } from "motion/react"
 import { X } from "@phosphor-icons/react"
 import { useLenis } from "@/components/providers/LenisProvider"
 import { CONTACT } from "@/content"
+import { mediaUrl, SITE_MEDIA, MEDIA_UNOPTIMIZED } from "@/lib/media"
 
 type HeaderTheme = "dark" | "light"
 
@@ -147,11 +148,12 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="relative z-50 flex shrink-0 items-center">
             <Image
-              src="/assets/logo_eclemelin.png"
+              src={mediaUrl(SITE_MEDIA.logo)}
               alt="Entreprises Christian Lemelin"
               width={384}
               height={64}
               priority
+              unoptimized={MEDIA_UNOPTIMIZED}
               className={`h-7 w-auto transition-[filter] duration-300 ${logoWhite ? "invert" : ""}`}
             />
           </Link>
@@ -193,10 +195,11 @@ export function Header() {
                   {/* Header row: logo + close */}
                   <div className="flex items-center justify-between">
                     <Image
-                      src="/assets/logo_eclemelin.png"
+                      src={mediaUrl(SITE_MEDIA.logo)}
                       alt="Entreprises Christian Lemelin"
                       width={384}
                       height={64}
+                      unoptimized={MEDIA_UNOPTIMIZED}
                       className="h-6 w-auto invert md:h-7"
                     />
                     <button

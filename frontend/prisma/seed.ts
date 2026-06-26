@@ -3,6 +3,7 @@
 // (non-pooled) connection — the transaction pooler breaks Prisma mid-seed.
 import { PrismaClient } from "@prisma/client"
 import { hash } from "bcryptjs"
+import { SEED_REALISATIONS, seedImageKeys } from "./seed-realisations"
 
 const prisma = new PrismaClient({
   datasourceUrl: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
@@ -32,44 +33,14 @@ const DUMMY_JOBS = [
   },
 ]
 
-const DUMMY_REALISATIONS = [
-  {
-    name: "Mobilier hospitalier en inox",
-    images: [
-      "/assets/1780581925672-IMG_1281.jpeg",
-      "/assets/1780581931474-IMG_1280.jpeg",
-    ],
-    pinned: true,
-  },
-  {
-    name: "Bar lounge — hôtellerie",
-    images: [
-      "/assets/1780581840629-IMG_1294.jpeg",
-      "/assets/1780581884668-IMG_1288.jpeg",
-    ],
-    pinned: true,
-  },
-  {
-    name: "Bar circulaire en laiton",
-    images: ["/assets/1780581873317-IMG_1291.jpeg"],
-    pinned: true,
-  },
-  {
-    name: "Aménagement de restaurant",
-    images: ["/assets/1780581850553-IMG_1293.jpeg"],
-    pinned: true,
-  },
-  {
-    name: "Cuisine extérieure sur mesure",
-    images: ["/assets/1780581936961-IMG_1277.jpeg"],
-    pinned: true,
-  },
-  {
-    name: "Escalier & structure d'atelier",
-    images: ["/assets/1780581858443-IMG_1292.jpeg"],
-    pinned: true,
-  },
-]
+// Demo réalisations reference Supabase storage keys (photos/realisations/...).
+// The matching image files are uploaded by `npm run media:sync` from the same
+// source list (prisma/seed-realisations.ts), so keys and files stay in sync.
+const DUMMY_REALISATIONS = SEED_REALISATIONS.map((r) => ({
+  name: r.name,
+  images: seedImageKeys(r),
+  pinned: r.pinned,
+}))
 
 async function main(): Promise<void> {
   // Admin user (upsert — keeps the password in sync on re-seed).

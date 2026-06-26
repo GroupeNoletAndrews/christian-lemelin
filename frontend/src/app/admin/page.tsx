@@ -8,6 +8,7 @@ import { motion } from "motion/react";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { useAdmin } from "@/lib/admin-context";
 import { ApiError } from "@/lib/api";
+import { mediaUrl, SITE_MEDIA, MEDIA_UNOPTIMIZED } from "@/lib/media";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -65,11 +66,12 @@ export default function AdminLoginPage() {
         {/* Brand */}
         <div className="flex flex-col items-center text-center mb-10">
           <Image
-            src="/assets/logo_eclemelin.png"
+            src={mediaUrl(SITE_MEDIA.logo)}
             alt="Entreprises Christian Lemelin"
             width={384}
             height={64}
             priority
+            unoptimized={MEDIA_UNOPTIMIZED}
             className="h-9 w-auto mb-8"
           />
           <h1 className="mt-5 font-display text-4xl font-semibold tracking-tight text-foreground">

@@ -10,6 +10,7 @@ import {
   useReducedMotion,
 } from "motion/react"
 import { Realisation } from "@/types/admin"
+import { mediaUrl } from "@/lib/media"
 
 // Alternating aspect ratios give the masonry layout its rhythm.
 const RATIOS = ["aspect-[4/3]", "aspect-[4/5]", "aspect-[4/5]", "aspect-[4/3]"]
@@ -105,7 +106,7 @@ export function RealisationCard({
                 src ? (
                   <Image
                     key={i}
-                    src={src}
+                    src={mediaUrl(src)}
                     alt={realisation.name}
                     fill
                     unoptimized

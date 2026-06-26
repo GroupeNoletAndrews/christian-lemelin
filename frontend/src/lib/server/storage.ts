@@ -1,11 +1,12 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import { AppError } from "./http"
+import { MEDIA_BUCKET, realisationImageKey, mediaKeyOf } from "@/lib/media"
 
-// Buckets (create them in the Supabase dashboard):
-//   - "cvs"    PRIVATE  — job-application CVs (downloaded server-side for email)
-//   - "images" PUBLIC   — réalisation images (served by public URL)
+// Buckets:
+//   - "cvs"            PRIVATE  — job-application CVs (downloaded server-side)
+//   - MEDIA_BUCKET     PUBLIC   — all site photos & videos (incl. réalisations,
+//                                 under photos/realisations/) — served by URL
 export const CV_BUCKET = "cvs"
-export const IMAGE_BUCKET = "images"
 
 let cached: SupabaseClient | null | undefined
 
@@ -33,6 +34,11 @@ function sanitize(filename: string): string {
 
 function makeKey(filename: string): string {
   return `${Date.now()}-${sanitize(filename)}`
+}
+
+function extOf(filename: string): string {
+  const m = /\.([a-zA-Z0-9]+)$/.exec(filename)
+  return m ? m[1].toLowerCase() : "jpg"
 }
 
 export interface SignedUpload {
@@ -63,25 +69,46 @@ export async function downloadCv(key: string): Promise<Buffer | null> {
   return Buffer.from(await data.arrayBuffer())
 }
 
-export interface ImageUpload extends SignedUpload {
-  publicUrl: string
-}
-
-/** Signed URL + final public URL for a réalisation image in the public bucket. */
-export async function createImageUploadUrl(filename: string): Promise<ImageUpload> {
+/**
+ * Signed URL for a réalisation image in the public bucket. The object key is
+ * named after the project + a 1-based picture number
+ * (photos/realisations/<slug>-<index>.<ext>); the browser PUTs the compressed
+ * JPEG to it. `path` (the storage key) is what gets persisted on the
+ * réalisation — resolve it to a URL with mediaUrl() at render time.
+ */
+export async function createImageUploadUrl(
+  projectName: string,
+  index: number,
+  filename: string,
+): Promise<SignedUpload> {
   const client = getStorageClient()
   if (!client) throw new AppError(503, "Le stockage des fichiers n'est pas configuré")
+  const key = realisationImageKey(projectName, index, extOf(filename))
   const { data, error } = await client.storage
-    .from(IMAGE_BUCKET)
-    .createSignedUploadUrl(makeKey(filename))
+    .from(MEDIA_BUCKET)
+    // upsert: deterministic names mean re-uploading the same picture overwrites.
+    .createSignedUploadUrl(key, { upsert: true })
   if (error || !data) {
     throw new AppError(502, "Impossible de créer l'URL de téléversement")
   }
-  const { data: pub } = client.storage.from(IMAGE_BUCKET).getPublicUrl(data.path)
-  return {
-    bucket: IMAGE_BUCKET,
-    path: data.path,
-    token: data.token,
-    publicUrl: pub.publicUrl,
+  return { bucket: MEDIA_BUCKET, path: data.path, token: data.token }
+}
+
+/**
+ * Best-effort: remove media objects from the public bucket (e.g. when a
+ * réalisation or one of its photos is deleted). Accepts stored values — keys or
+ * full public URLs — and skips anything not in the bucket (legacy /public
+ * paths). Never throws: a storage hiccup must not block the DB operation.
+ */
+export async function deleteMediaObjects(values: string[]): Promise<void> {
+  const client = getStorageClient()
+  if (!client) return
+  const keys = values
+    .map(mediaKeyOf)
+    .filter((k): k is string => k !== null)
+  if (keys.length === 0) return
+  const { error } = await client.storage.from(MEDIA_BUCKET).remove(keys)
+  if (error) {
+    console.warn(`Storage cleanup failed (${keys.join(", ")}): ${error.message}`)
   }
 }

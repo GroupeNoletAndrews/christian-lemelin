@@ -143,7 +143,7 @@ export default function RealisationFormPage() {
           </div>
 
           {/* Images */}
-          <ImageManager images={images} onChange={setImages} />
+          <ImageManager images={images} onChange={setImages} projectName={name} />
 
           {/* Pin to home */}
           <div className="rounded-xl border border-border bg-background p-4">

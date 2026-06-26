@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { motion, type Variants } from "motion/react"
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr"
+import { mediaUrl, SITE_MEDIA } from "@/lib/media"
 
 // Full-bleed looping video hero (pointlaz-inspired) in our OPUS style.
 // The video autoplays/loops with no controls; the text reveals after 3 s.
@@ -41,7 +42,7 @@ export function Hero() {
         aria-hidden="true"
         className="absolute inset-0 h-full w-full object-cover"
       >
-        <source src="/videos/videoLemelin.mp4" type="video/mp4" />
+        <source src={mediaUrl(SITE_MEDIA.heroVideo)} type="video/mp4" />
       </video>
 
       {/* Legibility gradient (dark at bottom for text, mild at top for the nav) */}

@@ -286,8 +286,10 @@ This lives in [`frontend/src/lib/server/mail/`](frontend/src/lib/server/mail/) s
 |---|---|---|
 | `RESEND_API_KEY` | — (email disabled if unset) | your Resend key |
 | `MAIL_FROM` | `… <onboarding@resend.dev>` (no domain verification needed) | an address on a **verified** domain |
-| `MAIL_TO` | `delivered@resend.dev` (Resend test inbox) | the real company address |
+| `MAIL_TO` | `delivered@resend.dev` (Resend test inbox) | the real company inbox — `et.arsenault2000@gmail.com` for now |
 | `RESEND_WEBHOOK_SECRET` | optional | recommended (verifies webhook calls) |
+
+> ⚠️ **Resend delivery rule:** without a **verified sending domain**, Resend only delivers to your **own Resend account email**. So until a domain is verified, keep `MAIL_FROM=…<onboarding@resend.dev>` and set `MAIL_TO` to the Resend account's email (currently `et.arsenault2000@gmail.com`). To send to any other inbox, verify a domain in Resend and point `MAIL_FROM` at it. (Sending to `delivered@resend.dev` always works — but it's a test sink, not a real inbox.)
 
 Webhook endpoint: `POST /api/webhooks/resend` (logs delivery events; verifies the Svix signature when `RESEND_WEBHOOK_SECRET` is set).
 

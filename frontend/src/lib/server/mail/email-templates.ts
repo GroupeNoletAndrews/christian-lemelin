@@ -190,10 +190,10 @@ export function renderEmail(opts: EmailLayoutOptions): string {
 
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;border-top:1px solid ${C.border};">
                       ${renderFieldRows(opts.fields)}
+                      ${messagePanel}
+                      ${notePanel}
+                      ${actionButton}
                     </table>
-                    ${messagePanel}
-                    ${notePanel}
-                    ${actionButton}
                   </td>
                 </tr>
               </table>

@@ -1,8 +1,6 @@
 import type { Metadata } from "next"
 import { FABRICATION } from "@/content"
 import { ReasonsReveal } from "@/components/sections/ReasonsReveal"
-import { MaterialSwitcher } from "@/components/sections/MaterialSwitcher"
-import { ContactCTA } from "@/components/sections/ContactCTA"
 
 export const metadata: Metadata = {
   title: "Fabrication sur mesure",
@@ -11,7 +9,7 @@ export const metadata: Metadata = {
 }
 
 export default function FabricationPage() {
-  const { hero, cta } = FABRICATION
+  const { hero } = FABRICATION
 
   return (
     <>
@@ -36,14 +34,6 @@ export default function FabricationPage() {
       </section>
 
       <ReasonsReveal />
-      <MaterialSwitcher />
-
-      <ContactCTA
-        heading={cta?.heading}
-        body={cta?.body}
-        label={cta?.label}
-        href={cta?.href}
-      />
     </>
   )
 }

@@ -1,16 +1,14 @@
 import Link from "next/link"
 import {
-  LinkedinLogoIcon,
   InstagramLogoIcon,
   FacebookLogoIcon,
-  YoutubeLogoIcon,
 } from "@phosphor-icons/react/dist/ssr"
-import { CONTACT, COMPANY, MATERIALS, SOLUTION_DETAILS } from "@/content"
+import { CONTACT, COMPANY } from "@/content"
 
 // Footer aligné sur la brochure PDF : bandeau « Durabilité & innovation », bloc
-// contact (coordonnées de site.ts), puis colonnes ENTREPRISE / EXPERTISES
-// MÉTAUX / SOLUTIONS / MÉDIAS / NOS EMPLOIS — liens dérivés du contenu pour ne
-// jamais diverger des routes. Voir DESIGN.md.
+// contact (coordonnées de site.ts), puis colonnes ENTREPRISE / MÉDIAS / NOS
+// EMPLOIS — liens dérivés du contenu pour ne jamais diverger des routes. Voir
+// DESIGN.md.
 
 const columns: { title: string; links: { label: string; href: string }[] }[] = [
   {
@@ -19,17 +17,8 @@ const columns: { title: string; links: { label: string; href: string }[] }[] = [
       { label: "À propos de nous", href: "/a-propos" },
       { label: "Installations & capacité", href: "/installations" },
       { label: "Fabrication sur mesure", href: "/fabrication" },
-      { label: "Devenir client", href: "/contact" },
       { label: "Nous contacter", href: "/contact" },
     ],
-  },
-  {
-    title: "Expertises métaux",
-    links: MATERIALS.map((m) => ({ label: m.name, href: `/materiaux/${m.slug}` })),
-  },
-  {
-    title: "Solutions",
-    links: SOLUTION_DETAILS.map((s) => ({ label: s.title, href: `/solutions/${s.slug}` })),
   },
   { title: "Médias", links: [{ label: "Nos réalisations", href: "/realisations" }] },
   { title: "Nos emplois", links: [{ label: "Emplois disponibles", href: "/emplois" }] },
@@ -42,10 +31,8 @@ const contactCells = [
 ]
 
 const socials = [
-  { Icon: LinkedinLogoIcon, label: "LinkedIn" },
-  { Icon: InstagramLogoIcon, label: "Instagram" },
-  { Icon: FacebookLogoIcon, label: "Facebook" },
-  { Icon: YoutubeLogoIcon, label: "YouTube" },
+  { Icon: FacebookLogoIcon, label: "Facebook", href: "https://www.facebook.com/p/Les-Entreprises-Christian-Lemelin-100063067488326/" },
+  { Icon: InstagramLogoIcon, label: "Instagram", href: "https://www.instagram.com/entreprises_christian_lemelin/" }
 ]
 
 export function Footer() {
@@ -91,7 +78,7 @@ export function Footer() {
         </div>
 
         {/* Colonnes de liens */}
-        <div className="mt-14 grid grid-cols-2 gap-x-8 gap-y-12 md:grid-cols-3 lg:grid-cols-5">
+        <div className="mt-14 grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-3">
           {columns.map((col) => (
             <div key={col.title}>
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">
@@ -116,14 +103,15 @@ export function Footer() {
         {/* Bas de page */}
         <div className="mt-16 flex flex-col gap-6 border-t border-white/12 pt-8 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[12px] text-white/45">
-            © {new Date().getFullYear()} {COMPANY.legalName} Tous droits réservés. · Québec · Canada
+            © {new Date().getFullYear()} {COMPANY.legalName} Tous droits réservés. · Québec · Canada · powered by{" "}
+            <span className="text-white/70">G.N.A</span>
           </p>
           <div className="flex items-center gap-3">
-            {socials.map(({ Icon, label }) => (
+            {socials.map(({ Icon, label, href }) => (
               // TODO: remplacer href="#" par les vraies URLs des réseaux sociaux
               <a
                 key={label}
-                href="#"
+                href={href}
                 aria-label={label}
                 className="grid size-9 place-items-center rounded-full border border-white/15 text-white/60 transition-colors hover:border-white/40 hover:text-white"
               >

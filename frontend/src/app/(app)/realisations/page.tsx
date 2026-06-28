@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { RealisationsGallery } from "@/components/realisations/RealisationsGallery"
-import { ContactCTA } from "@/components/sections/ContactCTA"
 
 export const metadata: Metadata = {
   title: "Réalisations",
@@ -28,11 +27,6 @@ export default function RealisationsPage() {
       <Suspense>
         <RealisationsGallery />
       </Suspense>
-
-      <ContactCTA
-        heading="Un projet en métal en tête ?"
-        body="Parlez-nous de votre projet. Notre équipe technique vous répond dans les 24 heures."
-      />
     </div>
   )
 }

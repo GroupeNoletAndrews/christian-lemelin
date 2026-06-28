@@ -6,7 +6,7 @@ import { useLenis } from "@/components/providers/LenisProvider"
 
 // Onboarding preloader — identical behaviour to skiper-ui "Skiper8" (curved
 // path reveal + cycling words), but presenting the company. See DESIGN.md §9.
-// Plays once per full page load (layout persists across client navigations).
+// Plays on every full page load (replays on refresh — intentional).
 
 // Words presenting the company. Easy to edit.
 const words = [
@@ -93,9 +93,8 @@ export function Preloader() {
                 variants={opacity}
                 initial="initial"
                 animate="enter"
-                className="relative z-10 flex items-center font-display text-[clamp(2rem,6vw,4rem)] font-medium text-white"
+                className="relative z-10 flex items-center font-display text-[clamp(2.75rem,10vw,6.5rem)] font-medium text-white"
               >
-                <span className="mr-4 inline-block h-2.5 w-2.5 rounded-full bg-accent md:h-3 md:w-3" />
                 {words[index]}
               </motion.p>
               <svg

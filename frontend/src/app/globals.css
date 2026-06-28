@@ -8,14 +8,43 @@
   --color-foreground: #141414;        /* neutral near-black (text) */
   --color-foreground-muted: rgba(20, 20, 20, 0.6);
   --color-ink: #111111;               /* neutral dark — dark sections */
-  --color-accent: #0048f9;            /* OPUS electric blue */
-  --color-accent-hover: #0039c4;      /* derived — OPUS defines no hover */
   --color-border: rgba(151, 151, 151, 0.2); /* hairline borders */
+  /* --color-accent / --color-accent-hover live in a separate (non-inline)
+     @theme block below so they stay runtime CSS variables and can be re-themed
+     per scope (e.g. neutralised to black on the home page). */
 
   /* Typography */
   --font-display: var(--font-onest);
   --font-sans: var(--font-onest);
   --font-mono: var(--font-fragment-mono);
+
+  /* Marquee (components/ui/marquee.tsx — DESIGN.md §5). `--duration`/`--gap`
+     are set per instance; inlined here so they resolve on the marquee element. */
+  --animate-marquee: marquee var(--duration, 40s) linear infinite;
+  --animate-marquee-vertical: marquee-vertical var(--duration, 40s) linear infinite;
+}
+
+/* Accent kept as a runtime variable (NOT inlined) so utilities compile to
+   `var(--color-accent)` and the value can be overridden per scope — see
+   "Home — no blue" below. Internal pages keep the OPUS electric blue. */
+@theme {
+  --color-accent: #0048f9;       /* OPUS electric blue */
+  --color-accent-hover: #0039c4; /* derived — OPUS defines no hover */
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100% - var(--gap, 1rem))); }
+}
+@keyframes marquee-vertical {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(-100% - var(--gap, 1rem))); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-marquee-vertical {
+    animation: none !important;
+  }
 }
 
 html {
@@ -91,4 +120,41 @@ body {
     color: inherit;
     text-decoration: none;
   }
+}
+
+/* ── Home page — no blue ───────────────────────────────────────────────────
+   Client request: the home page drops the electric-blue accent entirely.
+   Everything that uses the accent token turns neutral black. We re-theme the
+   `--color-accent` variable on <body> via :has() so it cascades into the
+   header, footer and every section — including shared components (ArrowLink,
+   buttons) — WITHOUT touching internal pages, which keep the blue. The marker
+   `[data-home-neutral]` is rendered by SiteChrome only on "/". See DESIGN.md. */
+body:has([data-home-neutral]) {
+  --color-accent: #141414;       /* neutral near-black (matches foreground) */
+  --color-accent-hover: #000000;
+}
+/* Dark sections (Hero, SavoirFaire, Solutions, ContactCTA…) would hide a black
+   accent on a near-black background — flip the accent to white inside them.
+   They already carry data-header-theme="dark". */
+body:has([data-home-neutral]) [data-header-theme="dark"] {
+  --color-accent: #ffffff;
+  --color-accent-hover: rgba(255, 255, 255, 0.85);
+}
+/* …but a `bg-accent` button on a dark section is now white: keep its label
+   dark so it stays readable (e.g. ContactCTA "Nous joindre"). Harmless on the
+   text-less accent dots. */
+body:has([data-home-neutral]) [data-header-theme="dark"] .bg-accent {
+  color: #141414;
+}
+/* Keep focus ring + text selection neutral on the home page too. */
+body:has([data-home-neutral]) *:focus-visible {
+  outline-color: #141414;
+}
+body:has([data-home-neutral]) ::selection {
+  background-color: #141414;
+  color: #ffffff;
+}
+body:has([data-home-neutral]) ::-moz-selection {
+  background-color: #141414;
+  color: #ffffff;
 }

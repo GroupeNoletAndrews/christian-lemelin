@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/Footer"
 import { LenisProvider } from "@/components/providers/LenisProvider"
 import { Preloader } from "@/components/ui/Preloader"
 import { CustomScrollbar } from "@/components/ui/CustomScrollbar"
+import { ContactFab } from "@/components/ui/ContactFab"
 
 /**
  * Renders the public site chrome (nav, footer, preloader, smooth scroll,
@@ -16,6 +17,8 @@ import { CustomScrollbar } from "@/components/ui/CustomScrollbar"
 export function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isAdmin = pathname?.startsWith("/admin")
+  const isHome = pathname === "/"
+  const isContact = pathname === "/contact"
 
   if (isAdmin) {
     return <>{children}</>
@@ -23,11 +26,19 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <LenisProvider>
+      {/* Marker that drives the home-only "no blue" theming. globals.css uses
+          `body:has([data-home-neutral])` to neutralise the accent across the
+          whole page (header/footer/sections) — see DESIGN.md. */}
+      {isHome && <span data-home-neutral hidden aria-hidden />}
       <Preloader />
       <CustomScrollbar />
       <Header />
       <main>{children}</main>
       <Footer />
+      {/* The full ContactCTA section lives on the home page; everywhere else a
+          small floating "Nous joindre" pop-out points to the contact form
+          (skipped on /contact itself). */}
+      {!isHome && !isContact && <ContactFab />}
     </LenisProvider>
   )
 }

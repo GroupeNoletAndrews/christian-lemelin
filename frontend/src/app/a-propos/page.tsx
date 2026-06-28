@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import { APropos } from "@/components/sections/APropos"
-import { ContactCTA } from "@/components/sections/ContactCTA"
 
 export const metadata: Metadata = {
   title: "À propos",
@@ -9,11 +8,6 @@ export const metadata: Metadata = {
 }
 
 export default function AProposPage() {
-  return (
-    <>
-      <APropos />
-      <ContactCTA />
-    </>
-  )
+  return <APropos />
 }
  

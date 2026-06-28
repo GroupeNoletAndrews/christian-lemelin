@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import { JobAccordion } from "@/components/emplois/JobAccordion"
-import { ContactCTA } from "@/components/sections/ContactCTA"
 
 export const metadata: Metadata = {
   title: "Emplois",
@@ -39,13 +38,6 @@ export default function EmploisPage() {
           </p>
         </div>
       </section>
-
-      <ContactCTA
-        heading="Vous n'avez pas trouvé ce que vous cherchez ?"
-        body="Envoyez-nous votre CV et votre profil professionnel. Nous gardons les candidatures intéressantes pour les futures opportunités."
-        label="Nous contacter"
-        href="/contact"
-      />
     </div>
   )
 }

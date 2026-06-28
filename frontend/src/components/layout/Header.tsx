@@ -5,7 +5,6 @@ import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence, type Variants } from "motion/react"
-import { X } from "@phosphor-icons/react"
 import { useLenis } from "@/components/providers/LenisProvider"
 import { CONTACT } from "@/content"
 import { mediaUrl, SITE_MEDIA, MEDIA_UNOPTIMIZED } from "@/lib/media"
@@ -24,15 +23,7 @@ const navLinks = [
 ]
 
 // Placeholder partners (à remplacer par les vrais logos)
-const partners = [
-  "Atelier Nord",
-  "Métalu QC",
-  "Groupe Ferron",
-  "InoxPro",
-  "Usimétal",
-  "Soudexpert",
-  "Laurentide Métal",
-]
+
 
 // Menu overlay animations — the frame/divider lines DRAW first (staggered),
 // then the content reveals. Everything reverses on close.
@@ -132,7 +123,7 @@ export function Header() {
   return (
     <>
       <motion.header
-        className="fixed inset-x-0 top-0 z-50"
+        className="fixed inset-x-0 top-0 z-[96]"
         animate={{ y: hidden && !open ? "-100%" : "0%" }}
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
       >
@@ -158,15 +149,20 @@ export function Header() {
             />
           </Link>
 
-          {/* Menu toggle (opens). The overlay carries its own ✕ to close. */}
+          {/* Menu toggle — transforms to "Fermer" when open (stays in the exact
+              same spot, so it's perfectly aligned). White on the black overlay. */}
           <button
             type="button"
-            onClick={() => setOpen(true)}
+            onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
-            aria-label="Ouvrir le menu"
-            className="relative z-50 inline-flex h-9 items-center rounded-full bg-accent px-5 text-[13px] font-medium tracking-[0.02em] text-white transition-colors duration-200 hover:bg-accent-hover"
+            aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
+            className={`relative z-50 inline-flex h-9 items-center rounded-full px-5 text-[13px] font-medium tracking-[0.02em] transition-colors duration-200 ${
+              open
+                ? "bg-white text-foreground hover:bg-white/90"
+                : "bg-accent text-white hover:bg-accent-hover"
+            }`}
           >
-            Menu
+            {open ? "Fermer" : "Menu"}
           </button>
         </div>
       </motion.header>
@@ -182,7 +178,7 @@ export function Header() {
             exit="exit"
             className="fixed inset-0 z-[95] bg-black text-white"
           >
-            <div className="h-full w-full p-4 sm:p-6 md:p-8">
+            <div className="h-full w-full px-4 pb-4 pt-24 sm:px-6 sm:pb-6 md:px-8 md:pb-8">
               {/* Framed canvas — outer lines draw around everything */}
               <div className="relative h-full w-full">
                 <motion.div variants={hLineV} custom={0} className="absolute left-0 top-0 h-px w-full origin-left bg-white/25" />
@@ -191,34 +187,14 @@ export function Header() {
                 <motion.div variants={vLineV} custom={1} className="absolute right-0 top-0 h-full w-px origin-bottom bg-white/25" />
 
                 {/* Inner content */}
-                <div className="flex h-full flex-col px-5 py-5 md:px-10 md:py-8">
-                  {/* Header row: logo + close */}
-                  <div className="flex items-center justify-between">
-                    <Image
-                      src={mediaUrl(SITE_MEDIA.logo)}
-                      alt="Entreprises Christian Lemelin"
-                      width={384}
-                      height={64}
-                      unoptimized={MEDIA_UNOPTIMIZED}
-                      className="h-6 w-auto invert md:h-7"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setOpen(false)}
-                      aria-label="Fermer le menu"
-                      className="text-white/80 transition-colors hover:text-white"
-                    >
-                      <X size={30} weight="thin" />
-                    </button>
-                  </div>
-
-                  {/* Divider under header */}
-                  <motion.div variants={hLineV} custom={2} className="my-6 h-px w-full origin-left bg-white/25 md:my-8" />
-
-                  {/* Main: big links (left) | divider | info (right) */}
-                  <div className="flex flex-1 flex-col md:flex-row">
+                <div data-lenis-prevent className="flex h-full flex-col overflow-y-auto px-5 py-6 md:overflow-visible md:px-10 md:py-8">
+                  {/* Main: big links (left) | divider | info (right). The logo +
+                      close toggle live in the floating header bar above; the whole
+                      frame is pushed below it (wrapper pt-24) so no menu line
+                      overlaps the logo. */}
+                  <div className="flex flex-col md:flex-1 md:flex-row">
                     {/* Big nav links — left */}
-                    <nav className="flex flex-1 flex-col justify-center md:pr-12">
+                    <nav className="flex flex-col md:flex-1 md:justify-center md:pr-12">
                       {navLinks.map((link, i) => (
                         <div key={link.href} className="overflow-hidden">
                           <motion.div variants={linkRiseV} custom={i}>
@@ -237,7 +213,7 @@ export function Header() {
                     <motion.div variants={vLineV} custom={3} className="hidden w-px origin-top self-stretch bg-white/25 md:block" />
 
                     {/* Info — right */}
-                    <div className="flex w-full flex-col justify-center pt-10 md:w-[32%] md:pl-12 md:pt-0">
+                    <div className="flex w-full flex-col pt-8 md:w-[32%] md:justify-center md:pl-12 md:pt-0">
                       <motion.div variants={contentV} custom={0}>
                         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/55">
                           Entreprises Christian Lemelin
@@ -247,7 +223,7 @@ export function Header() {
                         </p>
                       </motion.div>
 
-                      <motion.div variants={contentV} custom={1} className="mt-8 flex flex-col gap-2 text-lg">
+                      <motion.div variants={contentV} custom={1} className="mt-6 flex flex-col gap-2 text-base md:mt-8 md:text-lg">
                         <a href={`tel:${CONTACT.phoneHref}`} className="w-fit text-white/85 transition-colors hover:text-white">
                           {CONTACT.phoneDisplay}
                         </a>
@@ -260,13 +236,13 @@ export function Header() {
                       <motion.div variants={contentV} custom={2}>
                         <Link
                           href="/contact"
-                          className="mt-8 inline-flex h-12 w-fit items-center rounded-full bg-white px-7 text-[14px] font-medium text-foreground transition-colors hover:bg-white/90"
+                          className="mt-6 inline-flex h-12 w-fit items-center rounded-full bg-white px-7 text-[14px] font-medium text-foreground transition-colors hover:bg-white/90 md:mt-8"
                         >
                           Nous joindre
                         </Link>
                       </motion.div>
 
-                      <motion.div variants={contentV} custom={3} className="mt-8 flex items-center gap-4 text-[12px] uppercase tracking-[0.15em]">
+                      <motion.div variants={contentV} custom={3} className="mt-6 flex items-center gap-4 text-[12px] uppercase tracking-[0.15em] md:mt-8">
                         <span className="text-white/45">English</span>
                         <span className="text-white underline decoration-white decoration-2 underline-offset-4">Français</span>
                       </motion.div>
@@ -274,15 +250,10 @@ export function Header() {
                   </div>
 
                   {/* Divider above partners */}
-                  <motion.div variants={hLineV} custom={4} className="mb-6 mt-6 h-px w-full origin-left bg-white/25 md:mb-8 md:mt-8" />
+                  <motion.div variants={hLineV} custom={4} className="mb-6 mt-6 hidden h-px w-full origin-left bg-white/25 md:mb-8 md:mt-8 md:block" />
 
                   {/* Partners (placeholder — à remplacer par les vrais logos) */}
-                  <motion.div variants={contentV} custom={4} className="flex flex-wrap items-center gap-x-8 gap-y-4 md:justify-between">
-                    {partners.map((p) => (
-                      <span key={p} className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">
-                        {p}
-                      </span>
-                    ))}
+                  <motion.div variants={contentV} custom={4} className="hidden flex-wrap items-center gap-x-8 gap-y-4 md:flex md:justify-between">
                   </motion.div>
                 </div>
               </div>

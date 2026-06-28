@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
-import { SOLUTIONS_OVERVIEW } from "@/content"
-import { SolutionsIndex } from "@/components/sections/SolutionsIndex"
-import { ContactCTA } from "@/components/sections/ContactCTA"
+import { Suspense } from "react"
+import { SOLUTIONS_OVERVIEW, getSolution } from "@/content"
+import { SolutionsIndex, type SolutionItem } from "@/components/sections/SolutionsIndex"
 
 export const metadata: Metadata = {
   title: "Nos solutions",
@@ -9,8 +9,26 @@ export const metadata: Metadata = {
     "Mobilier hospitalier, de laboratoire et d'accueil, prototypes, composantes architecturales et pièces sur mesure — des solutions métalliques adaptées à chaque secteur.",
 }
 
+// Toute la copie des anciennes pages /solutions/[slug] est désormais consolidée
+// ici : on dérive un résumé utile (intro + points clés du 1er bloc list/feature)
+// que l'index affiche dans un panneau « onglet » au clic. Plus de pages de détail.
+function buildItems(): SolutionItem[] {
+  return SOLUTIONS_OVERVIEW.index.map((it) => {
+    const d = getSolution(it.slug)
+    const block = d?.blocks.find((b) => b.kind === "list" || b.kind === "feature")
+    const highlights =
+      block?.kind === "list"
+        ? block.items
+        : block?.kind === "feature"
+          ? block.points
+          : []
+    return { ...it, intro: d?.hero.intro ?? it.tagline, highlights }
+  })
+}
+
 export default function SolutionsPage() {
   const { hero, closing } = SOLUTIONS_OVERVIEW
+  const items = buildItems()
 
   return (
     <>
@@ -42,7 +60,9 @@ export default function SolutionsPage() {
         </div>
       </section>
 
-      <SolutionsIndex />
+      <Suspense fallback={null}>
+        <SolutionsIndex items={items} />
+      </Suspense>
 
       {/* Closing statement */}
       <section data-header-theme="light" className="bg-background pb-28 pt-10 md:pb-40">
@@ -52,11 +72,6 @@ export default function SolutionsPage() {
           </p>
         </div>
       </section>
-
-      <ContactCTA
-        heading="Une solution sur mesure pour votre établissement ?"
-        body="Parlons de vos besoins — de la conception à l'installation, partout au Québec."
-      />
     </>
   )
 }

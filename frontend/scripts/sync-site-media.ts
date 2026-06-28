@@ -34,6 +34,7 @@ const CONTENT_TYPES: Record<string, string> = {
   jpeg: "image/jpeg",
   png: "image/png",
   webp: "image/webp",
+  svg: "image/svg+xml",
   mp4: "video/mp4",
 }
 function contentType(file: string): string {
@@ -56,6 +57,11 @@ const items: Item[] = [
   { source: "assets/1780581884668-IMG_1288.jpeg", key: SITE_MEDIA.savoirFaire.soudure },
   { source: "assets/1780581936961-IMG_1277.jpeg", key: SITE_MEDIA.savoirFaire.polissage },
 ]
+
+// Client / partner logos (home marquee). Source files in public/logos/.
+for (const c of SITE_MEDIA.clients) {
+  items.push({ source: `logos/${c.file}`, key: c.key })
+}
 
 // Demo réalisation images (keys must match prisma/seed.ts).
 for (const r of SEED_REALISATIONS) {

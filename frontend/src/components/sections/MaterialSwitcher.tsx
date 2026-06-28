@@ -11,7 +11,6 @@ import {
 } from "motion/react"
 import { CaretUp, CaretDown } from "@phosphor-icons/react"
 import { FABRICATION, MATERIALS, imageUrl, type MaterialDetail } from "@/content"
-import { ArrowLink } from "@/components/ui/ArrowLink"
 
 // Showcase matériaux de /fabrication. Réutilise le crossfade « Apple » de
 // SavoirFaire (image full-bleed monochrome) mais en version STATIONNAIRE plein
@@ -143,84 +142,7 @@ export function MaterialSwitcher() {
           </button>
         </div>
 
-        {/* Contenu */}
-        <div className="relative z-10 flex w-full flex-col justify-end px-6 py-16 md:px-10 md:py-20 lg:justify-center lg:px-16 lg:py-24 xl:px-24">
-          <div className="w-full max-w-[40rem]">
-            <h2 className="max-w-[18ch] font-display text-[clamp(2rem,5vw,3.75rem)] font-semibold leading-[1.04] tracking-[-0.01em] text-white">
-              {FABRICATION.showcase.heading}
-            </h2>
-            <p className="mt-4 max-w-[44ch] leading-relaxed text-white/65">
-              {FABRICATION.showcase.intro}
-            </p>
-
-            {/* Matériau actif (crossfade texte) */}
-            <div
-              className="mt-8 min-h-[clamp(12rem,24vh,15rem)]"
-              aria-live="polite"
-            >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={m.slug}
-                  variants={reduce ? undefined : textV}
-                  initial={reduce ? { opacity: 0 } : "initial"}
-                  animate={reduce ? { opacity: 1 } : "animate"}
-                  exit={reduce ? { opacity: 0 } : "exit"}
-                  transition={reduce ? { duration: 0.2 } : undefined}
-                >
-                  <h3 className="font-display text-[clamp(2rem,5vw,3.25rem)] font-semibold leading-none tracking-[-0.01em] text-white">
-                    {m.name}
-                  </h3>
-                  <p className="mt-2 font-mono text-xs uppercase tracking-[0.2em] text-white/45">
-                    {m.fullName} · {m.code}
-                  </p>
-                  <p className="mt-4 max-w-[46ch] leading-relaxed text-white/70">{m.blurb}</p>
-                  <ArrowLink href={`/materiaux/${m.slug}`} dark className="mt-5">
-                    Explorer ce matériau
-                  </ArrowLink>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-
-            {/* Liste de noms — sans numéro */}
-            <div className="mt-8 flex flex-col border-t border-white/12">
-              {mats.map((mat, i) => {
-                const on = i === active
-                return (
-                  <button
-                    key={mat.slug}
-                    type="button"
-                    onClick={() => {
-                      setActive(i)
-                      setPaused(true)
-                    }}
-                    aria-pressed={on}
-                    className="group flex items-center gap-4 border-b border-white/12 py-3 text-left"
-                  >
-                    <span
-                      className={`h-4 w-px origin-center transition-transform duration-300 ${
-                        on ? "scale-y-100 bg-white" : "scale-y-0 bg-white/40"
-                      }`}
-                    />
-                    <span
-                      className={`font-display text-base font-medium transition-colors duration-300 ${
-                        on ? "text-white" : "text-white/45 group-hover:text-white"
-                      }`}
-                    >
-                      {mat.name}
-                    </span>
-                    <span
-                      className={`ml-auto font-mono text-[11px] tracking-[0.15em] transition-colors duration-300 ${
-                        on ? "text-white/60" : "text-white/25"
-                      }`}
-                    >
-                      {mat.code}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
+   
       </div>
     </section>
   )

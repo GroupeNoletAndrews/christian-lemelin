@@ -13,7 +13,7 @@ const services = [
     description:
       "Mobilier sur mesure en acier inoxydable médical, alliant ergonomie, durabilité et hygiène pour hôpitaux, cliniques et laboratoires.",
     img: mediaUrl(SITE_MEDIA.savoirFaire.mobilier),
-    href: "/solutions/mobilier-hospitalier",
+    href: "/solutions?s=mobilier-hospitalier",
   },
   {
     title: "Fabrication sur mesure",

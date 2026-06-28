@@ -109,6 +109,23 @@ export function realisationImageIndex(keyOrUrl: string): number {
   return m ? parseInt(m[1], 10) : 0
 }
 
+// Client / partner logos shown in the home "Ils nous font confiance" marquee
+// (StatsBar). Source files live in frontend/public/logos/; `media:sync` uploads
+// them to MEDIA_BUCKET under photos/logo/clients/ and the app resolves them with
+// mediaUrl(). To add/replace a logo: drop the file in public/logos/, add a line
+// here, then run `npm run media:sync` (or let the next deploy push it).
+const CLIENT_LOGOS = [
+  { name: "Pomerleau", file: "pomerleau.svg" },
+  { name: "EBC", file: "ebc.png" },
+  { name: "Cascades", file: "cascades.svg" },
+  { name: "Quirion Métal", file: "quirion.png" },
+  { name: "Concordia", file: "concordia.png" },
+  { name: "Saputo", file: "saputo.svg" },
+  { name: "Agropur", file: "agropur.png" },
+  { name: "Olymel", file: "olymel.png" },
+  { name: "Lassonde", file: "lassonde.png" },
+] as const
+
 /** Known static site assets (uploaded to MEDIA_BUCKET; resolve with mediaUrl). */
 export const SITE_MEDIA = {
   logo: `${MEDIA_FOLDERS.logo}/logo_eclemelin.png`,
@@ -120,4 +137,10 @@ export const SITE_MEDIA = {
     soudure: `${MEDIA_FOLDERS.fabrication}/savoir-faire-soudure.jpg`,
     polissage: `${MEDIA_FOLDERS.fabrication}/savoir-faire-polissage.jpg`,
   },
+  // name = display/alt text, file = source under public/logos/, key = storage key.
+  clients: CLIENT_LOGOS.map((c) => ({
+    name: c.name,
+    file: c.file,
+    key: `${MEDIA_FOLDERS.logo}/clients/${c.file}`,
+  })),
 } as const

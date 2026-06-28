@@ -4,11 +4,6 @@ import { AppError } from "./http"
 // zod object parsing strips unknown keys by default — mirrors the old Nest
 // ValidationPipe (whitelist: true, forbidNonWhitelisted: false).
 
-export const LoginSchema = z.object({
-  username: z.string().min(1),
-  password: z.string().min(1),
-})
-
 export const JOB_TYPES = ["full-time", "part-time", "contract"] as const
 
 export const JobSchema = z.object({

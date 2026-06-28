@@ -94,15 +94,6 @@ interface SignedUpload {
 }
 
 export const api = {
-  auth: {
-    login: (username: string, password: string) =>
-      request<{ username: string }>("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ username, password }),
-      }),
-    logout: () => request<{ ok: true }>("/auth/logout", { method: "POST" }),
-    session: () => request<{ username: string }>("/auth/session"),
-  },
   jobs: {
     list: () => request<ApiJob[]>("/jobs"),
     create: (data: JobInput) =>

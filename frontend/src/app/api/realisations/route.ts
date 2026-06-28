@@ -14,7 +14,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAdmin(req)
+    await requireAdmin()
     const dto = parseBody(RealisationSchema, await readJson(req))
     const created = await createRealisation(dto)
     return NextResponse.json(created, { status: 201 })

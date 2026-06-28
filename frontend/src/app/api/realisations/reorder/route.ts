@@ -10,7 +10,7 @@ export const runtime = "nodejs"
 // so it can never be shadowed by /realisations/:id.
 export async function PATCH(req: NextRequest) {
   try {
-    await requireAdmin(req)
+    await requireAdmin()
     const { ids } = parseBody(ReorderSchema, await readJson(req))
     const result = await reorderRealisations(ids)
     return NextResponse.json(result)

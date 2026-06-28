@@ -12,7 +12,7 @@ export const runtime = "nodejs"
 // returned `path` (storage key) on the réalisation.
 export async function POST(req: NextRequest) {
   try {
-    await requireAdmin(req)
+    await requireAdmin()
     const { projectName, index, filename } = parseBody(
       ImageUploadUrlSchema,
       await readJson(req),

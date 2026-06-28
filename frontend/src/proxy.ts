@@ -1,24 +1,26 @@
-import { NextRequest, NextResponse } from "next/server"
-import { verifyToken } from "@/lib/server/auth"
-import { COOKIE_NAME } from "@/lib/server/cookies"
+import { NextResponse, type NextRequest } from "next/server"
+import { updateSession } from "@/lib/supabase/proxy"
+import { isAllowedAdmin } from "@/lib/auth-allowlist"
 
 // Next 16 renamed `middleware.ts` -> `proxy.ts` (function `middleware` -> `proxy`).
-// Coarse guard for the admin dashboard: redirect to the login page when the
-// session cookie is missing/invalid. The real authorization boundary is
-// requireAdmin() inside each /api route handler.
-export const config = { matcher: ["/admin/dashboard/:path*"] }
+// Runs on /admin/* to (1) refresh the Supabase session cookies and (2) redirect
+// to the login page when the dashboard is opened without a valid admin session.
+// The real authorization boundary is still requireAdmin() in each /api handler.
+export const config = { matcher: ["/admin/:path*"] }
 
 export async function proxy(req: NextRequest) {
-  const token = req.cookies.get(COOKIE_NAME)?.value
-  if (token) {
-    try {
-      await verifyToken(token)
-      return NextResponse.next()
-    } catch {
-      /* invalid/expired — fall through to redirect */
-    }
+  const { response, user } = await updateSession(req)
+
+  const isDashboard = req.nextUrl.pathname.startsWith("/admin/dashboard")
+  if (isDashboard && !isAllowedAdmin(user)) {
+    const url = req.nextUrl.clone()
+    url.pathname = "/admin"
+    const redirect = NextResponse.redirect(url)
+    // Carry over any auth cookies the session refresh cleared/rotated so the
+    // browser drops the stale session instead of looping back.
+    response.cookies.getAll().forEach((c) => redirect.cookies.set(c))
+    return redirect
   }
-  const url = req.nextUrl.clone()
-  url.pathname = "/admin"
-  return NextResponse.redirect(url)
+
+  return response
 }

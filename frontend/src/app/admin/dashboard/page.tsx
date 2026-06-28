@@ -48,7 +48,8 @@ export default function AdminDashboard() {
   const router = useRouter();
   const {
     isAuthenticated,
-    username,
+    authLoading,
+    email,
     jobs,
     logout,
     deleteJob,
@@ -70,12 +71,14 @@ export default function AdminDashboard() {
   );
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Wait for the initial session check — otherwise a refresh bounces to login
+    // before getUser() restores the persisted Supabase session.
+    if (!authLoading && !isAuthenticated) {
       router.push("/admin");
     }
-  }, [isAuthenticated, router]);
+  }, [authLoading, isAuthenticated, router]);
 
-  if (!isAuthenticated) {
+  if (authLoading || !isAuthenticated) {
     return null;
   }
 
@@ -148,7 +151,7 @@ export default function AdminDashboard() {
                 Tableau de bord
               </h1>
               <p className="text-foreground-muted font-sans text-sm mt-1">
-                Bienvenue, <span className="text-foreground">{username}</span>
+                Bienvenue, <span className="text-foreground">{email}</span>
               </p>
             </div>
             <button

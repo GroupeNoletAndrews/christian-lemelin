@@ -9,13 +9,18 @@ import React, {
   ReactNode,
 } from "react"
 import { Job, Realisation, MAX_PINNED_REALISATIONS } from "@/types/admin"
+import type { User } from "@supabase/supabase-js"
 import { api, ApiError, ApiJob, ApiRealisation } from "@/lib/api"
+import { supabaseBrowser } from "@/lib/supabase/client"
+import { isAllowedAdmin } from "@/lib/auth-allowlist"
 
 interface AdminContextType {
   isAuthenticated: boolean
-  username: string
+  /** True until the initial Supabase session check resolves — gate redirects on this. */
+  authLoading: boolean
+  email: string
   jobs: Job[]
-  login: (username: string, password: string) => Promise<boolean>
+  login: (email: string, password: string) => Promise<boolean>
   logout: () => void
   addJob: (job: Omit<Job, "id" | "createdAt" | "updatedAt">) => Promise<void>
   updateJob: (id: string, job: Omit<Job, "id" | "createdAt">) => Promise<void>
@@ -71,11 +76,12 @@ function reviveRealisation(r: ApiRealisation): Realisation {
 
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [username, setUsername] = useState("")
+  const [authLoading, setAuthLoading] = useState(true)
+  const [email, setEmail] = useState("")
   const [jobs, setJobs] = useState<Job[]>([])
   const [realisations, setRealisations] = useState<Realisation[]>([])
 
-  // Hydrate public data + restore the admin session (httpOnly cookie) on mount.
+  // Hydrate public data + restore the Supabase admin session on mount.
   useEffect(() => {
     let cancelled = false
     api.jobs
@@ -90,43 +96,69 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setRealisations(rows.map(reviveRealisation))
       })
       .catch((e) => console.warn("Chargement des réalisations impossible:", e))
-    // The session cookie is httpOnly, so ask the server who we are.
-    api.auth
-      .session()
-      .then(({ username: name }) => {
-        if (!cancelled) {
-          setIsAuthenticated(true)
-          setUsername(name)
-        }
-      })
+
+    // Restore + track the Supabase session. getSession() reads the @supabase/ssr
+    // cookie (no network) for an instant initial answer; onAuthStateChange keeps
+    // it in sync (SIGNED_IN/OUT/TOKEN_REFRESHED). A hard timeout guarantees the
+    // UI never hangs if the client init stalls. The server (requireAdmin/proxy
+    // via getUser) remains the real validator — this only drives the UI.
+    const supabase = supabaseBrowser()
+    const applyUser = (user: User | null) => {
+      if (cancelled) return
+      const ok = isAllowedAdmin(user)
+      setIsAuthenticated(ok)
+      setEmail(ok ? (user?.email ?? "") : "")
+      setAuthLoading(false)
+    }
+    supabase.auth
+      .getSession()
+      .then(({ data }) => applyUser(data.session?.user ?? null))
       .catch(() => {
-        /* not logged in — stay anonymous */
+        if (!cancelled) setAuthLoading(false)
       })
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) =>
+      applyUser(session?.user ?? null),
+    )
+    // Safety net: never leave the admin stuck on a blank loader.
+    const settle = setTimeout(() => {
+      if (!cancelled) setAuthLoading(false)
+    }, 2500)
+
     return () => {
       cancelled = true
+      clearTimeout(settle)
+      subscription.unsubscribe()
     }
   }, [])
 
-  const login = useCallback(async (user: string, password: string) => {
-    try {
-      const { username: name } = await api.auth.login(user, password)
-      // The server set an httpOnly session cookie; no token to keep client-side.
-      setIsAuthenticated(true)
-      setUsername(name)
-      return true
-    } catch (e) {
-      // 401 = wrong username/password → return false (caller shows that).
-      if (e instanceof ApiError && e.status === 401) return false
-      // Anything else (API down, network, 5xx) is NOT a credential problem —
-      // re-throw so the caller can show a distinct message.
-      throw e
+  const login = useCallback(async (loginEmail: string, password: string) => {
+    const supabase = supabaseBrowser()
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: loginEmail,
+      password,
+    })
+    // Invalid credentials → false (caller shows "identifiants invalides").
+    if (error) {
+      if (error.status === 400 || error.status === 401) return false
+      // Network / server / config error — re-throw for a distinct message.
+      throw error
     }
+    // Authenticated, but enforce the allowlist (defence in depth).
+    if (!isAllowedAdmin(data.user)) {
+      await supabase.auth.signOut()
+      return false
+    }
+    setIsAuthenticated(true)
+    setEmail(data.user?.email ?? "")
+    return true
   }, [])
 
   const logout = useCallback(() => {
-    void api.auth.logout().catch(() => {})
+    void supabaseBrowser().auth.signOut().catch(() => {})
     setIsAuthenticated(false)
-    setUsername("")
+    setEmail("")
   }, [])
 
   // --- Jobs ---
@@ -257,7 +289,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     <AdminContext.Provider
       value={{
         isAuthenticated,
-        username,
+        authLoading,
+        email,
         jobs,
         login,
         logout,

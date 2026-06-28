@@ -7,14 +7,16 @@ import { useAdmin } from "@/lib/admin-context";
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated } = useAdmin();
+  const { isAuthenticated, authLoading } = useAdmin();
 
   useEffect(() => {
-    // Redirect to login if not authenticated and not on login page
-    if (!isAuthenticated && pathname !== "/admin") {
+    // Redirect to login if not authenticated and not on login page — but only
+    // after the initial session check, so a refresh doesn't bounce a logged-in
+    // user before getUser() restores the persisted Supabase session.
+    if (!authLoading && !isAuthenticated && pathname !== "/admin") {
       router.push("/admin");
     }
-  }, [isAuthenticated, pathname, router]);
+  }, [authLoading, isAuthenticated, pathname, router]);
 
   return children;
 }

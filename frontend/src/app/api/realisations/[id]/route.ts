@@ -10,7 +10,7 @@ type Ctx = { params: Promise<{ id: string }> }
 
 export async function PUT(req: NextRequest, ctx: Ctx) {
   try {
-    await requireAdmin(req)
+    await requireAdmin()
     const { id } = await ctx.params
     const dto = parseBody(RealisationSchema, await readJson(req))
     const updated = await updateRealisation(id, dto)
@@ -20,9 +20,9 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
   }
 }
 
-export async function DELETE(req: NextRequest, ctx: Ctx) {
+export async function DELETE(_req: NextRequest, ctx: Ctx) {
   try {
-    await requireAdmin(req)
+    await requireAdmin()
     const { id } = await ctx.params
     await deleteRealisation(id)
     return noContent()

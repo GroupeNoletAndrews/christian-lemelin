@@ -1,9 +1,11 @@
 import Link from "next/link"
+import Image from "next/image"
 import {
   InstagramLogoIcon,
   FacebookLogoIcon,
 } from "@phosphor-icons/react/dist/ssr"
 import { CONTACT, COMPANY } from "@/content"
+import { mediaUrl, SITE_MEDIA } from "@/lib/media"
 
 // Footer aligné sur la brochure PDF : bandeau « Durabilité & innovation », bloc
 // contact (coordonnées de site.ts), puis colonnes ENTREPRISE / MÉDIAS / NOS
@@ -100,11 +102,30 @@ export function Footer() {
           ))}
         </div>
 
+        {/* Wordmark de marque (logo blanc sur fond sombre) */}
+        <div className="mt-16">
+          <Image
+            src={mediaUrl(SITE_MEDIA.logoBlanc)}
+            alt="Les Entreprises Christian Lemelin"
+            width={1500}
+            height={240}
+            unoptimized
+            className="h-12 w-auto max-w-full md:h-20"
+          />
+        </div>
+
         {/* Bas de page */}
-        <div className="mt-16 flex flex-col gap-6 border-t border-white/12 pt-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col gap-6 border-t border-white/12 pt-8 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[12px] text-white/45">
             © {new Date().getFullYear()} {COMPANY.legalName} Tous droits réservés. · Québec · Canada · powered by{" "}
-            <span className="text-white/70">G.N.A</span>
+            <a
+              href="https://www.noletandrews.ca/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/70 underline decoration-white/30 underline-offset-2 transition-colors hover:text-white hover:decoration-white"
+            >
+              G.N.A
+            </a>
           </p>
           <div className="flex items-center gap-3">
             {socials.map(({ Icon, label, href }) => (

@@ -129,6 +129,10 @@ const CLIENT_LOGOS = [
 /** Known static site assets (uploaded to MEDIA_BUCKET; resolve with mediaUrl). */
 export const SITE_MEDIA = {
   logo: `${MEDIA_FOLDERS.logo}/logo_eclemelin.png`,
+  // Navbar logos — two baked-colour SVGs (no CSS invert): black over light
+  // sections, white over dark sections / the open menu.
+  logoNoir: `${MEDIA_FOLDERS.logo}/logo-ecl-noir-v2.svg`,
+  logoBlanc: `${MEDIA_FOLDERS.logo}/logo-ecl-blanc-v2.svg`,
   heroVideo: `${MEDIA_FOLDERS.videos}/videoLemelin.mp4`,
   savoirFaire: {
     mobilier: `${MEDIA_FOLDERS.fabrication}/savoir-faire-mobilier-hospitalier.jpg`,

@@ -50,6 +50,8 @@ interface Item {
 const items: Item[] = [
   // Static site assets
   { source: "assets/logo_eclemelin.png", key: SITE_MEDIA.logo },
+  { source: "assets/LOGOECLNOIR.svg", key: SITE_MEDIA.logoNoir },
+  { source: "assets/LOGOECLBLANC.svg", key: SITE_MEDIA.logoBlanc },
   { source: "videos/videoLemelin.mp4", key: SITE_MEDIA.heroVideo },
   { source: "assets/1780581925672-IMG_1281.jpeg", key: SITE_MEDIA.savoirFaire.mobilier },
   { source: "assets/1780581858443-IMG_1292.jpeg", key: SITE_MEDIA.savoirFaire.fabrication },

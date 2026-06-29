@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation"
 import { motion, AnimatePresence, type Variants } from "motion/react"
 import { useLenis } from "@/components/providers/LenisProvider"
 import { CONTACT } from "@/content"
-import { mediaUrl, SITE_MEDIA, MEDIA_UNOPTIMIZED } from "@/lib/media"
+import { mediaUrl, SITE_MEDIA } from "@/lib/media"
 
 type HeaderTheme = "dark" | "light"
 
@@ -116,7 +116,7 @@ export function Header() {
     }
   }, [open, lenis])
 
-  // In the closed bar, the logo inverts to white over dark sections.
+  // In the closed bar, the white logo crossfades in over dark sections.
   const darkBar = theme === "dark" && !open
   const logoWhite = open || theme === "dark"
 
@@ -136,17 +136,30 @@ export function Header() {
               : "border-transparent"
           }`}
         >
-          {/* Logo */}
+          {/* Logo — two baked-colour SVGs crossfading (black over light, white
+              over dark / open menu); no CSS invert. */}
           <Link href="/" className="relative z-50 flex shrink-0 items-center">
-            <Image
-              src={mediaUrl(SITE_MEDIA.logo)}
-              alt="Entreprises Christian Lemelin"
-              width={384}
-              height={64}
-              priority
-              unoptimized={MEDIA_UNOPTIMIZED}
-              className={`h-7 w-auto transition-[filter] duration-300 ${logoWhite ? "invert" : ""}`}
-            />
+            <span className="relative inline-flex h-14 items-center">
+              <Image
+                src={mediaUrl(SITE_MEDIA.logoNoir)}
+                alt="Entreprises Christian Lemelin"
+                width={1500}
+                height={240}
+                priority
+                unoptimized
+                className={`h-14 w-auto transition-opacity duration-300 ${logoWhite ? "opacity-0" : "opacity-100"}`}
+              />
+              <Image
+                src={mediaUrl(SITE_MEDIA.logoBlanc)}
+                alt=""
+                aria-hidden
+                width={1500}
+                height={240}
+                priority
+                unoptimized
+                className={`absolute inset-0 h-14 w-auto transition-opacity duration-300 ${logoWhite ? "opacity-100" : "opacity-0"}`}
+              />
+            </span>
           </Link>
 
           {/* Menu toggle — transforms to "Fermer" when open (stays in the exact

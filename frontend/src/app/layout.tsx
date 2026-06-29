@@ -3,6 +3,7 @@ import { Onest, Fragment_Mono } from "next/font/google"
 import "./globals.css"
 import { SiteChrome } from "@/components/layout/SiteChrome"
 import { RootLayoutWrapper } from "@/components/layout/RootLayoutWrapper"
+import { ConsoleSignature } from "@/components/ui/ConsoleSignature"
 
 // OPUS design system — see DESIGN.md
 // Onest: variable font for headings + body. Fragment Mono: eyebrows, labels, section numbers.
@@ -55,6 +56,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-background text-foreground antialiased">
         {/* AdminProvider (admin/jobs context) wraps the OPUS layout so admin
             pages and /emplois keep working — see RootLayoutWrapper. */}
+        <ConsoleSignature />
         <RootLayoutWrapper>
           <SiteChrome>{children}</SiteChrome>
         </RootLayoutWrapper>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { SOLUTIONS_OVERVIEW, getSolution } from "@/content"
-import { SolutionsIndex, type SolutionItem } from "@/components/sections/SolutionsIndex"
+import { SolutionsTimeline, type SolutionItem } from "@/components/sections/SolutionsTimeline"
 
 export const metadata: Metadata = {
   title: "Nos solutions",
@@ -61,7 +61,7 @@ export default function SolutionsPage() {
       </section>
 
       <Suspense fallback={null}>
-        <SolutionsIndex items={items} />
+        <SolutionsTimeline items={items} />
       </Suspense>
 
       {/* Closing statement */}

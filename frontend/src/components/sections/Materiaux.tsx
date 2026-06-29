@@ -3,7 +3,15 @@
 import { useRef, useEffect } from "react"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
-import { motion, useReducedMotion, type Variants } from "motion/react"
+import {
+  motion,
+  useReducedMotion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  useMotionTemplate,
+  type Variants,
+} from "motion/react"
 import { Plus } from "@phosphor-icons/react"
 import {
   MATERIALS as materials,
@@ -21,7 +29,6 @@ import {
   DialogDescription,
   DialogClose,
 } from "@/components/ui/linear-modal"
-import { ShaderBackdrop } from "@/components/ui/ShaderBackdrop"
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -42,97 +49,132 @@ function reasonsOf(mat: MaterialDetail) {
   return list?.items ?? []
 }
 
-// Expanded panel for one material. The card morphs into this (shared layoutId
-// on the container, image and title via the linear-modal primitive). Backdrop
-// is a monochrome animated shader. Everything stays white/black/grey.
+// Expanded panel for one material — a "3D draft": a two-panel editorial layout
+// that tilts in perspective toward the cursor (the whole card is a physical
+// object), with a moving light "sheen" sweeping the metal image and the title
+// parallaxing forward. The reasons read as numbered chapters of a story so the
+// modal feels like a narrative, not a spec sheet. All motion is transform/
+// opacity only (GPU), and the whole 3D layer is disabled under reduced-motion.
 function MaterialModal({ mat }: { mat: MaterialDetail }) {
-  const img = imageUrl(mat.cardImage, 1000, 1200)
+  const img = imageUrl(mat.cardImage, 1100, 1400)
   const reasons = reasonsOf(mat)
   const reduce = useReducedMotion()
 
+  // Pointer-driven tilt. rx/ry are the raw target angles; the springs smooth
+  // them so the card eases rather than snaps. gx/gy drive the sheen position.
+  const rx = useMotionValue(0)
+  const ry = useMotionValue(0)
+  const gx = useMotionValue(50)
+  const gy = useMotionValue(50)
+  const spring = { stiffness: 140, damping: 18, mass: 0.4 }
+  const rxs = useSpring(rx, spring)
+  const rys = useSpring(ry, spring)
+  // Title floats opposite the tilt → parallax depth without preserve-3d (which
+  // an overflow-hidden panel would flatten anyway).
+  const titleX = useTransform(rys, (v) => v * -1.6)
+  const titleY = useTransform(rxs, (v) => v * 1.6)
+  const sheen = useMotionTemplate`radial-gradient(circle at ${gx}% ${gy}%, rgba(255,255,255,0.42), rgba(255,255,255,0) 55%)`
+
+  function handleMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (reduce) return
+    const r = e.currentTarget.getBoundingClientRect()
+    const nx = (e.clientX - r.left) / r.width
+    const ny = (e.clientY - r.top) / r.height
+    ry.set((nx - 0.5) * 12) // left/right → rotateY
+    rx.set((0.5 - ny) * 12) // up/down → rotateX
+    gx.set(nx * 100)
+    gy.set(ny * 100)
+  }
+  function handleLeave() {
+    rx.set(0)
+    ry.set(0)
+    gx.set(50)
+    gy.set(50)
+  }
+
   return (
-    <DialogContainer dim={false}>
-      {/* Animated monochrome backdrop: blooms from the centre of the screen and
-          settles ~90% opaque (the page stays faintly visible). The built-in dim
-          is disabled (dim={false}) so this is the only backdrop layer. */}
-      <motion.div
-        aria-hidden
-        className="pointer-events-none fixed inset-0"
-        initial={reduce ? false : { clipPath: "circle(0% at 50% 50%)" }}
-        animate={reduce ? undefined : { clipPath: "circle(150% at 50% 50%)" }}
-        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+    <DialogContainer>
+      {/* Perspective stage — sized to the card so the tilt pivots on its centre. */}
+      <div
+        className="relative w-full max-w-[940px] [perspective:1500px]"
+        onMouseMove={handleMove}
+        onMouseLeave={handleLeave}
       >
-        <ShaderBackdrop className="h-full w-full opacity-90" />
-      </motion.div>
-      <DialogContent className="flex max-h-[88vh] w-full max-w-[660px] flex-col rounded-3xl border border-border bg-surface shadow-2xl">
-        {/* Header image — morphs from the card */}
-        <div className="relative h-36 shrink-0 overflow-hidden sm:h-44">
-          <DialogImage
-            src={img}
-            alt={mat.name}
-            className="h-full w-full object-cover"
-          />
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10"
-          />
-          <DialogClose className="absolute right-3 top-3 z-10 size-9 bg-white/15 text-white backdrop-blur-md hover:bg-white/30" />
-          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
-            <DialogTitle>
-              <div className="flex items-baseline gap-3">
-                <span className="font-mono text-xs tracking-[0.2em] text-white/70">
+        <DialogContent
+          style={reduce ? undefined : { rotateX: rxs, rotateY: rys }}
+          className="flex max-h-[86vh] w-full flex-col rounded-3xl border border-border bg-surface shadow-[0_40px_120px_-30px_rgba(0,0,0,0.55)] md:flex-row"
+        >
+          <DialogClose className="absolute right-4 top-4 z-20 size-9 bg-surface/80 text-foreground ring-1 ring-border backdrop-blur hover:bg-surface" />
+
+          {/* Left panel — the material itself, full-bleed, with a live sheen. */}
+          <div className="relative h-52 w-full shrink-0 overflow-hidden md:h-auto md:w-[44%]">
+            <DialogImage
+              src={img}
+              alt={mat.name}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/30 md:bg-gradient-to-t md:from-black/85 md:via-black/35 md:to-black/15"
+            />
+            {/* Metallic sheen — follows the cursor; off under reduced-motion. */}
+            {!reduce && (
+              <motion.div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 mix-blend-soft-light"
+                style={{ background: sheen }}
+              />
+            )}
+            <motion.div
+              className="absolute inset-x-0 bottom-0 p-6 sm:p-7"
+              style={reduce ? undefined : { x: titleX, y: titleY }}
+            >
+              <DialogTitle>
+                <span className="font-mono text-xs tracking-[0.22em] text-white/70">
                   {mat.code}
                 </span>
-                <h3 className="font-display text-3xl font-semibold leading-none text-white sm:text-4xl">
+                <h3 className="mt-2 font-display text-4xl font-semibold leading-[0.95] text-white sm:text-5xl">
                   {mat.shortName}
                 </h3>
-              </div>
-            </DialogTitle>
+                <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.18em] text-white/60">
+                  {mat.fullName}
+                </p>
+              </DialogTitle>
+            </motion.div>
           </div>
-        </div>
 
-        {/* Scrollable body */}
-        <div className="min-h-0 overflow-y-auto px-5 py-6 sm:px-7 sm:py-7">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted">
-            {mat.fullName}
-          </p>
-          <DialogDescription variants={descV} className="mt-3">
-            <p className="leading-relaxed text-foreground">{mat.hero.intro}</p>
+          {/* Right panel — the story. Scrolls independently. */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-7 sm:px-8 sm:py-9">
+            <DialogDescription variants={descV}>
+              <p className="text-pretty text-[1.0625rem] leading-relaxed text-foreground">
+                {mat.hero.intro}
+              </p>
 
-            {reasons.length > 0 && (
-              <div className="mt-7">
-                {reasons.map((it, i) => (
-                  <div
-                    key={i}
-                    className="border-t border-border py-4 sm:grid sm:grid-cols-[1fr_1.5fr] sm:gap-6"
-                  >
-                    <h4 className="font-display text-base font-medium text-foreground sm:text-lg">
-                      {it.title}
-                    </h4>
-                    {it.body && (
-                      <p className="mt-1.5 leading-relaxed text-foreground-muted sm:mt-0">
-                        {it.body}
-                      </p>
-                    )}
+              {reasons.length > 0 && (
+                <div className="mt-8">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted">
+                    Pourquoi le choisir
+                  </p>
+                  <div className="mt-4 border-t border-border">
+                    {reasons.map((it, i) => (
+                      <div key={i} className="border-b border-border py-5">
+                        <h4 className="font-display text-lg font-medium leading-snug text-foreground">
+                          {it.title}
+                        </h4>
+                        {it.body && (
+                          <p className="mt-1.5 leading-relaxed text-foreground-muted">
+                            {it.body}
+                          </p>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
-                <div className="border-t border-border" />
-              </div>
-            )}
-
-            <div className="mt-6 flex flex-wrap gap-2">
-              {mat.properties.map((p) => (
-                <span
-                  key={p}
-                  className="rounded-full border border-border px-3 py-1 text-[13px] text-foreground-muted"
-                >
-                  {p}
-                </span>
-              ))}
-            </div>
-          </DialogDescription>
-        </div>
-      </DialogContent>
+                </div>
+              )}
+            </DialogDescription>
+          </div>
+        </DialogContent>
+      </div>
     </DialogContainer>
   )
 }
@@ -151,7 +193,9 @@ function CardInner({ mat, titleClass }: { mat: MaterialDetail; titleClass: strin
         aria-hidden
         className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"
       />
-      <span className="absolute right-3 top-3 inline-flex size-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition-colors duration-300 group-hover:bg-white/35">
+      {/* Dark glass chip so the white "+" keeps contrast on pale images too —
+          a translucent-white chip vanished over light photos. */}
+      <span className="absolute right-3 top-3 inline-flex size-9 items-center justify-center rounded-full bg-black/35 text-white shadow-sm ring-1 ring-white/25 backdrop-blur-md transition-colors duration-300 group-hover:bg-black/55">
         <Plus size={18} weight="bold" />
       </span>
       <div className="absolute inset-x-0 bottom-0 p-5">

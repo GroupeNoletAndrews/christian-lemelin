@@ -18,6 +18,7 @@ import {
   MotionConfig,
   motion,
   useReducedMotion,
+  type MotionStyle,
   type Transition,
   type Variants,
 } from "motion/react"
@@ -184,7 +185,9 @@ export function DialogContent({
 }: {
   children: ReactNode
   className?: string
-  style?: CSSProperties
+  // MotionStyle (not CSSProperties) so callers can pass transform MotionValues
+  // (e.g. the material modal's pointer-driven rotateX/rotateY tilt).
+  style?: MotionStyle
 }) {
   const { uniqueId, morph } = useDialog()
   const ref = useRef<HTMLDivElement>(null)

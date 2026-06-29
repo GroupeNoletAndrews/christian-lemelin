@@ -19,8 +19,10 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
   const isAdmin = pathname?.startsWith("/admin")
   const isHome = pathname === "/"
   const isContact = pathname === "/contact"
+  // La page de maintenance est autonome (cf. proxy.ts) — rendue sans chrome.
+  const isMaintenance = pathname === "/maintenance"
 
-  if (isAdmin) {
+  if (isAdmin || isMaintenance) {
     return <>{children}</>
   }
 

@@ -56,6 +56,7 @@ Copy [`frontend/.env.example`](frontend/.env.example) and fill in real values. B
 | `RESEND_WEBHOOK_SECRET` | server | optional (verifies Resend webhook signatures) |
 | `SEED_ADMIN_USERNAME` / `SEED_ADMIN_PASSWORD` | server | admin login created by the seed |
 | `SEED_DEMO_DATA` | server | `false` in prod (no demo content; admin still created) |
+| `MAINTENANCE_MODE` | server | `true` to show the maintenance page on the public site; anything else (or unset) = site live. See [Maintenance mode](#maintenance-mode). |
 
 Get the two connection strings from **Supabase → Project Settings → Database → Connection string** (the "Transaction pooler" and "Session/Direct" tabs).
 
@@ -261,6 +262,22 @@ The app lives in the `frontend/` subdirectory, so the important setting is the *
    - log in at `https://<your-app>/admin`
 
 > Adding env vars: **Vercel Dashboard** → your project → **Settings → Environment Variables** → add name/value, pick the environments, **Save**, then **Redeploy** (env changes only apply to new deployments). Or via CLI: `vercel env add NAME production`. You can also paste a whole `.env` in the dashboard's bulk editor.
+
+---
+
+## Maintenance mode
+
+To take the **public site** offline temporarily (showing a maintenance page instead) without touching the code:
+
+1. **Vercel Dashboard** → your project → **Settings → Environment Variables**.
+2. Add (or edit) `MAINTENANCE_MODE` = `true` for the **Production** environment, **Save**.
+3. **Redeploy** — env-var changes only apply to new deployments (Deployments tab → ⋯ → **Redeploy**, or push a commit).
+
+To turn it back off, set `MAINTENANCE_MODE` to `false` (or delete it) and redeploy.
+
+**How it works:** [`frontend/src/proxy.ts`](frontend/src/proxy.ts) reads `MAINTENANCE_MODE` and, when it's `"true"`, rewrites every public request to [`/maintenance`](frontend/src/app/maintenance/page.tsx) with an HTTP **503** (so search engines know it's temporary). **`/admin`, the API (`/api/*`), the Sentry tunnel and Next internals stay reachable** — so you can still log into the admin dashboard while the public site is down.
+
+> Local test: `MAINTENANCE_MODE=true npm run dev` (PowerShell: `$env:MAINTENANCE_MODE='true'; npm run dev`), then open `/` — you should see the maintenance page, while `/admin` still works.
 
 ---
 

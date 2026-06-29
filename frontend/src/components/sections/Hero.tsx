@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { motion, type Variants } from "motion/react"
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr"
 import { mediaUrl, SITE_MEDIA } from "@/lib/media"
+import { RandomizedTextEffect } from "@/components/ui/text-randomized"
 
 // Full-bleed looping video hero (pointlaz-inspired) in our OPUS style.
 // The video autoplays/loops with no controls; the text reveals after 3 s.
@@ -22,9 +23,25 @@ const item: Variants = {
 export function Hero() {
   const [show, setShow] = useState(false)
 
+  // Start the title scramble only once the Preloader has dismissed — otherwise
+  // it plays behind the curtain and is never seen. The Preloader fires
+  // `eclemelin:preloader-done` when it unlocks scroll; we wait a touch longer
+  // so its slide-up has cleared the hero before the title resolves.
   useEffect(() => {
-    const t = setTimeout(() => setShow(true), 2000)
-    return () => clearTimeout(t)
+    let revealTimer: ReturnType<typeof setTimeout> | undefined
+    const reveal = () => {
+      window.removeEventListener("eclemelin:preloader-done", reveal)
+      clearTimeout(fallback)
+      revealTimer = setTimeout(() => setShow(true), 700)
+    }
+    window.addEventListener("eclemelin:preloader-done", reveal)
+    // Fallback in case the event was missed (e.g. no preloader this load).
+    const fallback = setTimeout(reveal, 5000)
+    return () => {
+      window.removeEventListener("eclemelin:preloader-done", reveal)
+      clearTimeout(fallback)
+      if (revealTimer) clearTimeout(revealTimer)
+    }
   }, [])
 
   return (
@@ -56,23 +73,26 @@ export function Hero() {
           animate={show ? "show" : "hidden"}
           className="w-full px-6 pb-16 md:px-12 md:pb-24"
         >
-          <motion.h1
-            variants={item}
-            className="font-display text-[clamp(3rem,11vw,10rem)] font-semibold leading-[1.02] tracking-[-0.03em] text-white"
-          >
-            <span className="block -ml-3 md:-ml-9 md:whitespace-nowrap">
-              Les Entreprises
-            </span>
-            <span className="mt-1 block ml-1 md:mt-2 md:ml-16 md:whitespace-nowrap">
-              Christian Lemelin
-            </span>
-          </motion.h1>
+          {/* Title resolves out of metal element symbols — left-aligned with
+              the paragraph/link below it (no staggered indent). */}
+          <h1 className="font-display text-[clamp(2.5rem,9vw,8rem)] font-semibold leading-[1.02] tracking-[-0.03em] text-white">
+            <RandomizedTextEffect
+              text="Les Entreprises"
+              start={show}
+              className="block md:whitespace-nowrap"
+            />
+            <RandomizedTextEffect
+              text="Christian Lemelin"
+              start={show}
+              className="mt-1 block md:mt-2 md:whitespace-nowrap"
+            />
+          </h1>
 
           <motion.div
             variants={item}
             className="mt-8 grid gap-6 md:grid-cols-[1fr_auto] md:items-end md:gap-12"
           >
-            <p className="ml-1 max-w-[52ch] text-lg leading-relaxed text-white/80 md:ml-16 md:text-xl">
+            <p className="max-w-[52ch] text-lg leading-relaxed text-white/80 md:text-xl">
               Atelier de fabrication métallique sur mesure à Québec. Inox, acier,
               aluminium, laiton et cuivre — travaillés avec la même exigence depuis
               des décennies.

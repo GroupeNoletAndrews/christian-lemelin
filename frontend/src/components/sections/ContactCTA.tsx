@@ -14,7 +14,7 @@ export function ContactCTA({
   href?: string
 } = {}) {
   return (
-    <section data-header-theme="dark" className="bg-ink py-32 text-white md:py-44">
+    <section data-header-theme="dark" className="bg-ink  text-white pt-20">
       <div className="mx-auto flex max-w-[1400px] flex-col items-center px-6 text-center md:px-12">
         <h2 className="max-w-[18ch] font-display text-[clamp(2.5rem,7vw,5.5rem)] font-semibold leading-[1] tracking-[-0.02em] text-white">
           {heading}

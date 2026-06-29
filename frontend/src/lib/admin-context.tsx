@@ -6,6 +6,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useSyncExternalStore,
   ReactNode,
 } from "react"
 import { Job, Realisation, MAX_PINNED_REALISATIONS } from "@/types/admin"
@@ -43,6 +44,13 @@ interface AdminContextType {
   togglePinned: (id: string) => Promise<boolean>
   /** Persist a new réalisations order (drag-and-drop). Optimistic, reverts on failure. */
   reorderRealisations: (orderedIds: string[]) => Promise<void>
+  /** Re-fetch réalisations from the server into the shared state — so surfaces
+   *  that mutate them outside the provider (e.g. the content workspace publish)
+   *  resync the dashboard/home without a full reload. */
+  refreshRealisations: () => Promise<void>
+  /** True only inside the content workspace preview iframe (URL carries ?preview):
+   *  public sections render in-place edit affordances (pencils) when set. */
+  previewEdit: boolean
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined)
@@ -74,14 +82,30 @@ function reviveRealisation(r: ApiRealisation): Realisation {
   }
 }
 
+// Read ?preview from the URL without a hydration mismatch: the server snapshot
+// is always undefined, and the client switches to the real value after
+// hydration. Truthy only inside the content workspace preview iframe.
+const subscribePreview = () => () => {}
+function usePreviewToken(): string | undefined {
+  return useSyncExternalStore(
+    subscribePreview,
+    () => new URLSearchParams(window.location.search).get("preview") ?? undefined,
+    () => undefined,
+  )
+}
+
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authLoading, setAuthLoading] = useState(true)
   const [email, setEmail] = useState("")
   const [jobs, setJobs] = useState<Job[]>([])
   const [realisations, setRealisations] = useState<Realisation[]>([])
+  // From the URL (?preview), hydration-safe — true only inside the content
+  // workspace preview iframe, where public sections show in-place edit pencils.
+  const previewToken = usePreviewToken()
+  const previewEdit = previewToken !== undefined
 
-  // Hydrate public data + restore the Supabase admin session on mount.
+  // Hydrate jobs + restore the Supabase admin session on mount.
   useEffect(() => {
     let cancelled = false
     api.jobs
@@ -90,12 +114,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setJobs(rows.map(reviveJob))
       })
       .catch((e) => console.warn("Chargement des emplois impossible:", e))
-    api.realisations
-      .list()
-      .then((rows) => {
-        if (!cancelled) setRealisations(rows.map(reviveRealisation))
-      })
-      .catch((e) => console.warn("Chargement des réalisations impossible:", e))
 
     // Restore + track the Supabase session. getSession() reads the @supabase/ssr
     // cookie (no network) for an instant initial answer; onAuthStateChange keeps
@@ -132,6 +150,57 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe()
     }
   }, [])
+
+  // Load réalisations (live, or draft-merged inside the preview iframe). Exposed
+  // as refreshRealisations so other admin surfaces (e.g. the content workspace
+  // after publishing) can resync the shared list without a full reload.
+  const loadRealisations = useCallback(async () => {
+    try {
+      const rows = await api.realisations.list(previewToken)
+      setRealisations(rows.map(reviveRealisation))
+    } catch (e) {
+      console.warn("Chargement des réalisations impossible:", e)
+    }
+  }, [previewToken])
+
+  // Initial load + (in the preview iframe) refresh on the workspace's postMessage
+  // so pending edits appear without a full reload (which replays the preloader).
+  useEffect(() => {
+    void (async () => {
+      await loadRealisations()
+    })()
+
+    if (!previewToken || typeof window === "undefined") return
+    const onPreviewMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return
+      if (e.data?.source !== "cl-content-admin") return
+      if (e.data.type === "refresh-realisations") {
+        // Re-fetch the live list (after publish/cancel).
+        void loadRealisations()
+      } else if (
+        e.data.type === "preview-realisations" &&
+        Array.isArray(e.data.data)
+      ) {
+        // Apply the workspace's staged (un-published) state for live preview —
+        // staged images arrive as data: URLs and render directly.
+        setRealisations((e.data.data as ApiRealisation[]).map(reviveRealisation))
+      }
+    }
+    window.addEventListener("message", onPreviewMessage)
+    return () => window.removeEventListener("message", onPreviewMessage)
+  }, [previewToken, loadRealisations])
+
+  // Re-fetch réalisations when a tab becomes visible again, so a page left open
+  // before a publish in another tab shows the new images on return. Skipped in
+  // the preview iframe (driven by the workspace via postMessage).
+  useEffect(() => {
+    if (previewToken || typeof document === "undefined") return
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void loadRealisations()
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => document.removeEventListener("visibilitychange", onVisible)
+  }, [previewToken, loadRealisations])
 
   const login = useCallback(async (loginEmail: string, password: string) => {
     const supabase = supabaseBrowser()
@@ -307,6 +376,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         getRealisation,
         togglePinned,
         reorderRealisations,
+        refreshRealisations: loadRealisations,
+        previewEdit,
       }}
     >
       {children}

@@ -1,18 +1,37 @@
-import { ParallaxImage } from "@/components/ui/ParallaxImage"
+import { SlotParallaxImage } from "@/components/sections/SlotParallaxImage"
 import { imageUrl, type ContentBlock } from "@/content"
+import { featureSlot, splitSlot } from "@/lib/sections-registry"
 import { GalleryStrip } from "./GalleryStrip"
 
 // Rendu générique des blocs de contenu d'une page de détail. Listes en lignes
-// hairline (aucun badge / numéro) ; bloc « feature » sombre full-width.
+// hairline (aucun badge / numéro) ; bloc « feature » sombre full-width. Les
+// images (gallery/split/feature) sont éditables via leur slot <slug>/…<index>.
 const WRAP = "mx-auto max-w-[1400px] px-6 md:px-12"
 const H2 =
   "max-w-[24ch] font-display text-[clamp(1.75rem,4vw,3rem)] font-semibold leading-[1.08] tracking-[-0.01em] text-foreground"
 
-export function ContentBlocks({ blocks }: { blocks: ContentBlock[] }) {
+export function ContentBlocks({
+  blocks,
+  section,
+  slug,
+  images = {},
+}: {
+  blocks: ContentBlock[]
+  section: string
+  slug: string
+  images?: Record<string, string>
+}) {
   return (
     <>
       {blocks.map((block, i) => (
-        <Block key={i} block={block} />
+        <Block
+          key={i}
+          block={block}
+          index={i}
+          section={section}
+          slug={slug}
+          images={images}
+        />
       ))}
     </>
   )
@@ -46,7 +65,19 @@ function HairlineRows({
   )
 }
 
-function Block({ block }: { block: ContentBlock }) {
+function Block({
+  block,
+  index,
+  section,
+  slug,
+  images,
+}: {
+  block: ContentBlock
+  index: number
+  section: string
+  slug: string
+  images: Record<string, string>
+}) {
   switch (block.kind) {
     case "prose":
       return (
@@ -103,9 +134,20 @@ function Block({ block }: { block: ContentBlock }) {
       )
 
     case "gallery":
-      return <GalleryStrip heading={block.heading} images={block.images} />
+      return (
+        <GalleryStrip
+          heading={block.heading}
+          images={block.images}
+          section={section}
+          slug={slug}
+          blockIndex={index}
+          overrides={images}
+        />
+      )
 
-    case "split":
+    case "split": {
+      const slot = splitSlot(slug, index)
+      const src = images[slot] ?? imageUrl(block.image, 1200, 900)
       return (
         <section className="bg-background py-16 md:py-24">
           <div className={`${WRAP} grid items-center gap-10 lg:grid-cols-2 lg:gap-16`}>
@@ -124,8 +166,10 @@ function Block({ block }: { block: ContentBlock }) {
                 block.reverse ? "lg:order-1" : ""
               }`}
             >
-              <ParallaxImage
-                src={imageUrl(block.image, 1200, 900)}
+              <SlotParallaxImage
+                section={section}
+                slot={slot}
+                src={src}
                 alt={block.heading}
                 sizes="(min-width: 1024px) 45vw, 90vw"
               />
@@ -133,15 +177,20 @@ function Block({ block }: { block: ContentBlock }) {
           </div>
         </section>
       )
+    }
 
-    case "feature":
+    case "feature": {
+      const slot = featureSlot(slug, index)
+      const src = images[slot] ?? imageUrl(block.image, 1400, 1400)
       return (
         <section data-header-theme="dark" className="bg-background px-3 py-3 md:px-4 md:py-4">
           <div className="overflow-hidden rounded-[1.75rem] bg-ink md:rounded-[2.5rem]">
             <div className="grid lg:grid-cols-2">
               <div className="relative min-h-[300px] lg:min-h-[540px]">
-                <ParallaxImage
-                  src={imageUrl(block.image, 1400, 1400)}
+                <SlotParallaxImage
+                  section={section}
+                  slot={slot}
+                  src={src}
                   alt={block.heading}
                   sizes="(min-width: 1024px) 50vw, 100vw"
                 />
@@ -160,5 +209,6 @@ function Block({ block }: { block: ContentBlock }) {
           </div>
         </section>
       )
+    }
   }
 }

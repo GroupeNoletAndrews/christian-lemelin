@@ -1,14 +1,30 @@
-import { ParallaxImage } from "@/components/ui/ParallaxImage"
+import { SlotParallaxImage } from "@/components/sections/SlotParallaxImage"
 import { imageUrl, type DetailHero as DetailHeroContent } from "@/content"
+import { heroSlot } from "@/lib/sections-registry"
 
 // Hero des pages de détail : image parallax plein cadre + scrim sombre, contenu
 // ancré en bas (titre + intro). data-header-theme="dark" pour l'inversion du logo.
-export function DetailHero({ hero }: { hero: DetailHeroContent }) {
+// L'image est éditable (slot <slug>/hero de la section materiaux | solutions).
+export function DetailHero({
+  hero,
+  section,
+  slug,
+  images = {},
+}: {
+  hero: DetailHeroContent
+  section: string
+  slug: string
+  images?: Record<string, string>
+}) {
+  const slot = heroSlot(slug)
+  const src = images[slot] ?? imageUrl(hero.image, 2000, 1400)
   return (
     <section data-header-theme="dark" className="relative">
       <div className="relative h-[68svh] min-h-[440px] w-full overflow-hidden bg-ink">
-        <ParallaxImage
-          src={imageUrl(hero.image, 2000, 1400)}
+        <SlotParallaxImage
+          section={section}
+          slot={slot}
+          src={src}
           alt={hero.heading}
           sizes="100vw"
           amount={14}

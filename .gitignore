@@ -30,6 +30,9 @@ lerna-debug.log*
 .temp
 .tmp
 
+# Playwright MCP test artifacts (screenshots, page snapshots, console logs)
+.playwright-mcp/
+
 # Sentry build-plugin auth token
 .env.sentry-build-plugin
 

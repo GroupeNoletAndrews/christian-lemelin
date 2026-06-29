@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { SOLUTIONS_OVERVIEW } from "@/content"
 import { SolutionsIndex } from "@/components/sections/SolutionsIndex"
 import { ContactCTA } from "@/components/sections/ContactCTA"
+import { resolveSectionImages } from "@/lib/server/sections"
 
 export const metadata: Metadata = {
   title: "Nos solutions",
@@ -9,8 +10,12 @@ export const metadata: Metadata = {
     "Mobilier hospitalier, de laboratoire et d'accueil, prototypes, composantes architecturales et pièces sur mesure — des solutions métalliques adaptées à chaque secteur.",
 }
 
-export default function SolutionsPage() {
+// Reads published Solutions image overrides at request time (index hover previews).
+export const dynamic = "force-dynamic"
+
+export default async function SolutionsPage() {
   const { hero, closing } = SOLUTIONS_OVERVIEW
+  const images = await resolveSectionImages("solutions")
 
   return (
     <>
@@ -42,7 +47,7 @@ export default function SolutionsPage() {
         </div>
       </section>
 
-      <SolutionsIndex />
+      <SolutionsIndex images={images} />
 
       {/* Closing statement */}
       <section data-header-theme="light" className="bg-background pb-28 pt-10 md:pb-40">

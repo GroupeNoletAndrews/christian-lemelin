@@ -2,8 +2,11 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { MATERIAL_SLUGS, getMaterial, SOLUTIONS_OVERVIEW } from "@/content"
 import { DetailLayout } from "@/components/detail/DetailLayout"
+import { resolveSectionImages } from "@/lib/server/sections"
 
 export const dynamicParams = false
+// Reads published Matériaux image overrides at request time.
+export const dynamic = "force-dynamic"
 
 export function generateStaticParams() {
   return MATERIAL_SLUGS.map((slug) => ({ slug }))
@@ -29,6 +32,7 @@ export default async function MaterialDetailPage({
   const m = getMaterial(slug)
   if (!m) notFound()
 
+  const images = await resolveSectionImages("materiaux")
   const byIndex = new Map(SOLUTIONS_OVERVIEW.index.map((e) => [e.slug, e]))
   const tiles = (m.relatedSolutions ?? [])
     .map((ss) => byIndex.get(ss))
@@ -40,6 +44,9 @@ export default async function MaterialDetailPage({
       hero={m.hero}
       properties={m.properties}
       blocks={m.blocks}
+      section="materiaux"
+      slug={slug}
+      images={images}
       explore={{
         heading: tiles.length ? "Où on l'utilise" : "",
         tiles,

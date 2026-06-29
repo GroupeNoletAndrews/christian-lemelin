@@ -1,4 +1,4 @@
-import { ParallaxImage } from "@/components/ui/ParallaxImage"
+import { SlotParallaxImage } from "@/components/sections/SlotParallaxImage"
 import { imageUrl } from "@/content/image"
 
 // Page /a-propos — mise en page reprise du block shadcnblocks « about6 » :
@@ -7,24 +7,27 @@ import { imageUrl } from "@/content/image"
 // style OPUS (titres Onest casse normale, hairlines, pas de pilule) et au
 // parallax maison. Voir DESIGN.md §7. Empile sur mobile (colonne gauche d'abord).
 
+const SECTION = "a-propos"
+
 // Cadre d'image OPUS : ratio + coins arrondis + hairline, avec parallax dedans.
+// `src` est résolu côté serveur (override publié ?? défaut) ; éditable via slot.
 function Frame({
-  seed,
+  slot,
+  src,
   alt,
   ratio,
-  w,
-  h,
 }: {
-  seed: string
+  slot: string
+  src: string
   alt: string
   ratio: string
-  w: number
-  h: number
 }) {
   return (
     <div className={`relative ${ratio} overflow-hidden rounded-2xl border border-border`}>
-      <ParallaxImage
-        src={imageUrl({ seed, alt }, w, h)}
+      <SlotParallaxImage
+        section={SECTION}
+        slot={slot}
+        src={src}
         alt={alt}
         sizes="(min-width: 1024px) 25vw, 45vw"
       />
@@ -32,7 +35,11 @@ function Frame({
   )
 }
 
-export function APropos() {
+export function APropos({ images = {} }: { images?: Record<string, string> }) {
+  // Published override for a slot, else the original seed→manifest placeholder.
+  const slotSrc = (slot: string, seed: string, alt: string, w: number, h: number) =>
+    images[slot] ?? imageUrl({ seed, alt }, w, h)
+
   return (
     <section
       data-header-theme="light"
@@ -58,25 +65,22 @@ export function APropos() {
             <div className="grid grid-cols-2 gap-4">
               <Frame
                 ratio="aspect-[3/4]"
-                seed="ecl-about-atelier-large"
+                slot="atelier-large"
+                src={slotSrc("atelier-large", "ecl-about-atelier-large", "Atelier de fabrication métallique", 900, 1200)}
                 alt="Atelier de fabrication métallique"
-                w={900}
-                h={1200}
               />
               <div className="flex flex-col gap-4">
                 <Frame
                   ratio="aspect-square"
-                  seed="ecl-about-soudure-tig"
+                  slot="soudure-tig"
+                  src={slotSrc("soudure-tig", "ecl-about-soudure-tig", "Soudure TIG sur inox", 900, 900)}
                   alt="Soudure TIG sur inox"
-                  w={900}
-                  h={900}
                 />
                 <Frame
                   ratio="aspect-square"
-                  seed="ecl-about-decoupe-laser"
+                  slot="decoupe-laser"
+                  src={slotSrc("decoupe-laser", "ecl-about-decoupe-laser", "Découpe laser de précision", 900, 900)}
                   alt="Découpe laser de précision"
-                  w={900}
-                  h={900}
                 />
               </div>
             </div>
@@ -87,18 +91,16 @@ export function APropos() {
             <div className="grid grid-cols-2 gap-4">
               <Frame
                 ratio="aspect-[3/4]"
-                seed="ecl-about-finitions-poli"
+                slot="finitions-poli"
+                src={slotSrc("finitions-poli", "ecl-about-finitions-poli", "Finition et polissage en atelier", 900, 1200)}
                 alt="Finition et polissage en atelier"
-                w={900}
-                h={1200}
               />
               <div className="flex flex-col gap-4">
                 <Frame
                   ratio="aspect-square"
-                  seed="ecl-about-equipe-plancher"
+                  slot="equipe-plancher"
+                  src={slotSrc("equipe-plancher", "ecl-about-equipe-plancher", "Équipe au plancher de l'atelier", 900, 900)}
                   alt="Équipe au plancher de l'atelier"
-                  w={900}
-                  h={900}
                 />
               </div>
             </div>

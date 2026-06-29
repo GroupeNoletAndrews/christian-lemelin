@@ -24,9 +24,10 @@ export async function uploadToBucket(
   path: string,
   token: string,
   body: Blob | File,
+  options?: { cacheControl?: string },
 ): Promise<void> {
   const { error } = await browserSupabase()
     .storage.from(bucket)
-    .uploadToSignedUrl(path, token, body)
+    .uploadToSignedUrl(path, token, body, options)
   if (error) throw error
 }

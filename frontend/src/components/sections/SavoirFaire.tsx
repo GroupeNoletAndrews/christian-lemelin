@@ -1,14 +1,17 @@
 "use client"
 
 import { useCallback, useState } from "react"
-import Image from "next/image"
 import { Plus, CaretUp, CaretDown } from "@phosphor-icons/react"
 import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react"
 import { ArrowLink } from "@/components/ui/ArrowLink"
 import { mediaUrl, SITE_MEDIA } from "@/lib/media"
+import { SlotImage } from "@/components/sections/SlotImage"
+
+const SECTION = "savoir-faire"
 
 const services = [
   {
+    slot: "mobilier",
     title: "Mobilier hospitalier personnalisé",
     description:
       "Mobilier sur mesure en acier inoxydable médical, alliant ergonomie, durabilité et hygiène pour hôpitaux, cliniques et laboratoires.",
@@ -16,6 +19,7 @@ const services = [
     href: "/solutions/mobilier-hospitalier",
   },
   {
+    slot: "fabrication",
     title: "Fabrication sur mesure",
     description:
       "Pièces uniques ou en série, réalisées selon vos plans ou développées avec notre équipe technique.",
@@ -23,6 +27,7 @@ const services = [
     href: "/fabrication",
   },
   {
+    slot: "decoupe-laser",
     title: "Découpe laser & Lazer tube",
     description:
       "Précision au dixième de millimètre sur toutes épaisseurs, du prototype à la grande série.",
@@ -30,6 +35,7 @@ const services = [
     href: "/solutions",
   },
   {
+    slot: "soudure",
     title: "Soudure & assemblage",
     description:
       "Soudeurs certifiés MIG, TIG et structurale pour assemblages industriels et architecturaux exigeants.",
@@ -37,13 +43,13 @@ const services = [
     href: "/solutions",
   },
   {
+    slot: "polissage",
     title: "Polissage & finitions",
     description:
       "Miroir, satiné, brossé, poudré. Chaque finition exécutée en atelier selon les standards les plus exigeants.",
     img: mediaUrl(SITE_MEDIA.savoirFaire.polissage),
     href: "/fabrication",
   },
-
 ]
 
 // Apple "feature block" image crossfade — reproduced 1:1 from skiper-ui Skiper76.
@@ -89,7 +95,7 @@ const imageMotionReduced: Variants = {
   exit: { opacity: 0, transition: { duration: 0.2 } },
 }
 
-export function SavoirFaire() {
+export function SavoirFaire({ images }: { images?: Record<string, string> }) {
   const [active, setActive] = useState(0)
   const reduce = useReducedMotion()
   const variants = reduce ? imageMotionReduced : imageMotion
@@ -119,14 +125,15 @@ export function SavoirFaire() {
               animate="animate"
               exit="exit"
             >
-              <Image
-                src={services[active].img}
+              <SlotImage
+                section={SECTION}
+                slot={services[active].slot}
+                src={images?.[services[active].slot] ?? services[active].img}
                 alt={services[active].title}
-                fill
-                unoptimized
                 priority={active === 0}
                 sizes="100vw"
-                className="object-cover grayscale"
+                grayscale
+                className="object-cover"
               />
             </motion.div>
           </AnimatePresence>

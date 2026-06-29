@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAdmin } from "@/lib/admin-context";
+import { FeedbackProvider } from "@/components/admin/FeedbackProvider";
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -18,7 +19,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [authLoading, isAuthenticated, pathname, router]);
 
-  return children;
+  // FeedbackProvider gives every admin screen on-brand confirm/toast popups.
+  return <FeedbackProvider>{children}</FeedbackProvider>;
 }
 
 export default function AdminLayout({

@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import {
   AnimatePresence,
   motion,
@@ -15,6 +14,8 @@ import { ArrowUpRight } from "@phosphor-icons/react"
 import { SOLUTIONS_OVERVIEW, imageUrl } from "@/content"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
 import { DrawLine } from "@/components/ui/DrawLine"
+import { SlotImage } from "@/components/sections/SlotImage"
+import { hoverSlot } from "@/lib/sections-registry"
 
 // Index typographique au survol (pattern « sites primés » / pointlaz) : les
 // noms géants des 6 catégories ; au survol, un aperçu monochrome suit le
@@ -35,7 +36,7 @@ const previewV: Variants = {
   exit: { opacity: 0, scale: 0.96, rotate: 1, transition: { duration: 0.2, ease: EASE_OUT } },
 }
 
-export function SolutionsIndex() {
+export function SolutionsIndex({ images = {} }: { images?: Record<string, string> }) {
   const items = SOLUTIONS_OVERVIEW.index
   const reduce = useReducedMotion() ?? false
   const canHover = useMediaQuery("(hover: hover)")
@@ -84,10 +85,11 @@ export function SolutionsIndex() {
                   exit="exit"
                   className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-border shadow-2xl shadow-black/20"
                 >
-                  <Image
-                    src={imageUrl(activeItem.hoverImage, 800, 1000)}
+                  <SlotImage
+                    section="solutions"
+                    slot={hoverSlot(activeItem.slug)}
+                    src={images[hoverSlot(activeItem.slug)] ?? imageUrl(activeItem.hoverImage, 800, 1000)}
                     alt={activeItem.title}
-                    fill
                     sizes="18vw"
                     className="object-cover"
                   />
@@ -113,10 +115,11 @@ export function SolutionsIndex() {
                 >
                   {!interactive && (
                     <span className="relative size-16 shrink-0 overflow-hidden rounded-xl border border-border">
-                      <Image
-                        src={imageUrl(it.hoverImage, 220, 220)}
+                      <SlotImage
+                        section="solutions"
+                        slot={hoverSlot(it.slug)}
+                        src={images[hoverSlot(it.slug)] ?? imageUrl(it.hoverImage, 220, 220)}
                         alt=""
-                        fill
                         sizes="64px"
                         className="object-cover"
                       />

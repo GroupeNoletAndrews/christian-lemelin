@@ -47,6 +47,21 @@ model Realisation {
   @@map("realisations")
 }
 
+/// Published image override for a static-section slot (e.g. section "savoir-faire",
+/// slot "mobilier"). Absence of a row means the slot uses its code default
+/// (SITE_MEDIA key or seed→manifest). Drafts are staged client-side (nothing is
+/// written here until publish), so there is no draft column — `key` is live.
+model SectionImage {
+  section   String
+  slot      String
+  key       String   @map("image_key")
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([section, slot])
+  @@index([section])
+  @@map("section_images")
+}
+
 model Application {
   id        String   @id @default(uuid()) @db.Uuid
   jobId     String?  @map("job_id") @db.Uuid

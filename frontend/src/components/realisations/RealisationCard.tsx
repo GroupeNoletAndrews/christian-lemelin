@@ -9,8 +9,9 @@ import {
   useTransform,
   useReducedMotion,
 } from "motion/react"
+import { PencilSimple } from "@phosphor-icons/react"
 import { Realisation } from "@/types/admin"
-import { mediaUrl } from "@/lib/media"
+import { imgSrc } from "@/lib/media"
 
 // Alternating aspect ratios give the masonry layout its rhythm.
 const RATIOS = ["aspect-[4/3]", "aspect-[4/5]", "aspect-[4/5]", "aspect-[4/3]"]
@@ -31,6 +32,7 @@ export function RealisationCard({
   ratio,
   href,
   onSelect,
+  onEdit,
 }: {
   realisation: Realisation
   index?: number
@@ -39,6 +41,8 @@ export function RealisationCard({
   href?: string
   /** If set, clicking the card calls this (e.g. feature it in place). */
   onSelect?: () => void
+  /** Content-workspace preview only: shows a pencil to edit this réalisation. */
+  onEdit?: () => void
 }) {
   const cardRatio = ratio ?? RATIOS[index % RATIOS.length]
   const images = realisation.images.length ? realisation.images : [""]
@@ -83,7 +87,7 @@ export function RealisationCard({
 
   return (
     <motion.article
-      className="group mb-6 break-inside-avoid"
+      className="group relative mb-6 break-inside-avoid"
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.1 }}
@@ -106,7 +110,7 @@ export function RealisationCard({
                 src ? (
                   <Image
                     key={i}
-                    src={mediaUrl(src)}
+                    src={imgSrc(src, realisation.updatedAt.getTime())}
                     alt={realisation.name}
                     fill
                     unoptimized
@@ -155,6 +159,19 @@ export function RealisationCard({
         }
         return frame
       })()}
+
+      {/* In-place edit affordance — sibling of the link wrapper (not nested) so
+          it never triggers navigation; only rendered in the workspace preview. */}
+      {onEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label="Modifier cette réalisation"
+          className="absolute right-3 top-3 z-20 inline-flex items-center justify-center rounded-full bg-accent p-2 text-white shadow-lg transition-colors hover:bg-accent-hover"
+        >
+          <PencilSimple size={16} weight="bold" />
+        </button>
+      )}
 
       <div className="mt-4">
         <h3 className="font-display text-xl font-medium leading-tight text-foreground">

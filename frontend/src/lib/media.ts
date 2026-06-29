@@ -40,7 +40,9 @@ function supabaseBaseUrl(): string {
  */
 export function mediaUrl(keyOrUrl: string): string {
   if (!keyOrUrl) return ""
-  if (/^https?:\/\//i.test(keyOrUrl) || keyOrUrl.startsWith("/")) return keyOrUrl
+  // Pass through absolute URLs, local paths, and in-browser staged previews
+  // (data:/blob: URLs used by the content workspace before an upload happens).
+  if (/^(https?:|data:|blob:)/i.test(keyOrUrl) || keyOrUrl.startsWith("/")) return keyOrUrl
   const base = supabaseBaseUrl()
   return base
     ? `${base}/storage/v1/object/public/${MEDIA_BUCKET}/${keyOrUrl}`
@@ -56,6 +58,18 @@ export function mediaUrl(keyOrUrl: string): string {
 export const MEDIA_UNOPTIMIZED = /\/\/(127\.0\.0\.1|localhost|0\.0\.0\.0)(:|\/|$)/.test(
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "",
 )
+
+/**
+ * mediaUrl + a cache-busting version query so an in-place overwrite (same storage
+ * key) is shown fresh instead of the previously-rendered image. Pass-through
+ * values (data:/blob:/http/local) are returned untouched. `version` is typically
+ * a record's updatedAt timestamp, which changes when the image is republished.
+ */
+export function imgSrc(keyOrUrl: string, version?: string | number): string {
+  const url = mediaUrl(keyOrUrl)
+  if (version == null || /^(data:|blob:)/i.test(url)) return url
+  return `${url}${url.includes("?") ? "&" : "?"}v=${version}`
+}
 
 /**
  * Inverse of mediaUrl: given a value stored on a record (a storage key, a full
@@ -84,10 +98,11 @@ export function slugify(input: string): string {
 }
 
 /**
- * Storage key for a réalisation image, named after the project + a 1-based
- * picture number: photos/realisations/<project-slug>-<n>.<ext>
+ * Storage key for a réalisation image — EACH RÉALISATION GETS ITS OWN FOLDER,
+ * named after the project slug, with a 1-based picture number inside:
+ *   photos/realisations/<project-slug>/<n>.<ext>
  * e.g. realisationImageKey("Bar lounge — hôtellerie", 2) →
- *      "photos/realisations/bar-lounge-hotellerie-2.jpg"
+ *      "photos/realisations/bar-lounge-hotellerie/2.jpg"
  */
 export function realisationImageKey(
   projectName: string,
@@ -95,7 +110,7 @@ export function realisationImageKey(
   ext = "jpg",
 ): string {
   const clean = ext.replace(/^\.+/, "").toLowerCase() || "jpg"
-  return `${MEDIA_FOLDERS.realisations}/${slugify(projectName)}-${index}.${clean}`
+  return `${MEDIA_FOLDERS.realisations}/${slugify(projectName)}/${index}.${clean}`
 }
 
 /**
@@ -105,7 +120,9 @@ export function realisationImageKey(
  * a number to be reused (which would overwrite an existing photo).
  */
 export function realisationImageIndex(keyOrUrl: string): number {
-  const m = /-(\d+)\.[^./]+$/.exec(keyOrUrl)
+  // Matches the trailing number whether the separator is "-" (legacy flat keys)
+  // or "/" (per-réalisation folder keys: …/<slug>/<n>.<ext>).
+  const m = /[-/](\d+)\.[^./]+$/.exec(keyOrUrl)
   return m ? parseInt(m[1], 10) : 0
 }
 

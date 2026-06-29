@@ -77,6 +77,22 @@ export interface RealisationInput {
   pinned: boolean
 }
 
+/** One editable image slot of a static section (admin view). */
+export interface SectionSlotState {
+  id: string
+  label: string
+  aspect: string
+  publishedKey: string | null
+  url: string
+}
+
+export interface SectionAdminState {
+  section: string
+  label: string
+  previewPath: string
+  slots: SectionSlotState[]
+}
+
 export interface ApplicationInput {
   name: string
   email: string
@@ -106,7 +122,12 @@ export const api = {
     remove: (id: string) => request<void>(`/jobs/${id}`, { method: "DELETE" }),
   },
   realisations: {
-    list: () => request<ApiRealisation[]>("/realisations"),
+    // `preview` requests the draft-merged list (admin only, server-gated) — used
+    // by the content workspace iframe to preview pending edits on the real page.
+    list: (preview?: string) =>
+      request<ApiRealisation[]>(
+        preview ? `/realisations?preview=${encodeURIComponent(preview)}` : "/realisations",
+      ),
     create: (data: RealisationInput) =>
       request<ApiRealisation>("/realisations", {
         method: "POST",
@@ -130,6 +151,29 @@ export const api = {
       request<SignedUpload>("/realisations/upload-url", {
         method: "POST",
         body: JSON.stringify({ projectName, index, filename }),
+      }),
+  },
+  // Admin content workspace — per-slot published image overrides for the public
+  // sections (staged client-side, published here). Réalisations are edited via
+  // the api.realisations.* methods above; static sections use api.sections.static.
+  sections: {
+    // Static sections (savoir-faire, à-propos, …) — per-slot published overrides.
+    static: {
+      get: (section: string) =>
+        request<SectionAdminState>(`/admin/sections/${section}`),
+      publish: (section: string, changes: { slot: string; key: string }[]) =>
+        request<{ ok: true }>(`/admin/sections/${section}/publish`, {
+          method: "POST",
+          body: JSON.stringify({ changes }),
+        }),
+    },
+  },
+  // Admin media — signed upload to an exact storage key (overwrite in place).
+  media: {
+    uploadUrlForKey: (key: string) =>
+      request<SignedUpload>("/admin/media/upload-url", {
+        method: "POST",
+        body: JSON.stringify({ key }),
       }),
   },
   applications: {

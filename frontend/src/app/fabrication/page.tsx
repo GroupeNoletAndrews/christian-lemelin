@@ -3,6 +3,7 @@ import { FABRICATION } from "@/content"
 import { ReasonsReveal } from "@/components/sections/ReasonsReveal"
 import { MaterialSwitcher } from "@/components/sections/MaterialSwitcher"
 import { ContactCTA } from "@/components/sections/ContactCTA"
+import { resolveSectionImages } from "@/lib/server/sections"
 
 export const metadata: Metadata = {
   title: "Fabrication sur mesure",
@@ -10,8 +11,12 @@ export const metadata: Metadata = {
     "Fabrication métallique sur mesure à Québec : sélection rigoureuse des matériaux, finitions soignées et plus de 25 ans d'expertise. Inox, acier, aluminium, laiton et cuivre.",
 }
 
-export default function FabricationPage() {
+// Reads published Matériaux image overrides at request time (switcher heroes).
+export const dynamic = "force-dynamic"
+
+export default async function FabricationPage() {
   const { hero, cta } = FABRICATION
+  const images = await resolveSectionImages("materiaux")
 
   return (
     <>
@@ -36,7 +41,7 @@ export default function FabricationPage() {
       </section>
 
       <ReasonsReveal />
-      <MaterialSwitcher />
+      <MaterialSwitcher images={images} />
 
       <ContactCTA
         heading={cta?.heading}

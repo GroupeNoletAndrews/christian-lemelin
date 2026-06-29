@@ -12,6 +12,9 @@ export function DetailLayout({
   properties,
   blocks,
   explore,
+  section,
+  slug,
+  images = {},
 }: {
   hero: DetailHeroContent
   properties?: string[]
@@ -23,10 +26,15 @@ export function DetailLayout({
     contactHref?: string
     contactLabel?: string
   }
+  /** Editable-image wiring: which section ("materiaux" | "solutions"), the
+   *  detail slug, and the published override URLs by slot. */
+  section: string
+  slug: string
+  images?: Record<string, string>
 }) {
   return (
     <>
-      <DetailHero hero={hero} />
+      <DetailHero hero={hero} section={section} slug={slug} images={images} />
 
       {properties && properties.length > 0 && (
         <section data-header-theme="light" className="bg-background pt-10 md:pt-14">
@@ -42,7 +50,7 @@ export function DetailLayout({
         </section>
       )}
 
-      <ContentBlocks blocks={blocks} />
+      <ContentBlocks blocks={blocks} section={section} slug={slug} images={images} />
 
       <ExploreMore
         heading={explore.heading}

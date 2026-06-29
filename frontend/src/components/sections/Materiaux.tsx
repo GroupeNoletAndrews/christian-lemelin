@@ -4,13 +4,14 @@ import { useRef, useEffect } from "react"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { useReducedMotion } from "motion/react"
-import Image from "next/image"
-import { ParallaxImage } from "@/components/ui/ParallaxImage"
 import { MATERIALS as materials, imageUrl } from "@/content"
+import { SlotImage } from "@/components/sections/SlotImage"
+import { SlotParallaxImage } from "@/components/sections/SlotParallaxImage"
+import { cardSlot } from "@/lib/sections-registry"
 
 gsap.registerPlugin(ScrollTrigger)
 
-export function Materiaux() {
+export function Materiaux({ images = {} }: { images?: Record<string, string> }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const reduce = useReducedMotion()
@@ -67,8 +68,13 @@ export function Materiaux() {
           {materials.map((mat) => (
             <article key={mat.code}>
               <div className="relative aspect-[5/4] overflow-hidden rounded-2xl border border-border">
-                {/* TODO: replace with actual material photography / GLB */}
-                <ParallaxImage src={imageUrl(mat.cardImage, 900, 1100)} alt={mat.name} sizes="100vw" />
+                <SlotParallaxImage
+                  section="materiaux"
+                  slot={cardSlot(mat.slug)}
+                  src={images[cardSlot(mat.slug)] ?? imageUrl(mat.cardImage, 900, 1100)}
+                  alt={mat.name}
+                  sizes="100vw"
+                />
               </div>
               <div className="mt-4 flex items-baseline gap-3">
                 <span className="font-mono text-xs tracking-[0.2em] text-foreground-muted">{mat.code}</span>
@@ -106,8 +112,14 @@ export function Materiaux() {
           {materials.map((mat) => (
             <div key={mat.code} className="flex h-full w-[34vw] shrink-0 flex-col justify-center px-6">
               <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-border">
-                {/* TODO: replace with actual material photography / interactive GLB */}
-                <Image src={imageUrl(mat.cardImage, 900, 1100)} alt={mat.name} fill className="object-cover" sizes="34vw" />
+                <SlotImage
+                  section="materiaux"
+                  slot={cardSlot(mat.slug)}
+                  src={images[cardSlot(mat.slug)] ?? imageUrl(mat.cardImage, 900, 1100)}
+                  alt={mat.name}
+                  sizes="34vw"
+                  className="object-cover"
+                />
               </div>
               <div className="mt-5">
                 <div className="flex items-baseline gap-3">

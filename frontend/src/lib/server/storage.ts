@@ -95,6 +95,25 @@ export async function createImageUploadUrl(
 }
 
 /**
+ * Signed URL to upload to an EXACT object key in the public bucket (content
+ * editing — overwrite in place, same name). The key must live under photos/ so
+ * an admin can't write elsewhere in the bucket. upsert overwrites the existing
+ * object so the published image keeps its filename.
+ */
+export async function createImageUploadUrlForKey(key: string): Promise<SignedUpload> {
+  const client = getStorageClient()
+  if (!client) throw new AppError(503, "Le stockage des fichiers n'est pas configuré")
+  if (!key.startsWith("photos/")) throw new AppError(400, "Clé d'image invalide")
+  const { data, error } = await client.storage
+    .from(MEDIA_BUCKET)
+    .createSignedUploadUrl(key, { upsert: true })
+  if (error || !data) {
+    throw new AppError(502, "Impossible de créer l'URL de téléversement")
+  }
+  return { bucket: MEDIA_BUCKET, path: data.path, token: data.token }
+}
+
+/**
  * Best-effort: remove media objects from the public bucket (e.g. when a
  * réalisation or one of its photos is deleted). Accepts stored values — keys or
  * full public URLs — and skips anything not in the bucket (legacy /public

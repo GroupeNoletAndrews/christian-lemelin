@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { mediaUrl } from "@/lib/media";
+import { imgSrc } from "@/lib/media";
 import {
   DndContext,
   closestCenter,
@@ -34,6 +34,7 @@ import {
   ImageSquare,
 } from "@phosphor-icons/react";
 import { useAdmin } from "@/lib/admin-context";
+import { useConfirm, useToast } from "@/components/admin/FeedbackProvider";
 
 const typeLabel = (type: string) =>
   type === "full-time"
@@ -60,6 +61,8 @@ export default function AdminDashboard() {
     deleteRealisation,
     reorderRealisations,
   } = useAdmin();
+  const confirm = useConfirm();
+  const toast = useToast();
 
   // Land on the réalisations tab when returning from a réalisation action
   // (e.g. router.push("/admin/dashboard#realisations")). Read synchronously
@@ -88,35 +91,48 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteJob = async (id: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce poste?")) {
-      try {
-        await deleteJob(id);
-      } catch {
-        window.alert("La suppression a échoué. Veuillez réessayer.");
-      }
+    const ok = await confirm({
+      title: "Supprimer ce poste ?",
+      message: "Cette action est irréversible.",
+      confirmLabel: "Supprimer",
+      tone: "danger",
+    });
+    if (!ok) return;
+    try {
+      await deleteJob(id);
+      toast("Poste supprimé.");
+    } catch {
+      toast("La suppression a échoué. Veuillez réessayer.", "error");
     }
   };
 
   const handleDeleteRealisation = async (id: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette réalisation?")) {
-      try {
-        await deleteRealisation(id);
-      } catch {
-        window.alert("La suppression a échoué. Veuillez réessayer.");
-      }
+    const ok = await confirm({
+      title: "Supprimer cette réalisation ?",
+      message: "La réalisation et ses images seront supprimées définitivement.",
+      confirmLabel: "Supprimer",
+      tone: "danger",
+    });
+    if (!ok) return;
+    try {
+      await deleteRealisation(id);
+      toast("Réalisation supprimée.");
+    } catch {
+      toast("La suppression a échoué. Veuillez réessayer.", "error");
     }
   };
 
   const handleTogglePin = async (id: string) => {
     try {
-      const ok = await togglePinned(id);
-      if (!ok) {
-        window.alert(
-          `Limite atteinte : un maximum de ${maxPinned} réalisations peuvent être épinglées à l'accueil.`
+      const okPin = await togglePinned(id);
+      if (!okPin) {
+        toast(
+          `Limite atteinte : maximum ${maxPinned} réalisations épinglées à l'accueil.`,
+          "error",
         );
       }
     } catch {
-      window.alert("L'action a échoué. Veuillez réessayer.");
+      toast("L'action a échoué. Veuillez réessayer.", "error");
     }
   };
 
@@ -154,13 +170,22 @@ export default function AdminDashboard() {
                 Bienvenue, <span className="text-foreground">{email}</span>
               </p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-5 py-2.5 border border-border text-foreground rounded-full hover:bg-surface-elevated hover:border-foreground/30 transition-colors font-sans text-sm"
-            >
-              <SignOut size={18} />
-              Déconnexion
-            </button>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/admin/dashboard/content"
+                className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-full hover:bg-accent-hover transition-colors font-sans text-sm font-medium active:scale-[0.99]"
+              >
+                <ImageSquare size={18} />
+                Contenu du site
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-5 py-2.5 border border-border text-foreground rounded-full hover:bg-surface-elevated hover:border-foreground/30 transition-colors font-sans text-sm"
+              >
+                <SignOut size={18} />
+                Déconnexion
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -458,7 +483,7 @@ function SortableRealisationCard({
       <div className="relative aspect-[4/3] bg-surface-elevated">
         {r.images[0] ? (
           <Image
-            src={mediaUrl(r.images[0])}
+            src={imgSrc(r.images[0], r.updatedAt.getTime())}
             alt={r.name}
             fill
             unoptimized

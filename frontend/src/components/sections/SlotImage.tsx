@@ -2,6 +2,8 @@
 
 import Image from "next/image"
 import { useSlotOverride } from "@/lib/section-preview"
+import { PLACEHOLDER_SRC } from "@/lib/media"
+import { ImagePlaceholder } from "@/components/sections/ImagePlaceholder"
 
 interface SlotImageProps {
   section: string
@@ -33,9 +35,12 @@ export function SlotImage({
   grayscale,
 }: SlotImageProps) {
   const override = useSlotOverride(section, slot)
+  const resolved = override ?? src
+  // No owner-set photo yet (prod sentinel, or genuinely empty) → placeholder.
+  if (!resolved || resolved === PLACEHOLDER_SRC) return <ImagePlaceholder />
   return (
     <Image
-      src={override ?? src}
+      src={resolved}
       alt={alt}
       fill
       unoptimized

@@ -72,6 +72,15 @@ export function imgSrc(keyOrUrl: string, version?: string | number): string {
 }
 
 /**
+ * Sentinel `src` meaning "no owner-set photo for this slot yet". When
+ * placeholders are enabled (production by default), resolveSectionImages emits
+ * this for un-overridden slots and SlotImage / SlotParallaxImage render the
+ * on-brand {@link ImagePlaceholder} instead of an <Image>. It is never passed
+ * to mediaUrl or next/image.
+ */
+export const PLACEHOLDER_SRC = "cl:placeholder"
+
+/**
  * Inverse of mediaUrl: given a value stored on a record (a storage key, a full
  * public URL — local or prod, or a legacy "/…" path), return the object key
  * inside MEDIA_BUCKET, or null if it doesn't live in the bucket (so callers can

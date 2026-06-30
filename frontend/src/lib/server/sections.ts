@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache"
 import { prisma } from "./prisma"
 import { AppError } from "./http"
-import { mediaUrl, imgSrc } from "@/lib/media"
+import { mediaUrl, imgSrc, PLACEHOLDER_SRC } from "@/lib/media"
 import { imageUrl } from "@/content/image"
 import { getSection, getSlot, type SlotDef } from "@/lib/sections-registry"
 
@@ -17,6 +17,19 @@ const PICSUM_H = 1200
 
 type Override = { key: string; v: number }
 
+/**
+ * Whether un-edited slots show the "no photo yet" placeholder instead of the
+ * baked-in code default. ON in production by default (the owner uploads real
+ * photos via the admin and the prod bucket starts empty); force on/off anywhere
+ * with IMAGE_PLACEHOLDERS=true|false (e.g. to preview the empty state in dev).
+ */
+function placeholdersEnabled(): boolean {
+  const flag = process.env.IMAGE_PLACEHOLDERS
+  if (flag === "true") return true
+  if (flag === "false") return false
+  return process.env.NODE_ENV === "production"
+}
+
 // Published override keys for a section. Pages that render these are
 // `force-dynamic`, so a fresh read reflects a publish immediately; `v`
 // (updatedAt ms) versions the URL so a same-key overwrite is served fresh.
@@ -29,6 +42,9 @@ async function getPublishedKeys(section: string): Promise<Record<string, Overrid
 
 function resolveSlotUrl(slot: SlotDef, override: Override | undefined): string {
   if (override) return imgSrc(override.key, override.v)
+  // No override + placeholders on → empty, so the admin slot row shows its
+  // "no image, click Remplacer" state (matching the public placeholder).
+  if (placeholdersEnabled()) return ""
   if (slot.source === "site-media") return mediaUrl(slot.default)
   return imageUrl(
     { seed: slot.default, alt: "", grayscale: slot.grayscale },
@@ -38,9 +54,10 @@ function resolveSlotUrl(slot: SlotDef, override: Override | undefined): string {
 }
 
 /**
- * Published override URLs for a section, keyed by slot — ONLY for slots that
- * have an override. Components fall back to their own code default for the rest,
- * so un-edited slots render byte-identically to today.
+ * Section image URLs keyed by slot. Always includes overridden slots (the
+ * owner's published photo). For un-overridden slots: in prod, emits the
+ * placeholder sentinel (PLACEHOLDER_SRC); in dev, omits the slot so the
+ * component keeps its byte-identical code default.
  */
 export async function resolveSectionImages(
   section: string,
@@ -48,10 +65,15 @@ export async function resolveSectionImages(
   const def = getSection(section)
   if (!def) return {}
   const published = await getPublishedKeys(section)
+  const placeholders = placeholdersEnabled()
   const out: Record<string, string> = {}
   for (const slot of def.slots) {
     const ov = published[slot.id]
     if (ov) out[slot.id] = imgSrc(ov.key, ov.v)
+    // No owner override: in prod, emit the placeholder sentinel so the slot
+    // renders the "Image à venir" block; in dev, omit it so the component keeps
+    // its byte-identical code default.
+    else if (placeholders) out[slot.id] = PLACEHOLDER_SRC
   }
   return out
 }

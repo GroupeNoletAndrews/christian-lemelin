@@ -2,6 +2,8 @@
 
 import { ParallaxImage } from "@/components/ui/ParallaxImage"
 import { useSlotOverride } from "@/lib/section-preview"
+import { PLACEHOLDER_SRC } from "@/lib/media"
+import { ImagePlaceholder } from "@/components/sections/ImagePlaceholder"
 
 interface SlotParallaxImageProps {
   section: string
@@ -29,9 +31,12 @@ export function SlotParallaxImage({
   unoptimized,
 }: SlotParallaxImageProps) {
   const override = useSlotOverride(section, slot)
+  const resolved = override ?? src
+  // No owner-set photo yet (prod sentinel, or genuinely empty) → placeholder.
+  if (!resolved || resolved === PLACEHOLDER_SRC) return <ImagePlaceholder />
   return (
     <ParallaxImage
-      src={override ?? src}
+      src={resolved}
       alt={alt}
       sizes={sizes}
       amount={amount}

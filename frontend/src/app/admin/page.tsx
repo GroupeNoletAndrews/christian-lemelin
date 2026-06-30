@@ -11,7 +11,7 @@ import { mediaUrl, SITE_MEDIA, MEDIA_UNOPTIMIZED } from "@/lib/media";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { login, isAuthenticated } = useAdmin();
+  const { login, isAuthenticated, mustChangePassword } = useAdmin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -22,9 +22,11 @@ export default function AdminLoginPage() {
   // (not the loading flag) so the form always renders for signed-out visitors.
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace("/admin/dashboard");
+      router.replace(
+        mustChangePassword ? "/admin/change-password" : "/admin/dashboard",
+      );
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, mustChangePassword, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,9 +34,9 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     try {
-      const ok = await login(email, password);
+      const { ok, mustChangePassword: mustChange } = await login(email, password);
       if (ok) {
-        router.push("/admin/dashboard");
+        router.push(mustChange ? "/admin/change-password" : "/admin/dashboard");
         return;
       }
       setError("Identifiants invalides");

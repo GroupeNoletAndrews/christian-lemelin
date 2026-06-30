@@ -8,23 +8,26 @@ import { FeedbackProvider } from "@/components/admin/FeedbackProvider";
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, authLoading } = useAdmin();
+  const { isAuthenticated, authLoading, mustChangePassword } = useAdmin();
 
   useEffect(() => {
-    // Redirect to login if not authenticated and not on login page — but only
-    // after the initial session check, so a refresh doesn't bounce a logged-in
-    // user before getUser() restores the persisted Supabase session. The content
-    // workspace is excluded: it handles its own auth-loss redirect so it can warn
-    // about unpublished edits first (a blanket redirect here would discard them).
-    if (
-      !authLoading &&
-      !isAuthenticated &&
-      pathname !== "/admin" &&
-      pathname !== "/admin/dashboard/content"
-    ) {
-      router.push("/admin");
+    // Wait for the initial session check, so a refresh doesn't bounce a logged-in
+    // user before getUser() restores the persisted Supabase session.
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      // Not signed in → login. The content workspace is excluded: it handles its
+      // own auth-loss redirect so it can warn about unpublished edits first (a
+      // blanket redirect here would discard them).
+      if (pathname !== "/admin" && pathname !== "/admin/dashboard/content") {
+        router.push("/admin");
+      }
+      return;
     }
-  }, [authLoading, isAuthenticated, pathname, router]);
+    // Signed in with a temporary password → force the change before anything else.
+    if (mustChangePassword && pathname !== "/admin/change-password") {
+      router.replace("/admin/change-password");
+    }
+  }, [authLoading, isAuthenticated, mustChangePassword, pathname, router]);
 
   // FeedbackProvider gives every admin screen on-brand confirm/toast popups.
   return <FeedbackProvider>{children}</FeedbackProvider>;

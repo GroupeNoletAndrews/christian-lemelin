@@ -87,6 +87,21 @@ Get the two connection strings from **Supabase → Project Settings → Database
    `/admin` stays closed. Optionally set `ADMIN_EMAILS` to restrict which addresses
    may enter.
 
+   **Temporary password → forced change on first login:** hand the client a
+   temporary password, then flag the user so they must set their own on first
+   sign-in. In the new user's **User Metadata**, add:
+
+   ```json
+   { "must_change_password": true }
+   ```
+
+   (Set it in the Add-user form's metadata field, or edit the user afterwards;
+   or via SQL: `update auth.users set raw_user_meta_data =
+   raw_user_meta_data || '{"must_change_password": true}' where email = '…';`.)
+   On first login the app forces them to `/admin/change-password` and won't let
+   them into the dashboard until they save a new password — which clears the
+   flag. Resetting a user's password later and re-adding the flag re-triggers it.
+
 ---
 
 ## Local development

@@ -21,8 +21,17 @@ interface AdminContextType {
   authLoading: boolean
   email: string
   jobs: Job[]
-  login: (email: string, password: string) => Promise<boolean>
+  /** Resolves the sign-in outcome. `mustChangePassword` is true when the user
+   *  was created with a temporary password and has to set their own first. */
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ ok: boolean; mustChangePassword: boolean }>
   logout: () => void
+  /** True while the signed-in user still has to replace a temporary password. */
+  mustChangePassword: boolean
+  /** Set a new password for the signed-in user and clear the must-change flag. */
+  changePassword: (newPassword: string) => Promise<void>
   addJob: (job: Omit<Job, "id" | "createdAt" | "updatedAt">) => Promise<void>
   updateJob: (id: string, job: Omit<Job, "id" | "createdAt">) => Promise<void>
   deleteJob: (id: string) => Promise<void>
@@ -94,10 +103,17 @@ function usePreviewToken(): string | undefined {
   )
 }
 
+/** A user the admin flagged (via Supabase user metadata) to set their own
+ *  password on first login — see the README admin section. */
+function mustChangePasswordFor(user: User | null): boolean {
+  return user?.user_metadata?.must_change_password === true
+}
+
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authLoading, setAuthLoading] = useState(true)
   const [email, setEmail] = useState("")
+  const [mustChangePassword, setMustChangePassword] = useState(false)
   const [jobs, setJobs] = useState<Job[]>([])
   const [realisations, setRealisations] = useState<Realisation[]>([])
   // From the URL (?preview), hydration-safe — true only inside the content
@@ -126,6 +142,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       const ok = isAllowedAdmin(user)
       setIsAuthenticated(ok)
       setEmail(ok ? (user?.email ?? "") : "")
+      setMustChangePassword(ok && mustChangePasswordFor(user))
       setAuthLoading(false)
     }
     supabase.auth
@@ -208,26 +225,42 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       email: loginEmail,
       password,
     })
-    // Invalid credentials → false (caller shows "identifiants invalides").
+    // Invalid credentials → not ok (caller shows "identifiants invalides").
     if (error) {
-      if (error.status === 400 || error.status === 401) return false
+      if (error.status === 400 || error.status === 401)
+        return { ok: false, mustChangePassword: false }
       // Network / server / config error — re-throw for a distinct message.
       throw error
     }
     // Authenticated, but enforce the allowlist (defence in depth).
     if (!isAllowedAdmin(data.user)) {
       await supabase.auth.signOut()
-      return false
+      return { ok: false, mustChangePassword: false }
     }
+    const mustChange = mustChangePasswordFor(data.user)
     setIsAuthenticated(true)
     setEmail(data.user?.email ?? "")
-    return true
+    setMustChangePassword(mustChange)
+    return { ok: true, mustChangePassword: mustChange }
   }, [])
 
   const logout = useCallback(() => {
     void supabaseBrowser().auth.signOut().catch(() => {})
     setIsAuthenticated(false)
     setEmail("")
+    setMustChangePassword(false)
+  }, [])
+
+  // Replace the signed-in user's password and clear the must-change flag in the
+  // same update. On success Supabase fires USER_UPDATED → applyUser re-syncs.
+  const changePassword = useCallback(async (newPassword: string) => {
+    const supabase = supabaseBrowser()
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+      data: { must_change_password: false },
+    })
+    if (error) throw error
+    setMustChangePassword(false)
   }, [])
 
   // --- Jobs ---
@@ -363,6 +396,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         jobs,
         login,
         logout,
+        mustChangePassword,
+        changePassword,
         addJob,
         updateJob,
         deleteJob,

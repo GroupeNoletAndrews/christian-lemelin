@@ -42,6 +42,7 @@ import {
   type ManagedImage,
 } from "@/components/admin/SectionImageManager"
 import { useConfirm, useToast } from "@/components/admin/FeedbackProvider"
+import { useUnsavedChanges } from "@/components/admin/use-unsaved-changes"
 
 // Sections in the menu. `enabled` = wired into the editor. Réalisations uses the
 // DB-backed staged editor; the others are static-section slot editors.
@@ -67,14 +68,58 @@ const version = (iso: string) => new Date(iso).getTime()
 
 export default function ContentWorkspacePage() {
   const router = useRouter()
+  const toast = useToast()
   const { isAuthenticated, authLoading } = useAdmin()
   const [active, setActive] = useState<string>("realisations")
+  // Dirty state is lifted from the active editor so the left-rail exits (back
+  // link, section switch) and the browser guards can all react to it.
+  const [dirty, setDirty] = useState(false)
+  const { confirmLeave } = useUnsavedChanges(dirty, {
+    // `replace` (not `push`) consumes the same-URL Back-button sentinel that's
+    // on top of the stack, so leaving doesn't orphan a phantom history entry.
+    onConfirmExit: () => router.replace("/admin/dashboard"),
+  })
 
+  // Auth loss (token expiry / sign-out in another tab). With nothing staged,
+  // redirect to login as before. But if there are unpublished edits, bouncing
+  // would discard them silently — so instead keep the editor mounted (edits
+  // preserved) and inform once; the user can re-connect in another tab to
+  // publish, or leave via a guarded exit (back link / Back / tab close). The
+  // admin layout excludes this route from its blanket redirect so this owns it.
+  const notifiedAuthLossRef = useRef(false)
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) router.push("/admin")
-  }, [authLoading, isAuthenticated, router])
+    if (authLoading) return
+    if (isAuthenticated) {
+      notifiedAuthLossRef.current = false // re-arm for a future session loss
+      return
+    }
+    if (!dirty) {
+      router.replace("/admin")
+      return
+    }
+    if (!notifiedAuthLossRef.current) {
+      notifiedAuthLossRef.current = true
+      toast(
+        "Session expirée. Reconnectez-vous (dans un autre onglet) pour publier vos modifications non enregistrées.",
+        "error",
+      )
+    }
+  }, [authLoading, isAuthenticated, dirty, router, toast])
 
-  if (authLoading || !isAuthenticated) return null
+  // While authenticating, or once signed out with nothing to lose, render
+  // nothing (the effect above redirects). If signed out mid-edit, keep the
+  // editor mounted so the staged edits are preserved (and the navigation guards
+  // still apply) until the user re-connects or leaves deliberately.
+  if (authLoading || (!isAuthenticated && !dirty)) return null
+
+  // Switch sections, warning first if the current one has unpublished edits
+  // (switching unmounts its editor and discards them).
+  const handleSelect = async (id: string) => {
+    if (id === active) return
+    if (dirty && !(await confirmLeave())) return
+    setDirty(false)
+    setActive(id)
+  }
 
   return (
     <div className="flex h-screen bg-background">
@@ -83,6 +128,17 @@ export default function ContentWorkspacePage() {
         <div className="border-b border-border px-4 py-4">
           <Link
             href="/admin/dashboard"
+            onNavigate={(e) => {
+              if (!dirty) return
+              // Hold the SPA navigation, ask, then leave only if confirmed. We
+              // do NOT clear `dirty` here (the page unmounts; clearing it would
+              // race the sentinel-retract effect mid-nav), and use `replace` to
+              // consume the Back-button sentinel rather than orphan it.
+              e.preventDefault()
+              void confirmLeave().then((ok) => {
+                if (ok) router.replace("/admin/dashboard")
+              })
+            }}
             className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground-muted transition-colors hover:text-foreground"
           >
             <ArrowLeft size={13} />
@@ -101,7 +157,9 @@ export default function ContentWorkspacePage() {
               <li key={s.id}>
                 <button
                   disabled={!s.enabled}
-                  onClick={() => s.enabled && setActive(s.id)}
+                  onClick={() => {
+                    if (s.enabled) void handleSelect(s.id)
+                  }}
                   className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left font-sans text-sm transition-colors ${
                     active === s.id
                       ? "bg-foreground text-white"
@@ -124,9 +182,13 @@ export default function ContentWorkspacePage() {
       </aside>
 
       {active === "realisations" ? (
-        <RealisationsEditor />
+        <RealisationsEditor onDirtyChange={setDirty} />
       ) : (
-        <StaticSectionEditor key={active} section={active} />
+        <StaticSectionEditor
+          key={active}
+          section={active}
+          onDirtyChange={setDirty}
+        />
       )}
     </div>
   )
@@ -226,7 +288,11 @@ type WorkItem = {
   slots: ImgSlot[]
 }
 
-function RealisationsEditor() {
+function RealisationsEditor({
+  onDirtyChange,
+}: {
+  onDirtyChange: (dirty: boolean) => void
+}) {
   const { refreshRealisations } = useAdmin()
   const confirm = useConfirm()
   const toast = useToast()
@@ -305,6 +371,13 @@ function RealisationsEditor() {
     }
     return false
   }, [items, original])
+
+  // Report dirtiness up so the page can guard navigation away from the editor;
+  // reset on unmount so a switched-away editor never leaves the page stuck dirty.
+  useEffect(() => {
+    onDirtyChange(dirty)
+    return () => onDirtyChange(false)
+  }, [dirty, onDirtyChange])
 
   const handleReplace = async (itemId: string, index: number, file: File) => {
     let dataUrl: string
@@ -578,7 +651,13 @@ function SortableProjectRow({
 
 /* ---------- Static section editor (per-slot, staged) ---------- */
 
-function StaticSectionEditor({ section }: { section: string }) {
+function StaticSectionEditor({
+  section,
+  onDirtyChange,
+}: {
+  section: string
+  onDirtyChange: (dirty: boolean) => void
+}) {
   const confirm = useConfirm()
   const toast = useToast()
 
@@ -606,6 +685,13 @@ function StaticSectionEditor({ section }: { section: string }) {
   }, [load])
 
   const dirty = Object.keys(staged).length > 0
+
+  // Report dirtiness up so the page can guard navigation away from the editor;
+  // reset on unmount so a switched-away editor never leaves the page stuck dirty.
+  useEffect(() => {
+    onDirtyChange(dirty)
+    return () => onDirtyChange(false)
+  }, [dirty, onDirtyChange])
 
   const pushPreview = useCallback(
     (stagedMap: Record<string, { file: File; dataUrl: string }>) => {

@@ -41,7 +41,14 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
 
   const confirm = useCallback(
     (options: ConfirmOptions) =>
-      new Promise<boolean>((resolve) => setDialog({ options, resolve })),
+      new Promise<boolean>((resolve) => {
+        // Single dialog slot: if one is already open, settle it as cancelled so
+        // its awaiting caller isn't left with a promise that never resolves.
+        setDialog((prev) => {
+          prev?.resolve(false)
+          return { options, resolve }
+        })
+      }),
     [],
   )
 

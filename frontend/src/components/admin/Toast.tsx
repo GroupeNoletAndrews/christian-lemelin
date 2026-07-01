@@ -38,7 +38,7 @@ export function Toast({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 16, scale: 0.98 }}
           transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed bottom-5 left-1/2 z-[130] flex -translate-x-1/2 items-center gap-2.5 rounded-full border border-border bg-surface px-4 py-2.5 shadow-xl"
+          className="fixed bottom-5 left-1/2 z-[130] flex -translate-x-1/2 items-center gap-2.5 rounded-full border border-border bg-surface px-4 py-2.5"
         >
           {toast.tone === "success" ? (
             <CheckCircle size={18} weight="fill" className="text-accent" />

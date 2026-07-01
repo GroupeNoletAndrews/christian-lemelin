@@ -31,7 +31,7 @@ export function AdminQuickAccess() {
         >
           <Link
             href="/admin/dashboard"
-            className="inline-flex items-center gap-2.5 rounded-full bg-foreground px-6 py-4 font-sans text-base font-medium text-white shadow-2xl transition-colors hover:bg-foreground/90 active:scale-[0.98]"
+            className="inline-flex items-center gap-2.5 rounded-full bg-foreground px-6 py-4 font-sans text-base font-medium text-white transition-colors hover:bg-foreground/90 active:scale-[0.98]"
           >
             <SquaresFour size={24} weight="bold" />
             Tableau de bord

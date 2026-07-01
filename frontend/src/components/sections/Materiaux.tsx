@@ -31,7 +31,9 @@ import {
 } from "@/components/ui/linear-modal"
 import { cardSlot } from "@/lib/sections-registry"
 import { PLACEHOLDER_SRC } from "@/lib/media"
-import { useSlotOverride } from "@/lib/section-preview"
+import { useSlotOverride, useSlotStyleOverride } from "@/lib/section-preview"
+import { usePublishedSlotStyle } from "@/components/sections/SectionStyle"
+import { slotImgCss, type SlotStyle } from "@/lib/section-style"
 import { ImagePlaceholder } from "@/components/sections/ImagePlaceholder"
 
 gsap.registerPlugin(ScrollTrigger)
@@ -54,12 +56,16 @@ function useCardSrc(
   images: Record<string, string>,
   w: number,
   h: number,
-): string {
-  const staged = useSlotOverride("materiaux", cardSlot(mat.slug))
-  const resolved = staged ?? images[cardSlot(mat.slug)]
-  if (resolved === PLACEHOLDER_SRC) return ""
-  if (resolved) return resolved
-  return imageUrl(mat.cardImage, w, h)
+): { src: string; style: SlotStyle | null } {
+  const slot = cardSlot(mat.slug)
+  const staged = useSlotOverride("materiaux", slot)
+  const styleOverride = useSlotStyleOverride("materiaux", slot)
+  const published = usePublishedSlotStyle(slot)
+  const style = styleOverride ?? published ?? null
+  const resolved = staged ?? images[slot]
+  if (resolved === PLACEHOLDER_SRC) return { src: "", style }
+  if (resolved) return { src: resolved, style }
+  return { src: imageUrl(mat.cardImage, w, h), style }
 }
 
 // The "pourquoi choisir" rows live in the detail page's `list` block — we reuse
@@ -84,7 +90,7 @@ function MaterialModal({
   mat: MaterialDetail
   images: Record<string, string>
 }) {
-  const img = useCardSrc(mat, images, 1100, 1400)
+  const { src: img, style: imgStyle } = useCardSrc(mat, images, 1100, 1400)
   const reasons = reasonsOf(mat)
   const reduce = useReducedMotion()
 
@@ -141,6 +147,7 @@ function MaterialModal({
                 src={img}
                 alt={mat.name}
                 className="absolute inset-0 h-full w-full object-cover"
+                style={slotImgCss(imgStyle)}
               />
             ) : (
               <ImagePlaceholder />
@@ -222,7 +229,7 @@ function CardInner({
   images: Record<string, string>
   titleClass: string
 }) {
-  const src = useCardSrc(mat, images, 900, 1100)
+  const { src, style: imgStyle } = useCardSrc(mat, images, 900, 1100)
   return (
     <>
       {src ? (
@@ -230,6 +237,7 @@ function CardInner({
           src={src}
           alt={mat.name}
           className="absolute inset-0 h-full w-full object-cover"
+          style={slotImgCss(imgStyle)}
         />
       ) : (
         <ImagePlaceholder />
@@ -305,7 +313,7 @@ export function Materiaux({
   }, [reduce])
 
   return (
-    <section data-header-theme="light" className="bg-background">
+    <section id="materiaux" data-header-theme="light" className="bg-background">
       {/* Mobile: horizontal swipe carousel (scroll-snap) — cards peek so it
           reads as swipeable; touch-pan-x lets vertical page scroll pass through. */}
       <div className="md:hidden">

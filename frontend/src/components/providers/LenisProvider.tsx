@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { usePathname } from "next/navigation"
 import Lenis from "lenis"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
@@ -15,6 +16,7 @@ export const useLenis = () => useContext(LenisContext)
 
 export function LenisProvider({ children }: { children: ReactNode }) {
   const [lenis, setLenis] = useState<Lenis | null>(null)
+  const pathname = usePathname()
 
   useEffect(() => {
     const instance = new Lenis({
@@ -37,6 +39,14 @@ export function LenisProvider({ children }: { children: ReactNode }) {
       setLenis(null)
     }
   }, [])
+
+  // Reset to the top on route change — Lenis keeps its own scroll offset, so
+  // without this a navigation (e.g. clicking a réalisation → /realisations)
+  // would land you wherever you were on the previous page (often the bottom).
+  useEffect(() => {
+    if (!lenis) return
+    lenis.scrollTo(0, { immediate: true })
+  }, [pathname, lenis])
 
   // Content-workspace preview: the admin posts `preview-scroll` with a section
   // anchor so the iframe lands ON that section (e.g. Savoir-faire sits far down

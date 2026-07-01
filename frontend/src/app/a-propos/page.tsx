@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { APropos } from "@/components/sections/APropos"
-import { resolveSectionImages } from "@/lib/server/sections"
+import { SectionStyleProvider } from "@/components/sections/SectionStyle"
+import { resolveSectionImages, resolveSectionStyles } from "@/lib/server/sections"
 
 export const metadata: Metadata = {
   title: "À propos",
@@ -8,15 +9,18 @@ export const metadata: Metadata = {
     "Entreprises Christian Lemelin — atelier de fabrication métallique sur mesure à Québec depuis des décennies. Inox, acier, aluminium, laiton et cuivre.",
 }
 
-// Reads published À-propos image overrides at request time (admin edits show immediately).
+// Reads published À-propos image overrides + presentation at request time.
 export const dynamic = "force-dynamic"
 
 export default async function AProposPage() {
-  const images = await resolveSectionImages("a-propos")
+  const [images, styles] = await Promise.all([
+    resolveSectionImages("a-propos"),
+    resolveSectionStyles("a-propos"),
+  ])
   return (
-    <>
+    <SectionStyleProvider styles={styles}>
       <APropos images={images} />
-    </>
+    </SectionStyleProvider>
   )
 }
  

@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, type CSSProperties } from "react"
 import Image from "next/image"
 import { motion, useScroll, useTransform, useReducedMotion } from "motion/react"
 
@@ -18,6 +18,10 @@ export function ParallaxImage({
   sizes,
   amount = 19,
   unoptimized = false,
+  objectPosition,
+  scale,
+  grayscale = false,
+  frameStyle,
 }: {
   src: string
   alt: string
@@ -25,6 +29,13 @@ export function ParallaxImage({
   amount?: number
   /** Pass for non-whitelisted sources (e.g. admin-uploaded data: URLs). */
   unoptimized?: boolean
+  /** Focal point (CSS object-position), e.g. "50% 30%". */
+  objectPosition?: string
+  /** Extra zoom on top of the parallax oversize (1 = none). */
+  scale?: number
+  grayscale?: boolean
+  /** Border-radius / border applied to the clipping frame. */
+  frameStyle?: CSSProperties
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const reduce = useReducedMotion()
@@ -35,9 +46,9 @@ export function ParallaxImage({
   const y = useTransform(scrollYProgress, [0, 1], [`-${amount}%`, `${amount}%`])
 
   return (
-    <div ref={ref} className="absolute inset-0 overflow-hidden">
+    <div ref={ref} className="absolute inset-0 overflow-hidden" style={frameStyle}>
       <motion.div
-        style={{ y: reduce ? 0 : y }}
+        style={{ y: reduce ? 0 : y, scale: scale && scale !== 1 ? scale : undefined }}
         className="absolute inset-x-0 -top-[35%] h-[170%] will-change-transform"
       >
         <Image
@@ -46,7 +57,8 @@ export function ParallaxImage({
           fill
           sizes={sizes}
           unoptimized={unoptimized}
-          className="object-cover"
+          className={`object-cover${grayscale ? " grayscale" : ""}`}
+          style={objectPosition ? { objectPosition } : undefined}
         />
       </motion.div>
     </div>

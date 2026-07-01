@@ -64,7 +64,7 @@ export function ConfirmDialog({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.98 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-md rounded-2xl border border-border bg-surface p-7 shadow-xl"
+            className="relative w-full max-w-md rounded-2xl border border-border bg-surface p-7"
           >
             <h3 className="font-display text-xl font-semibold tracking-tight text-foreground">
               {title}

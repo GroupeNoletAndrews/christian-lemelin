@@ -2,6 +2,7 @@ import { SITE_MEDIA } from "@/lib/media"
 import { MATERIALS } from "@/content/materials"
 import { SOLUTION_DETAILS, SOLUTIONS_OVERVIEW } from "@/content/solutions"
 import type { ContentBlock } from "@/content/types"
+import { FULL_CAPS, REFRAME_ONLY_CAPS, type SlotCaps } from "@/lib/section-style"
 
 // Single registry of editable image slots per static section. Client+server safe
 // (no DB, no secrets) so the admin UI, the resolver, and publish-revalidation all
@@ -29,6 +30,8 @@ export interface SectionDef {
   previewPath: string
   /** routes to revalidate on publish (where this section's images render) */
   revalidate: string[]
+  /** which per-image controls the admin may use here (gated per section) */
+  caps: SlotCaps
   slots: SlotDef[]
 }
 
@@ -107,6 +110,7 @@ export const SECTION_SLOTS: SectionDef[] = [
     label: "Savoir-faire",
     previewPath: "/",
     revalidate: ["/"],
+    caps: FULL_CAPS,
     slots: [
       { id: "mobilier", label: "Mobilier hospitalier", source: "site-media", default: SITE_MEDIA.savoirFaire.mobilier, grayscale: true, aspect: "16/10" },
       { id: "fabrication", label: "Fabrication sur mesure", source: "site-media", default: SITE_MEDIA.savoirFaire.fabrication, grayscale: true, aspect: "16/10" },
@@ -120,6 +124,9 @@ export const SECTION_SLOTS: SectionDef[] = [
     label: "À propos",
     previewPath: "/a-propos",
     revalidate: ["/a-propos"],
+    // Grille responsive figée : on ne recadre que la photo (pas de style ni de
+    // changement de format).
+    caps: REFRAME_ONLY_CAPS,
     slots: [
       { id: "atelier-large", label: "Atelier (grande)", source: "seed-manifest", default: "ecl-about-atelier-large", aspect: "3/4" },
       { id: "soudure-tig", label: "Soudure TIG", source: "seed-manifest", default: "ecl-about-soudure-tig", aspect: "1/1" },
@@ -133,6 +140,7 @@ export const SECTION_SLOTS: SectionDef[] = [
     label: "Installations",
     previewPath: "/installations",
     revalidate: ["/installations"],
+    caps: FULL_CAPS,
     slots: [
       { id: "hero-aerial", label: "Vue aérienne (héro)", source: "seed-manifest", default: "ecl-install-hero-aerial", grayscale: true, aspect: "16/9" },
       { id: "eco-press", label: "Atelier éco (bloc sombre)", source: "seed-manifest", default: "ecl-install-eco-press", grayscale: true, aspect: "1/1" },
@@ -142,15 +150,20 @@ export const SECTION_SLOTS: SectionDef[] = [
   {
     id: "materiaux",
     label: "Matériaux",
-    previewPath: "/fabrication",
-    revalidate: ["/", "/fabrication", ...MATERIALS.map((m) => `/materiaux/${m.slug}`)],
+    // Matériaux ne vit que sur l'accueil (la page /fabrication ne rend que du
+    // texte). L'aperçu charge donc "/" et scrolle vers #materiaux.
+    previewPath: "/",
+    revalidate: ["/"],
+    caps: FULL_CAPS,
     slots: buildMaterialSlots(),
   },
   {
     id: "solutions",
     label: "Solutions",
     previewPath: "/solutions",
-    revalidate: ["/solutions", ...SOLUTION_DETAILS.map((s) => `/solutions/${s.slug}`)],
+    revalidate: ["/", "/solutions"],
+    // Timeline animée : recadrage des photos uniquement.
+    caps: REFRAME_ONLY_CAPS,
     slots: buildSolutionSlots(),
   },
 ]

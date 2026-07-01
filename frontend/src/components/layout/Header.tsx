@@ -128,7 +128,7 @@ export function Header() {
         transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
       >
         <div
-          className={`flex h-20 items-center justify-between px-6 transition-colors duration-300 md:px-12 ${
+          className={`flex h-16 items-center justify-between px-6 transition-colors duration-300 md:h-20 md:px-12 ${
             scrolled && !open
               ? darkBar
                 ? "bg-black/30 backdrop-blur-xl"
@@ -139,7 +139,7 @@ export function Header() {
           {/* Logo — two baked-colour SVGs crossfading (black over light, white
               over dark / open menu); no CSS invert. */}
           <Link href="/" className="relative z-50 flex shrink-0 items-center">
-            <span className="relative inline-flex h-14 items-center">
+            <span className="relative inline-flex h-9 items-center sm:h-11 md:h-14">
               <Image
                 src={mediaUrl(SITE_MEDIA.logoNoir)}
                 alt="Entreprises Christian Lemelin"
@@ -147,7 +147,7 @@ export function Header() {
                 height={240}
                 priority
                 unoptimized
-                className={`h-14 w-auto transition-opacity duration-300 ${logoWhite ? "opacity-0" : "opacity-100"}`}
+                className={`h-9 w-auto transition-opacity duration-300 sm:h-11 md:h-14 ${logoWhite ? "opacity-0" : "opacity-100"}`}
               />
               <Image
                 src={mediaUrl(SITE_MEDIA.logoBlanc)}
@@ -157,7 +157,7 @@ export function Header() {
                 height={240}
                 priority
                 unoptimized
-                className={`absolute inset-0 h-14 w-auto transition-opacity duration-300 ${logoWhite ? "opacity-100" : "opacity-0"}`}
+                className={`absolute inset-0 h-9 w-auto transition-opacity duration-300 sm:h-11 md:h-14 ${logoWhite ? "opacity-100" : "opacity-0"}`}
               />
             </span>
           </Link>

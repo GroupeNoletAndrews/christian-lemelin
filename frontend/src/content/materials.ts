@@ -1,9 +1,9 @@
 import type { MaterialDetail } from "./types"
 
 // Source unique des matériaux (ordre Inox → Acier → Aluminium → Laiton →
-// Cuivre, demandé par le client). Consommé par le showcase de /fabrication
-// (MaterialSwitcher) et le carousel/modal du home (Materiaux.tsx) — il n'y a
-// plus de pages de détail /materiaux/[slug]. Copie tirée des PDF
+// Cuivre, demandé par le client). Consommé par le carousel/modal du home
+// (Materiaux.tsx) — il n'y a plus de pages de détail /materiaux/[slug]. Copie
+// tirée des PDF
 // « Acier » et « Acier inox » ; aluminium/laiton/cuivre synthétisés à partir
 // des blurbs de « Fab sur mesure » (hasSourceCopy:false → à relire).
 

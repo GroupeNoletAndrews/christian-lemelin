@@ -2,7 +2,8 @@ import type { Metadata } from "next"
 import { Suspense } from "react"
 import { SOLUTIONS_OVERVIEW, getSolution } from "@/content"
 import { SolutionsTimeline, type SolutionItem } from "@/components/sections/SolutionsTimeline"
-import { resolveSectionImages } from "@/lib/server/sections"
+import { SectionStyleProvider } from "@/components/sections/SectionStyle"
+import { resolveSectionImages, resolveSectionStyles } from "@/lib/server/sections"
 
 export const metadata: Metadata = {
   title: "Nos solutions",
@@ -34,7 +35,10 @@ export const dynamic = "force-dynamic"
 export default async function SolutionsPage() {
   const { hero, closing } = SOLUTIONS_OVERVIEW
   const items = buildItems()
-  const images = await resolveSectionImages("solutions")
+  const [images, styles] = await Promise.all([
+    resolveSectionImages("solutions"),
+    resolveSectionStyles("solutions"),
+  ])
 
   return (
     <>
@@ -67,7 +71,9 @@ export default async function SolutionsPage() {
       </section>
 
       <Suspense fallback={null}>
-        <SolutionsTimeline items={items} images={images} />
+        <SectionStyleProvider styles={styles}>
+          <SolutionsTimeline items={items} images={images} />
+        </SectionStyleProvider>
       </Suspense>
 
       {/* Closing statement */}

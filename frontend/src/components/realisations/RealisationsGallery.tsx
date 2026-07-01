@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { CaretLeft, CaretRight, PencilSimple } from "@phosphor-icons/react"
@@ -32,13 +32,13 @@ export function RealisationsGallery() {
   const { realisations, previewEdit } = useAdmin()
   const reduce = useReducedMotion()
   const params = useSearchParams()
-  const [featuredId, setFeaturedId] = useState<string | null>(
-    params.get("featured"),
-  )
+  // The featured (header) project is chosen by the admin order, or deep-linked
+  // from the home page via ?featured=<id>. It is NOT changed by clicking a
+  // gallery tile — that promotion is admin-only.
+  const [featuredId] = useState<string | null>(params.get("featured"))
   // Which photo of the featured project is shown (hero carousel).
   const [leadImg, setLeadImg] = useState(0)
   const [prevLeadId, setPrevLeadId] = useState<string | null>(null)
-  const topRef = useRef<HTMLDivElement>(null)
 
   if (realisations.length === 0) {
     return (
@@ -75,20 +75,11 @@ export function RealisationsGallery() {
     setLeadImg((i) => (i - 1 + leadImages.length) % leadImages.length)
   const nextImg = () => setLeadImg((i) => (i + 1) % leadImages.length)
 
-  const feature = (id: string) => {
-    setFeaturedId(id)
-    topRef.current?.scrollIntoView({
-      behavior: reduce ? "auto" : "smooth",
-      block: "start",
-    })
-  }
-
   return (
     <section className="bg-background pb-24 pt-4 md:pb-32">
       <div className="mx-auto max-w-[1400px] px-6 md:px-12">
         {/* Projet vedette (re-anime au changement via key) */}
         <motion.div
-          ref={topRef}
           key={lead.id}
           initial={reduce ? undefined : { opacity: 0, scale: 1.02 }}
           animate={reduce ? undefined : { opacity: 1, scale: 1 }}
@@ -194,7 +185,6 @@ export function RealisationsGallery() {
                   key={r.id}
                   realisation={r}
                   index={i + 1}
-                  onSelect={() => feature(r.id)}
                   onEdit={previewEdit ? () => postEditRealisation(r.id) : undefined}
                 />
               ))}

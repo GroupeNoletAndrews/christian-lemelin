@@ -113,6 +113,74 @@ export async function createImageUploadUrlForKey(key: string): Promise<SignedUpl
   return { bucket: MEDIA_BUCKET, path: data.path, token: data.token }
 }
 
+// ===========================================================================
+// Storage usage (admin meter) — recursively list a bucket and sum object sizes.
+// Supabase's list() returns files with metadata.size and folders as entries
+// whose id is null; we recurse into folders and page through large listings.
+// ===========================================================================
+
+export interface BucketUsage {
+  name: string
+  bytes: number
+  objects: number
+}
+
+async function bucketUsage(client: SupabaseClient, bucket: string): Promise<BucketUsage> {
+  let bytes = 0
+  let objects = 0
+  const PAGE = 1000
+  const walk = async (prefix: string): Promise<void> => {
+    let offset = 0
+    for (;;) {
+      const { data, error } = await client.storage.from(bucket).list(prefix, {
+        limit: PAGE,
+        offset,
+        sortBy: { column: "name", order: "asc" },
+      })
+      if (error || !data || data.length === 0) break
+      for (const entry of data) {
+        const path = prefix ? `${prefix}/${entry.name}` : entry.name
+        // Folders come back with a null id; recurse into them.
+        if (entry.id === null) {
+          await walk(path)
+          continue
+        }
+        // Skip Supabase's empty-folder placeholder objects (0 bytes, noise).
+        if (entry.name === ".emptyFolderPlaceholder") continue
+        const size = (entry.metadata?.size as number | undefined) ?? 0
+        bytes += size
+        objects += 1
+      }
+      if (data.length < PAGE) break
+      offset += PAGE
+    }
+  }
+  await walk("")
+  return { name: bucket, bytes, objects }
+}
+
+export interface StorageUsage {
+  buckets: BucketUsage[]
+  totalBytes: number
+  totalObjects: number
+  /** Soft cap in bytes (env STORAGE_SOFT_LIMIT_GB, default 1 GB), or null if disabled. */
+  limitBytes: number | null
+}
+
+/** Aggregate size + object count across the media and CV buckets, for the admin meter. */
+export async function getStorageUsage(): Promise<StorageUsage> {
+  const client = getStorageClient()
+  if (!client) throw new AppError(503, "Le stockage n'est pas configuré")
+  const buckets = await Promise.all(
+    [MEDIA_BUCKET, CV_BUCKET].map((name) => bucketUsage(client, name)),
+  )
+  const totalBytes = buckets.reduce((s, b) => s + b.bytes, 0)
+  const totalObjects = buckets.reduce((s, b) => s + b.objects, 0)
+  const gb = Number(process.env.STORAGE_SOFT_LIMIT_GB ?? "1")
+  const limitBytes = Number.isFinite(gb) && gb > 0 ? gb * 1024 ** 3 : null
+  return { buckets, totalBytes, totalObjects, limitBytes }
+}
+
 /**
  * Best-effort: remove media objects from the public bucket (e.g. when a
  * réalisation or one of its photos is deleted). Accepts stored values — keys or

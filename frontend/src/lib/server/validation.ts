@@ -61,10 +61,24 @@ export const MediaUploadUrlSchema = z.object({
   key: z.string().min(1),
 })
 
-// Publish staged static-section image overrides: a list of {slot, key} to set.
+// Non-destructive per-slot presentation (focal/zoom/grayscale/border).
+const SlotStyleSchema = z.object({
+  objectPosition: z.string().max(32).nullish(),
+  zoom: z.number().min(0.1).max(8).nullish(),
+  grayscale: z.boolean().nullish(),
+  borderRadius: z.string().max(32).nullish(),
+  border: z.string().max(64).nullish(),
+})
+
+// Publish staged static-section overrides: each change sets a new image `key`,
+// a `style`, or both (style-only reframes an already-published image).
 export const SectionPublishSchema = z.object({
   changes: z.array(
-    z.object({ slot: z.string().min(1), key: z.string().min(1) }),
+    z.object({
+      slot: z.string().min(1),
+      key: z.string().min(1).optional(),
+      style: SlotStyleSchema.nullish(),
+    }),
   ),
 })
 

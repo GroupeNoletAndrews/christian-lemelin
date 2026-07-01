@@ -23,7 +23,9 @@ import { SOLUTIONS_OVERVIEW, imageUrl, type SolutionIndexEntry } from "@/content
 import { useLenis } from "@/components/providers/LenisProvider"
 import { hoverSlot } from "@/lib/sections-registry"
 import { PLACEHOLDER_SRC } from "@/lib/media"
-import { useSlotOverride } from "@/lib/section-preview"
+import { useSlotOverride, useSlotStyleOverride } from "@/lib/section-preview"
+import { usePublishedSlotStyle } from "@/components/sections/SectionStyle"
+import { slotImgCss, type SlotStyle } from "@/lib/section-style"
 import { SlotImage } from "@/components/sections/SlotImage"
 import { ImagePlaceholder } from "@/components/sections/ImagePlaceholder"
 
@@ -72,12 +74,16 @@ function useHoverSrc(
   images: Record<string, string>,
   w: number,
   h: number,
-): string {
-  const staged = useSlotOverride("solutions", hoverSlot(item.slug))
-  const resolved = staged ?? images[hoverSlot(item.slug)]
-  if (resolved === PLACEHOLDER_SRC) return ""
-  if (resolved) return resolved
-  return imageUrl(item.hoverImage, w, h)
+): { src: string; style: SlotStyle | null } {
+  const slot = hoverSlot(item.slug)
+  const staged = useSlotOverride("solutions", slot)
+  const styleOverride = useSlotStyleOverride("solutions", slot)
+  const published = usePublishedSlotStyle(slot)
+  const style = styleOverride ?? published ?? null
+  const resolved = staged ?? images[slot]
+  if (resolved === PLACEHOLDER_SRC) return { src: "", style }
+  if (resolved) return { src: resolved, style }
+  return { src: imageUrl(item.hoverImage, w, h), style }
 }
 
 // Tailles variées (max-width px + ratio d'image) — « plus petites / plus grosses ».
@@ -134,7 +140,7 @@ function SolutionZoom({
   onClose: () => void
 }) {
   const closeRef = useRef<HTMLButtonElement>(null)
-  const src = useHoverSrc(item, images, 2000, 1300)
+  const { src, style } = useHoverSrc(item, images, 2000, 1300)
   useEffect(() => {
     closeRef.current?.focus()
   }, [])
@@ -178,6 +184,8 @@ function SolutionZoom({
             alt={item.hoverImage.alt}
             draggable={false}
             className="h-full w-full object-cover"
+            // Only the focal point here — the cinematic push-in owns `transform`.
+            style={style?.objectPosition ? { objectPosition: style.objectPosition } : undefined}
           />
         ) : (
           <ImagePlaceholder />
@@ -239,7 +247,7 @@ function SolutionCard({
   onOpen: () => void
 }) {
   const end = align === "right"
-  const src = useHoverSrc(item, images, 1000, 760)
+  const { src, style } = useHoverSrc(item, images, 1000, 760)
   return (
     <button
       type="button"
@@ -259,6 +267,7 @@ function SolutionCard({
               alt={item.hoverImage.alt}
               draggable={false}
               className="h-full w-full object-cover grayscale transition-[filter] duration-700 ease-out group-hover:grayscale-0"
+              style={slotImgCss(style)}
             />
           ) : (
             <ImagePlaceholder />

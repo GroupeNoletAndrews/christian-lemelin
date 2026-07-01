@@ -2,6 +2,8 @@
 // The API is now same-origin, so requests are relative and the admin session
 // rides in an httpOnly cookie (no Bearer token, no NEXT_PUBLIC_API_URL).
 
+import type { SlotStyle, SlotCaps } from "@/lib/section-style"
+
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -82,15 +84,28 @@ export interface SectionSlotState {
   id: string
   label: string
   aspect: string
+  /** Baked-in grayscale design default (the filter toggle starts here). */
+  grayscaleDefault: boolean
   publishedKey: string | null
   url: string
+  /** Published presentation (focal/zoom/grayscale/border), or null. */
+  style: SlotStyle | null
 }
 
 export interface SectionAdminState {
   section: string
   label: string
   previewPath: string
+  /** Which per-image controls are allowed for this section. */
+  caps: SlotCaps
   slots: SectionSlotState[]
+}
+
+/** A staged slot change sent to publish: new image key and/or presentation. */
+export interface SectionSlotChange {
+  slot: string
+  key?: string
+  style?: SlotStyle | null
 }
 
 export interface ApplicationInput {
@@ -161,7 +176,7 @@ export const api = {
     static: {
       get: (section: string) =>
         request<SectionAdminState>(`/admin/sections/${section}`),
-      publish: (section: string, changes: { slot: string; key: string }[]) =>
+      publish: (section: string, changes: SectionSlotChange[]) =>
         request<{ ok: true }>(`/admin/sections/${section}/publish`, {
           method: "POST",
           body: JSON.stringify({ changes }),

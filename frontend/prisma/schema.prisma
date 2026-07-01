@@ -55,6 +55,15 @@ model SectionImage {
   section   String
   slot      String
   key       String   @map("image_key")
+  // Non-destructive per-slot presentation (all optional → backward-compatible).
+  // The image still fills its fixed, layout-driven box; these only change WHICH
+  // part of it shows (focal point + zoom) and its finish. Box SIZE never changes,
+  // so responsiveness is preserved.
+  objectPosition String?  @map("object_position") // focal point, e.g. "50% 30%"
+  zoom           Float?   @map("zoom")             // scale within the box, 1 = 100%
+  grayscale      Boolean? @map("is_grayscale")     // null = section's code default
+  borderRadius   String?  @map("border_radius")    // e.g. "16px"
+  border         String?  @map("border_style")     // e.g. "1px solid #cccccc"
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@id([section, slot])

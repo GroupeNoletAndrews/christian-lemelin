@@ -5,15 +5,24 @@
 
 const MAX_DIMENSION = 1600
 const JPEG_QUALITY = 0.82
+// Accept only lightweight web image formats, and cap the raw upload size so a
+// huge file can't be selected by mistake (it's re-encoded to JPEG anyway).
+const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"]
+const MAX_BYTES = 12 * 1024 * 1024 // 12 MB before compression
 
 /**
  * Read an image File, downscale it so its longest edge is at most
- * MAX_DIMENSION, and return a compressed JPEG Blob ready to upload.
+ * MAX_DIMENSION, and return a compressed JPEG Blob ready to upload. Rejects
+ * anything that isn't a PNG/JPEG/WebP or is larger than MAX_BYTES.
  */
 export function fileToCompressedBlob(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    if (!file.type.startsWith("image/")) {
-      reject(new Error("Le fichier n'est pas une image"))
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      reject(new Error("Format non supporté : utilisez un PNG, JPEG ou WebP."))
+      return
+    }
+    if (file.size > MAX_BYTES) {
+      reject(new Error("Image trop lourde (max 12 Mo). Réduisez-la puis réessayez."))
       return
     }
 

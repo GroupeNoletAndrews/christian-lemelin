@@ -1,22 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { useAdmin } from "@/lib/admin-context";
-import { ApiError } from "@/lib/api";
 import { mediaUrl, SITE_MEDIA, MEDIA_UNOPTIMIZED } from "@/lib/media";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { login } = useAdmin();
-  const [username, setUsername] = useState("");
+  const { login, isAuthenticated, mustChangePassword } = useAdmin();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Already signed in (e.g. returned to /admin from the public site) — skip the
+  // login form and go straight to the dashboard. Gated only on isAuthenticated
+  // (not the loading flag) so the form always renders for signed-out visitors.
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace(
+        mustChangePassword ? "/admin/change-password" : "/admin/dashboard",
+      );
+    }
+  }, [isAuthenticated, mustChangePassword, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,29 +34,28 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     try {
-      const ok = await login(username, password);
+      const { ok, mustChangePassword: mustChange } = await login(email, password);
       if (ok) {
-        router.push("/admin/dashboard");
+        router.push(mustChange ? "/admin/change-password" : "/admin/dashboard");
         return;
       }
       setError("Identifiants invalides");
-    } catch (err) {
-      // The server WAS reached but returned an error (e.g. 400/500): show a
-      // generic message. A thrown non-ApiError means the request never reached
-      // the backend (down / CORS / network).
-      if (err instanceof ApiError) {
-        setError("Une erreur est survenue. Veuillez réessayer.");
-      } else {
-        setError(
-          "Impossible de joindre le serveur. Vérifiez que l'API backend est démarrée (port 3001)."
-        );
-      }
+    } catch {
+      // login() only throws on non-credential failures (Supabase unreachable,
+      // misconfigured keys, server error) — invalid credentials return false.
+      setError("Une erreur est survenue. Veuillez réessayer.");
     }
     setIsLoading(false);
   };
 
   const inputClass =
     "w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder-foreground-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all font-sans";
+
+  // Already signed in (about to be redirected to the dashboard) — don't flash
+  // the form. Signed-out visitors always get the form (no loading-gate hang).
+  if (isAuthenticated) {
+    return <div className="min-h-screen bg-background" />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-16">
@@ -78,7 +87,7 @@ export default function AdminLoginPage() {
             Connexion
           </h1>
           <p className="mt-2 text-foreground-muted font-sans">
-            Gestion des emplois — Entreprises Christian Lemelin
+            Gestion administrative — Entreprises Christian Lemelin
           </p>
         </div>
 
@@ -92,17 +101,18 @@ export default function AdminLoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label
-                htmlFor="username"
+                htmlFor="email"
                 className="block font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted mb-2"
               >
-                Utilisateur
+                Courriel
               </label>
               <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Entrez votre nom d'utilisateur"
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Entrez votre adresse courriel"
                 className={inputClass}
                 required
               />
@@ -118,6 +128,7 @@ export default function AdminLoginPage() {
               <input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Entrez votre mot de passe"
@@ -144,16 +155,6 @@ export default function AdminLoginPage() {
               {isLoading ? "Connexion..." : "Se connecter"}
             </button>
           </form>
-
-          {/* Demo credentials */}
-          <div className="mt-6 pt-6 border-t border-border">
-            <p className="text-xs text-foreground-muted font-sans text-center mb-3">
-              Identifiants par défaut (modifiable côté serveur)
-            </p>
-            <div className="bg-background border border-border rounded-lg p-3 text-xs font-mono text-foreground-muted text-center">
-              admin / password
-            </div>
-          </div>
         </motion.div>
       </motion.div>
     </div>

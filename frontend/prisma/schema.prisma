@@ -16,15 +16,6 @@ datasource db {
 }
 
 
-model AdminUser {
-  id           String   @id @default(uuid()) @db.Uuid
-  username     String   @unique
-  passwordHash String   @map("password_hash")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  @@map("admin_users")
-}
-
 model Job {
   id           String        @id @default(uuid()) @db.Uuid
   title        String
@@ -54,6 +45,21 @@ model Realisation {
   @@index([pinned])
   @@index([position])
   @@map("realisations")
+}
+
+/// Published image override for a static-section slot (e.g. section "savoir-faire",
+/// slot "mobilier"). Absence of a row means the slot uses its code default
+/// (SITE_MEDIA key or seed→manifest). Drafts are staged client-side (nothing is
+/// written here until publish), so there is no draft column — `key` is live.
+model SectionImage {
+  section   String
+  slot      String
+  key       String   @map("image_key")
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([section, slot])
+  @@index([section])
+  @@map("section_images")
 }
 
 model Application {

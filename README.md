@@ -13,10 +13,10 @@ Browser ─▶ Next.js app (Vercel)
               └─ uploads ────────────────▶ Supabase Storage
 ```
 
-- **API** — route handlers in [`frontend/src/app/api/`](frontend/src/app/api/); business logic in [`frontend/src/lib/server/`](frontend/src/lib/server/) (Prisma singleton, jose auth, Resend mail, Supabase storage, zod validation). Endpoints: `auth` (login/logout/session), `jobs`, `realisations` (+ `reorder`, `[id]/pin`), `applications` (+ `upload-url`), `contact`, `health`, `webhooks/resend`.
+- **API** — route handlers in [`frontend/src/app/api/`](frontend/src/app/api/); business logic in [`frontend/src/lib/server/`](frontend/src/lib/server/) (Prisma singleton, Supabase Auth, Resend mail, Supabase storage, zod validation). Endpoints: `jobs`, `realisations` (+ `reorder`, `[id]/pin`), `applications` (+ `upload-url`), `contact`, `health`, `webhooks/resend`. (Auth login/logout/session is handled client-side by Supabase Auth — no `/api/auth/*` routes.)
 - **Database** — **Supabase** (managed Postgres) via Prisma. Runtime uses the transaction pooler; migrations/seed use the direct connection.
 - **Storage** — **Supabase Storage**: one **public** `christian-alain` bucket for all site photos & videos (`photos/{a-propos,fabrication,logo,realisations,solutions}` + `videos/`) and a **private** `cvs` bucket for job-application CVs. Files upload **straight from the browser** via short-lived signed URLs, so they never pass through a serverless function (bypassing Vercel's 4.5 MB body cap). See [Media & Storage](#media--storage).
-- **Auth** — admin login is a row in `admin_users` (bcrypt-hashed). On success the server sets a **jose HS256 JWT in an httpOnly cookie**; `requireAdmin()` guards every protected route handler. Default seeded credentials: **`admin` / `password`** (change in prod).
+- **Auth** — admin login uses **Supabase Auth** (email + password) via [`@supabase/ssr`](https://supabase.com/docs/guides/auth/server-side/nextjs). The browser signs in with `signInWithPassword`; the session (access + refresh tokens) lives in cookies and auto-refreshes. [`proxy.ts`](frontend/src/proxy.ts) refreshes the session on `/admin/*` and redirects the dashboard when signed out; `requireAdmin()` ([`auth.ts`](frontend/src/lib/server/auth.ts)) validates the session (`supabase.auth.getUser()`) at the top of every protected route handler. **Public sign-up is disabled** — create admin users in Supabase Studio (Auth → Users). Optional `ADMIN_EMAILS` allowlist gates which addresses may enter. (The data layer is unchanged — all DB access is still Prisma.)
 
 Réalisations have an **admin-controlled display order** (drag-and-drop in the dashboard; persisted via `PATCH /api/realisations/reorder`). On `/realisations` the first is shown as a large **featured** project; home-page cards deep-link via `?featured=<id>`.
 
@@ -45,8 +45,7 @@ Copy [`frontend/.env.example`](frontend/.env.example) and fill in real values. B
 |---|---|---|
 | `DATABASE_URL` | server | Supabase **transaction pooler** (port `6543`) + `?pgbouncer=true&connection_limit=1` |
 | `DIRECT_URL` | server | Supabase **direct/session** connection (port `5432`) — used by migrate/seed |
-| `JWT_SECRET` | server | a long random string (e.g. `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`) |
-| `JWT_EXPIRES_IN` | server | `7d` (optional) |
+| `ADMIN_EMAILS` | server | *optional* allowlist (comma-separated) — if set, only these emails may access `/admin`; unset = any Supabase user (sign-up is disabled, so just the ones you create) |
 | `SUPABASE_URL` | server | `https://<ref>.supabase.co` |
 | `SUPABASE_SECRET_KEY` | server | the `sb_secret_…` key (Storage admin — **never expose**) |
 | `NEXT_PUBLIC_SUPABASE_URL` | **client** | `https://<ref>.supabase.co` |
@@ -57,6 +56,7 @@ Copy [`frontend/.env.example`](frontend/.env.example) and fill in real values. B
 | `SEED_ADMIN_USERNAME` / `SEED_ADMIN_PASSWORD` | server | admin login created by the seed |
 | `SEED_DEMO_DATA` | server | `false` in prod (no demo content; admin still created) |
 | `MAINTENANCE_MODE` | server | `true` to show the maintenance page on the public site; anything else (or unset) = site live. See [Maintenance mode](#maintenance-mode). |
+| `SEED_DEMO_DATA` | server | `false` in prod (no demo content) |
 
 Get the two connection strings from **Supabase → Project Settings → Database → Connection string** (the "Transaction pooler" and "Session/Direct" tabs).
 
@@ -80,10 +80,30 @@ Get the two connection strings from **Supabase → Project Settings → Database
    npx prisma migrate resolve --applied 20260619000000_realisation_position
    ```
    > A brand-new/empty Supabase DB needs no baselining — `migrate deploy` creates everything.
-3. **Seed the admin user** (and optionally demo content) — run once, locally:
+3. **Seed demo content** (optional) — run once, locally:
    ```bash
-   npm run db:seed          # uses DIRECT_URL; SEED_DEMO_DATA=false → admin only
+   npm run db:seed          # uses DIRECT_URL; SEED_DEMO_DATA controls demo data
    ```
+4. **Create the admin login** in **Supabase → Authentication → Users → Add user**
+   (set "Auto Confirm User"). Login is **Supabase Auth**, not the `admin_users`
+   table. Keep **Auth → Providers → Email → "Allow new users to sign up" OFF** so
+   `/admin` stays closed. Optionally set `ADMIN_EMAILS` to restrict which addresses
+   may enter.
+
+   **Temporary password → forced change on first login:** hand the client a
+   temporary password, then flag the user so they must set their own on first
+   sign-in. In the new user's **User Metadata**, add:
+
+   ```json
+   { "must_change_password": true }
+   ```
+
+   (Set it in the Add-user form's metadata field, or edit the user afterwards;
+   or via SQL: `update auth.users set raw_user_meta_data =
+   raw_user_meta_data || '{"must_change_password": true}' where email = '…';`.)
+   On first login the app forces them to `/admin/change-password` and won't let
+   them into the dashboard until they save a new password — which clears the
+   flag. Resetting a user's password later and re-adding the flag re-triggers it.
 
 ---
 
@@ -127,8 +147,9 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<Publishable key from `supabase status`>
 SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_SECRET_KEY=<Secret key from `supabase status`>
-JWT_SECRET=any-long-random-string-for-local
 SEED_DEMO_DATA=true
+# Optional: restrict /admin to specific Supabase users.
+# ADMIN_EMAILS=you@example.com
 ```
 > The current CLI prints keys in the new `sb_publishable_…` / `sb_secret_…` format — copy them verbatim from `supabase status`.
 
@@ -137,9 +158,11 @@ SEED_DEMO_DATA=true
 cd frontend
 npm install         # also runs `prisma generate` (postinstall)
 npm run db:deploy   # applies Prisma migrations to the local DB
-npm run db:seed     # creates the admin user + demo content
+npm run db:seed     # demo content (controlled by SEED_DEMO_DATA)
 npm run media:sync  # uploads logo/video/photos + demo images to the local bucket
 npm run dev         # http://localhost:3000
+# Then create your admin login in Supabase Studio → Authentication → Users
+# (http://localhost:54323) — login is Supabase Auth, not the seed.
 ```
 
 ### Daily startup (already set up — e.g. right after `git pull`)
@@ -166,7 +189,7 @@ npm run dev                                 # http://localhost:3000
 | What | URL / value |
 |---|---|
 | App | http://localhost:3000 |
-| Admin dashboard | http://localhost:3000/admin — log in with **`admin` / `password`** |
+| Admin dashboard | http://localhost:3000/admin — log in with the **Supabase user** you created (Studio → Authentication → Users) |
 | **Supabase Studio** (browse/edit the DB) | **http://localhost:54323** |
 | Mailpit (catches emails sent locally) | http://localhost:54324 |
 | Postgres (psql / DBeaver / TablePlus) | `postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
@@ -321,7 +344,7 @@ Errors are reported to **Sentry** ([`frontend/sentry.server.config.ts`](frontend
 ## Troubleshooting
 
 - **`P3005` on deploy / "database schema is not empty"** — baseline the existing migrations (see Supabase setup, step 2) before `migrate deploy` runs.
-- **Admin login fails to reach the server** — check the route handlers are deployed and `DATABASE_URL` is the pooler URL with `?pgbouncer=true`.
+- **Admin login fails** — confirm the user exists in **Supabase → Authentication → Users** and is **confirmed**; that `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set; and that the email isn't excluded by `ADMIN_EMAILS`. "Email logins are disabled" → enable the Email provider (sign-*in*) while keeping sign-*up* off.
 - **CV/image upload fails** — confirm the `cvs` (private) and `christian-alain` (public) buckets exist and `SUPABASE_SECRET_KEY` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set.
 - **Images 404 locally** — the local `christian-alain` bucket is empty; run `npm run media:sync` to upload them.
 - **Emails not arriving** — `RESEND_API_KEY` unset disables email. In dev, mail goes to `delivered@resend.dev` (a Resend test inbox); confirm in the Resend dashboard.

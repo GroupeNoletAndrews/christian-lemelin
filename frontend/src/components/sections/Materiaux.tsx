@@ -29,6 +29,10 @@ import {
   DialogDescription,
   DialogClose,
 } from "@/components/ui/linear-modal"
+import { cardSlot } from "@/lib/sections-registry"
+import { PLACEHOLDER_SRC } from "@/lib/media"
+import { useSlotOverride } from "@/lib/section-preview"
+import { ImagePlaceholder } from "@/components/sections/ImagePlaceholder"
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -38,6 +42,24 @@ const descV: Variants = {
   initial: { opacity: 0, y: -16 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -16 },
+}
+
+// Résout l'image d'une matière en respectant, dans l'ordre : l'override mis en
+// scène dans l'aperçu admin (postMessage), l'override publié en base (prop
+// `images` via resolveSectionImages → Supabase Storage), puis le défaut seed baké.
+// Retourne "" quand aucune photo n'est encore posée (sentinelle prod
+// PLACEHOLDER_SRC) → l'appelant affiche <ImagePlaceholder /> au lieu de l'image.
+function useCardSrc(
+  mat: MaterialDetail,
+  images: Record<string, string>,
+  w: number,
+  h: number,
+): string {
+  const staged = useSlotOverride("materiaux", cardSlot(mat.slug))
+  const resolved = staged ?? images[cardSlot(mat.slug)]
+  if (resolved === PLACEHOLDER_SRC) return ""
+  if (resolved) return resolved
+  return imageUrl(mat.cardImage, w, h)
 }
 
 // The "pourquoi choisir" rows live in the detail page's `list` block — we reuse
@@ -55,8 +77,14 @@ function reasonsOf(mat: MaterialDetail) {
 // parallaxing forward. The reasons read as numbered chapters of a story so the
 // modal feels like a narrative, not a spec sheet. All motion is transform/
 // opacity only (GPU), and the whole 3D layer is disabled under reduced-motion.
-function MaterialModal({ mat }: { mat: MaterialDetail }) {
-  const img = imageUrl(mat.cardImage, 1100, 1400)
+function MaterialModal({
+  mat,
+  images,
+}: {
+  mat: MaterialDetail
+  images: Record<string, string>
+}) {
+  const img = useCardSrc(mat, images, 1100, 1400)
   const reasons = reasonsOf(mat)
   const reduce = useReducedMotion()
 
@@ -108,11 +136,15 @@ function MaterialModal({ mat }: { mat: MaterialDetail }) {
 
           {/* Left panel — the material itself, full-bleed, with a live sheen. */}
           <div className="relative h-52 w-full shrink-0 overflow-hidden md:h-auto md:w-[44%]">
-            <DialogImage
-              src={img}
-              alt={mat.name}
-              className="absolute inset-0 h-full w-full object-cover"
-            />
+            {img ? (
+              <DialogImage
+                src={img}
+                alt={mat.name}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : (
+              <ImagePlaceholder />
+            )}
             <div
               aria-hidden
               className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/30 md:bg-gradient-to-t md:from-black/85 md:via-black/35 md:to-black/15"
@@ -181,14 +213,27 @@ function MaterialModal({ mat }: { mat: MaterialDetail }) {
 
 // The grayscale image + code/name overlay + "+" affordance, shared by the
 // mobile and desktop card shells (only the aspect ratio differs).
-function CardInner({ mat, titleClass }: { mat: MaterialDetail; titleClass: string }) {
+function CardInner({
+  mat,
+  images,
+  titleClass,
+}: {
+  mat: MaterialDetail
+  images: Record<string, string>
+  titleClass: string
+}) {
+  const src = useCardSrc(mat, images, 900, 1100)
   return (
     <>
-      <DialogImage
-        src={imageUrl(mat.cardImage, 900, 1100)}
-        alt={mat.name}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+      {src ? (
+        <DialogImage
+          src={src}
+          alt={mat.name}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <ImagePlaceholder />
+      )}
       <div
         aria-hidden
         className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"
@@ -210,7 +255,12 @@ function CardInner({ mat, titleClass }: { mat: MaterialDetail; titleClass: strin
   )
 }
 
-export function Materiaux() {
+export function Materiaux({
+  images = {},
+}: {
+  /** Overrides d'images publiés/mis en scène, par slot (resolveSectionImages). */
+  images?: Record<string, string>
+}) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const reduce = useReducedMotion()
@@ -274,11 +324,12 @@ export function Materiaux() {
                 <DialogTrigger className="group relative block aspect-[5/4] w-full overflow-hidden rounded-2xl border border-border">
                   <CardInner
                     mat={mat}
+                    images={images}
                     titleClass="font-display text-2xl font-semibold leading-none text-white"
                   />
                 </DialogTrigger>
                 <p className="mt-3 text-sm text-foreground-muted">{mat.fullName}</p>
-                <MaterialModal mat={mat} />
+                <MaterialModal mat={mat} images={images} />
               </Dialog>
             </div>
           ))}
@@ -320,11 +371,12 @@ export function Materiaux() {
                 <DialogTrigger className="group relative block aspect-[3/4] w-full overflow-hidden rounded-2xl border border-border">
                   <CardInner
                     mat={mat}
+                    images={images}
                     titleClass="font-display text-[clamp(1.75rem,2.4vw,2.5rem)] font-semibold leading-none text-white"
                   />
                 </DialogTrigger>
                 <p className="mt-4 text-sm text-foreground-muted">{mat.fullName}</p>
-                <MaterialModal mat={mat} />
+                <MaterialModal mat={mat} images={images} />
               </Dialog>
             </div>
           ))}

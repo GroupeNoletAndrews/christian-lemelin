@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server"
-import { verifyToken } from "@/lib/server/auth"
-import { COOKIE_NAME } from "@/lib/server/cookies"
+import { NextResponse, type NextRequest } from "next/server"
+import { updateSession } from "@/lib/supabase/proxy"
+import { isAllowedAdmin } from "@/lib/auth-allowlist"
 
 // Next 16 renamed `middleware.ts` -> `proxy.ts` (function `middleware` -> `proxy`).
 //
@@ -10,9 +10,9 @@ import { COOKIE_NAME } from "@/lib/server/cookies"
 //     redéploiement), tout le site public est réécrit vers `/maintenance`
 //     (503). L'admin (`/admin`), l'API et les internes Next restent joignables
 //     pour que tu puisses continuer à te connecter / travailler.
-//  2. **Garde du dashboard admin** — redirige vers la page de connexion quand
-//     le cookie de session est absent/invalide. La vraie autorisation reste
-//     requireAdmin() dans chaque route /api.
+//  2. **Garde du dashboard admin** — rafraîchit la session Supabase et redirige
+//     vers la page de connexion quand le dashboard est ouvert sans session admin
+//     valide. La vraie autorisation reste requireAdmin() dans chaque route /api.
 
 // Lu au démarrage (les vars d'env sont figées par déploiement sur Vercel).
 const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === "true"
@@ -50,20 +50,23 @@ export async function proxy(req: NextRequest) {
     })
   }
 
-  // 2) Garde du dashboard admin.
-  if (pathname.startsWith("/admin/dashboard")) {
-    const token = req.cookies.get(COOKIE_NAME)?.value
-    if (token) {
-      try {
-        await verifyToken(token)
-        return NextResponse.next()
-      } catch {
-        /* invalide/expiré — on retombe sur la redirection */
-      }
+  // 2) Seule la zone /admin a besoin du rafraîchissement de session Supabase
+  //    et de la garde du dashboard.
+  if (pathname.startsWith("/admin")) {
+    const { response, user } = await updateSession(req)
+
+    const isDashboard = pathname.startsWith("/admin/dashboard")
+    if (isDashboard && !isAllowedAdmin(user)) {
+      const url = req.nextUrl.clone()
+      url.pathname = "/admin"
+      const redirect = NextResponse.redirect(url)
+      // Carry over any auth cookies the session refresh cleared/rotated so the
+      // browser drops the stale session instead of looping back.
+      response.cookies.getAll().forEach((c) => redirect.cookies.set(c))
+      return redirect
     }
-    const url = req.nextUrl.clone()
-    url.pathname = "/admin"
-    return NextResponse.redirect(url)
+
+    return response
   }
 
   return NextResponse.next()

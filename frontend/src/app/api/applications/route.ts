@@ -9,9 +9,9 @@ import { sendApplicationNotification } from "@/lib/server/mail/mail"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    await requireAdmin(req)
+    await requireAdmin()
     const applications = await prisma.application.findMany({
       orderBy: { createdAt: "desc" },
     })

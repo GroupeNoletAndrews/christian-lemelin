@@ -1,16 +1,13 @@
-// Idempotent seed: an admin user plus optional demo jobs/réalisations.
+// Idempotent seed: optional demo jobs/réalisations. (Admin login is Supabase
+// Auth now — create admin users in Supabase Studio, not here.)
 // Run once against Supabase with `npm run db:seed` (loads .env). Uses the DIRECT
 // (non-pooled) connection — the transaction pooler breaks Prisma mid-seed.
 import { PrismaClient } from "@prisma/client"
-import { hash } from "bcryptjs"
 import { SEED_REALISATIONS, seedImageKeys } from "./seed-realisations"
 
 const prisma = new PrismaClient({
   datasourceUrl: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
 })
-
-const ADMIN_USERNAME = process.env.SEED_ADMIN_USERNAME ?? "admin"
-const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "password"
 
 const DUMMY_JOBS = [
   {
@@ -43,16 +40,8 @@ const DUMMY_REALISATIONS = SEED_REALISATIONS.map((r) => ({
 }))
 
 async function main(): Promise<void> {
-  // Admin user (upsert — keeps the password in sync on re-seed).
-  const passwordHash = await hash(ADMIN_PASSWORD, 10)
-  await prisma.adminUser.upsert({
-    where: { username: ADMIN_USERNAME },
-    update: { passwordHash },
-    create: { username: ADMIN_USERNAME, passwordHash },
-  })
-
   // Demo content (jobs + réalisations) — only when SEED_DEMO_DATA !== 'false'.
-  // Set SEED_DEMO_DATA=false in prod so a fresh DB starts empty (admin still created).
+  // Set SEED_DEMO_DATA=false in prod so a fresh DB starts empty.
   const seedDemo = process.env.SEED_DEMO_DATA !== "false"
   if (seedDemo) {
     if ((await prisma.job.count()) === 0) {

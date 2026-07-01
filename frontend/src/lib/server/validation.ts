@@ -4,11 +4,6 @@ import { AppError } from "./http"
 // zod object parsing strips unknown keys by default — mirrors the old Nest
 // ValidationPipe (whitelist: true, forbidNonWhitelisted: false).
 
-export const LoginSchema = z.object({
-  username: z.string().min(1),
-  password: z.string().min(1),
-})
-
 export const JOB_TYPES = ["full-time", "part-time", "contract"] as const
 
 export const JobSchema = z.object({
@@ -59,6 +54,18 @@ export const ImageUploadUrlSchema = z.object({
   projectName: z.string().min(1),
   index: z.number().int().positive(),
   filename: z.string().min(1),
+})
+
+// Signed upload to an exact storage key (content editing — overwrite in place).
+export const MediaUploadUrlSchema = z.object({
+  key: z.string().min(1),
+})
+
+// Publish staged static-section image overrides: a list of {slot, key} to set.
+export const SectionPublishSchema = z.object({
+  changes: z.array(
+    z.object({ slot: z.string().min(1), key: z.string().min(1) }),
+  ),
 })
 
 /** Validate `data` against `schema`, throwing AppError(400) with a readable message. */

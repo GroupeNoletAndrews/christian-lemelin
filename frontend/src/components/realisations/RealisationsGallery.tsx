@@ -3,10 +3,10 @@
 import { useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
-import { CaretLeft, CaretRight } from "@phosphor-icons/react"
+import { CaretLeft, CaretRight, PencilSimple } from "@phosphor-icons/react"
 import { useAdmin } from "@/lib/admin-context"
 import { RealisationCard } from "@/components/realisations/RealisationCard"
-import { mediaUrl } from "@/lib/media"
+import { imgSrc } from "@/lib/media"
 import { ParallaxImage } from "@/components/ui/ParallaxImage"
 import { DrawLine } from "@/components/ui/DrawLine"
 import { ArrowLink } from "@/components/ui/ArrowLink"
@@ -17,8 +17,19 @@ const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1]
 // La vedette suit l'ordre admin (position) par défaut ; on peut arriver avec
 // ?featured=<id> (clic depuis l'accueil) et cliquer un autre projet pour le
 // passer en grand. Robuste à N dynamique (N=0 vide, N=1 vedette seule, N≥2).
+// In the content workspace preview iframe, ask the parent admin window to open
+// the editor for a given réalisation (the in-place pencil affordance).
+function postEditRealisation(id: string) {
+  if (typeof window !== "undefined" && window.parent !== window) {
+    window.parent.postMessage(
+      { source: "cl-preview", type: "edit-realisation", id },
+      window.location.origin,
+    )
+  }
+}
+
 export function RealisationsGallery() {
-  const { realisations } = useAdmin()
+  const { realisations, previewEdit } = useAdmin()
   const reduce = useReducedMotion()
   const params = useSearchParams()
   const [featuredId, setFeaturedId] = useState<string | null>(
@@ -96,7 +107,7 @@ export function RealisationsGallery() {
             >
               {currentLeadSrc && (
                 <ParallaxImage
-                  src={mediaUrl(currentLeadSrc)}
+                  src={imgSrc(currentLeadSrc, lead.updatedAt.getTime())}
                   alt={lead.name}
                   sizes="100vw"
                   amount={14}
@@ -107,6 +118,19 @@ export function RealisationsGallery() {
           </AnimatePresence>
 
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+
+          {/* Pinceau d'édition en place (aperçu de l'atelier de contenu) */}
+          {previewEdit && (
+            <button
+              type="button"
+              onClick={() => postEditRealisation(lead.id)}
+              aria-label="Modifier cette réalisation"
+              className="absolute left-4 top-4 z-20 inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-2 text-xs font-sans text-white shadow-lg transition-colors hover:bg-accent-hover md:left-6 md:top-6"
+            >
+              <PencilSimple size={14} weight="bold" />
+              Modifier
+            </button>
+          )}
 
           {/* Navigation des photos (si la vedette en a plusieurs) */}
           {leadImages.length > 1 && (
@@ -171,6 +195,7 @@ export function RealisationsGallery() {
                   realisation={r}
                   index={i + 1}
                   onSelect={() => feature(r.id)}
+                  onEdit={previewEdit ? () => postEditRealisation(r.id) : undefined}
                 />
               ))}
             </div>

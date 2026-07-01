@@ -10,7 +10,7 @@ import {
   useTransform,
 } from "motion/react"
 import { INSTALLATIONS, imageUrl } from "@/content"
-import { ParallaxImage } from "@/components/ui/ParallaxImage"
+import { SlotParallaxImage } from "@/components/sections/SlotParallaxImage"
 
 // Page /installations — capacité de fabrication. Réutilise le compteur animé
 // (façon StatsBar), le parallax et le bloc « feature » sombre. Voir DESIGN.md.
@@ -51,7 +51,7 @@ function StatCount({ value }: { value: string }) {
   )
 }
 
-export function Installations() {
+export function Installations({ images = {} }: { images?: Record<string, string> }) {
   const { hero, capabilities, stats, eco, partner } = INSTALLATIONS
 
   return (
@@ -68,8 +68,10 @@ export function Installations() {
         </div>
         <div className="mx-auto mt-12 max-w-[1400px] px-6 md:mt-16 md:px-12">
           <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[1.5rem] border border-border md:aspect-[21/9] md:rounded-[2rem]">
-            <ParallaxImage
-              src={imageUrl(hero.image, 2000, 1100)}
+            <SlotParallaxImage
+              section="installations"
+              slot="hero-aerial"
+              src={images["hero-aerial"] ?? imageUrl(hero.image, 2000, 1100)}
               alt={hero.heading}
               sizes="100vw"
               amount={12}
@@ -122,8 +124,10 @@ export function Installations() {
         <div className="overflow-hidden rounded-[1.75rem] bg-ink md:rounded-[2.5rem]">
           <div className="grid lg:grid-cols-2">
             <div className="relative min-h-[300px] lg:min-h-[540px]">
-              <ParallaxImage
-                src={imageUrl(eco.image, 1400, 1400)}
+              <SlotParallaxImage
+                section="installations"
+                slot="eco-press"
+                src={images["eco-press"] ?? imageUrl(eco.image, 1400, 1400)}
                 alt={eco.heading}
                 sizes="(min-width: 1024px) 50vw, 100vw"
               />
@@ -156,8 +160,10 @@ export function Installations() {
       <section data-header-theme="light" className="bg-background py-20 md:py-28">
         <div className="mx-auto grid max-w-[1400px] items-center gap-10 px-6 md:px-12 lg:grid-cols-2 lg:gap-16">
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-border">
-            <ParallaxImage
-              src={imageUrl(partner.image, 1200, 900)}
+            <SlotParallaxImage
+              section="installations"
+              slot="partner-factory"
+              src={images["partner-factory"] ?? imageUrl(partner.image, 1200, 900)}
               alt={partner.heading}
               sizes="(min-width: 1024px) 45vw, 90vw"
             />

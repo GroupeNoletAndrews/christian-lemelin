@@ -14,7 +14,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAdmin(req)
+    await requireAdmin()
     const dto = parseBody(JobSchema, await readJson(req))
     const job = await prisma.job.create({
       data: {

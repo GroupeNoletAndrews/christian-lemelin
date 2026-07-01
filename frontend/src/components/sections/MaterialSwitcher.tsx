@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import Image from "next/image"
 import {
   AnimatePresence,
   motion,
@@ -11,6 +10,9 @@ import {
 } from "motion/react"
 import { CaretUp, CaretDown } from "@phosphor-icons/react"
 import { FABRICATION, MATERIALS, imageUrl, type MaterialDetail } from "@/content"
+import { ArrowLink } from "@/components/ui/ArrowLink"
+import { SlotImage } from "@/components/sections/SlotImage"
+import { heroSlot } from "@/lib/sections-registry"
 
 // Showcase matériaux de /fabrication. Réutilise le crossfade « Apple » de
 // SavoirFaire (image full-bleed monochrome) mais en version STATIONNAIRE plein
@@ -54,7 +56,7 @@ const textV: Variants = {
   exit: { opacity: 0, y: -12, transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] } },
 }
 
-export function MaterialSwitcher() {
+export function MaterialSwitcher({ images = {} }: { images?: Record<string, string> }) {
   const reduce = useReducedMotion()
   const variants = reduce ? imageMotionReduced : imageMotion
 
@@ -99,10 +101,11 @@ export function MaterialSwitcher() {
               animate="animate"
               exit="exit"
             >
-              <Image
-                src={imageUrl(m.hero.image, 2000, 1400)}
+              <SlotImage
+                section="materiaux"
+                slot={heroSlot(m.slug)}
+                src={images[heroSlot(m.slug)] ?? imageUrl(m.hero.image, 2000, 1400)}
                 alt={m.name}
-                fill
                 priority={active === 0}
                 sizes="100vw"
                 className="object-cover"

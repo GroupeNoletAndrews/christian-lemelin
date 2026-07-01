@@ -10,7 +10,7 @@ type Ctx = { params: Promise<{ id: string }> }
 
 export async function PUT(req: NextRequest, ctx: Ctx) {
   try {
-    await requireAdmin(req)
+    await requireAdmin()
     const { id } = await ctx.params
     const dto = parseBody(JobSchema, await readJson(req))
     const existing = await prisma.job.findUnique({ where: { id } })
@@ -32,9 +32,9 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
   }
 }
 
-export async function DELETE(req: NextRequest, ctx: Ctx) {
+export async function DELETE(_req: NextRequest, ctx: Ctx) {
   try {
-    await requireAdmin(req)
+    await requireAdmin()
     const { id } = await ctx.params
     const existing = await prisma.job.findUnique({ where: { id } })
     if (!existing) throw new AppError(404, "Emploi introuvable")

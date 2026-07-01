@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { FABRICATION } from "@/content"
 import { ReasonsReveal } from "@/components/sections/ReasonsReveal"
+import { resolveSectionImages } from "@/lib/server/sections"
 
 export const metadata: Metadata = {
   title: "Fabrication sur mesure",
@@ -8,8 +9,12 @@ export const metadata: Metadata = {
     "Fabrication métallique sur mesure à Québec : sélection rigoureuse des matériaux, finitions soignées et plus de 25 ans d'expertise. Inox, acier, aluminium, laiton et cuivre.",
 }
 
-export default function FabricationPage() {
-  const { hero } = FABRICATION
+// Reads published Matériaux image overrides at request time (switcher heroes).
+export const dynamic = "force-dynamic"
+
+export default async function FabricationPage() {
+  const { hero, cta } = FABRICATION
+  const images = await resolveSectionImages("materiaux")
 
   return (
     <>

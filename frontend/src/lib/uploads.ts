@@ -43,6 +43,17 @@ export async function uploadRealisationImages(
     .map((r) => r.value)
 }
 
+/**
+ * Compress + upload an image to an EXACT storage key, overwriting in place so a
+ * replacement keeps the same filename. Used by the content workspace on publish.
+ */
+export async function uploadImageToKey(file: File, key: string): Promise<string> {
+  const blob = await fileToCompressedBlob(file)
+  const { bucket, path, token } = await api.media.uploadUrlForKey(key)
+  await uploadToBucket(bucket, path, token, blob)
+  return path
+}
+
 /** Upload a CV to the private bucket; returns the stored key + original filename. */
 export async function uploadCv(
   file: File,

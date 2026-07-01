@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Suspense } from "react"
 import { SOLUTIONS_OVERVIEW, getSolution } from "@/content"
 import { SolutionsTimeline, type SolutionItem } from "@/components/sections/SolutionsTimeline"
+import { resolveSectionImages } from "@/lib/server/sections"
 
 export const metadata: Metadata = {
   title: "Nos solutions",
@@ -26,9 +27,14 @@ function buildItems(): SolutionItem[] {
   })
 }
 
-export default function SolutionsPage() {
+// Lit les overrides d'images publiés au moment de la requête (cartes + zoom de la
+// timeline) — un publish depuis l'admin est reflété immédiatement.
+export const dynamic = "force-dynamic"
+
+export default async function SolutionsPage() {
   const { hero, closing } = SOLUTIONS_OVERVIEW
   const items = buildItems()
+  const images = await resolveSectionImages("solutions")
 
   return (
     <>
@@ -61,7 +67,7 @@ export default function SolutionsPage() {
       </section>
 
       <Suspense fallback={null}>
-        <SolutionsTimeline items={items} />
+        <SolutionsTimeline items={items} images={images} />
       </Suspense>
 
       {/* Closing statement */}

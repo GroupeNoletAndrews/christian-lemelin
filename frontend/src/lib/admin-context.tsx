@@ -6,17 +6,32 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useSyncExternalStore,
   ReactNode,
 } from "react"
 import { Job, Realisation, MAX_PINNED_REALISATIONS } from "@/types/admin"
+import type { User } from "@supabase/supabase-js"
 import { api, ApiError, ApiJob, ApiRealisation } from "@/lib/api"
+import { supabaseBrowser } from "@/lib/supabase/client"
+import { isAllowedAdmin } from "@/lib/auth-allowlist"
 
 interface AdminContextType {
   isAuthenticated: boolean
-  username: string
+  /** True until the initial Supabase session check resolves — gate redirects on this. */
+  authLoading: boolean
+  email: string
   jobs: Job[]
-  login: (username: string, password: string) => Promise<boolean>
+  /** Resolves the sign-in outcome. `mustChangePassword` is true when the user
+   *  was created with a temporary password and has to set their own first. */
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ ok: boolean; mustChangePassword: boolean }>
   logout: () => void
+  /** True while the signed-in user still has to replace a temporary password. */
+  mustChangePassword: boolean
+  /** Set a new password for the signed-in user and clear the must-change flag. */
+  changePassword: (newPassword: string) => Promise<void>
   addJob: (job: Omit<Job, "id" | "createdAt" | "updatedAt">) => Promise<void>
   updateJob: (id: string, job: Omit<Job, "id" | "createdAt">) => Promise<void>
   deleteJob: (id: string) => Promise<void>
@@ -38,6 +53,13 @@ interface AdminContextType {
   togglePinned: (id: string) => Promise<boolean>
   /** Persist a new réalisations order (drag-and-drop). Optimistic, reverts on failure. */
   reorderRealisations: (orderedIds: string[]) => Promise<void>
+  /** Re-fetch réalisations from the server into the shared state — so surfaces
+   *  that mutate them outside the provider (e.g. the content workspace publish)
+   *  resync the dashboard/home without a full reload. */
+  refreshRealisations: () => Promise<void>
+  /** True only inside the content workspace preview iframe (URL carries ?preview):
+   *  public sections render in-place edit affordances (pencils) when set. */
+  previewEdit: boolean
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined)
@@ -69,13 +91,37 @@ function reviveRealisation(r: ApiRealisation): Realisation {
   }
 }
 
+// Read ?preview from the URL without a hydration mismatch: the server snapshot
+// is always undefined, and the client switches to the real value after
+// hydration. Truthy only inside the content workspace preview iframe.
+const subscribePreview = () => () => {}
+function usePreviewToken(): string | undefined {
+  return useSyncExternalStore(
+    subscribePreview,
+    () => new URLSearchParams(window.location.search).get("preview") ?? undefined,
+    () => undefined,
+  )
+}
+
+/** A user the admin flagged (via Supabase user metadata) to set their own
+ *  password on first login — see the README admin section. */
+function mustChangePasswordFor(user: User | null): boolean {
+  return user?.user_metadata?.must_change_password === true
+}
+
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [username, setUsername] = useState("")
+  const [authLoading, setAuthLoading] = useState(true)
+  const [email, setEmail] = useState("")
+  const [mustChangePassword, setMustChangePassword] = useState(false)
   const [jobs, setJobs] = useState<Job[]>([])
   const [realisations, setRealisations] = useState<Realisation[]>([])
+  // From the URL (?preview), hydration-safe — true only inside the content
+  // workspace preview iframe, where public sections show in-place edit pencils.
+  const previewToken = usePreviewToken()
+  const previewEdit = previewToken !== undefined
 
-  // Hydrate public data + restore the admin session (httpOnly cookie) on mount.
+  // Hydrate jobs + restore the Supabase admin session on mount.
   useEffect(() => {
     let cancelled = false
     api.jobs
@@ -84,49 +130,137 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setJobs(rows.map(reviveJob))
       })
       .catch((e) => console.warn("Chargement des emplois impossible:", e))
-    api.realisations
-      .list()
-      .then((rows) => {
-        if (!cancelled) setRealisations(rows.map(reviveRealisation))
-      })
-      .catch((e) => console.warn("Chargement des réalisations impossible:", e))
-    // The session cookie is httpOnly, so ask the server who we are.
-    api.auth
-      .session()
-      .then(({ username: name }) => {
-        if (!cancelled) {
-          setIsAuthenticated(true)
-          setUsername(name)
-        }
-      })
+
+    // Restore + track the Supabase session. getSession() reads the @supabase/ssr
+    // cookie (no network) for an instant initial answer; onAuthStateChange keeps
+    // it in sync (SIGNED_IN/OUT/TOKEN_REFRESHED). A hard timeout guarantees the
+    // UI never hangs if the client init stalls. The server (requireAdmin/proxy
+    // via getUser) remains the real validator — this only drives the UI.
+    const supabase = supabaseBrowser()
+    const applyUser = (user: User | null) => {
+      if (cancelled) return
+      const ok = isAllowedAdmin(user)
+      setIsAuthenticated(ok)
+      setEmail(ok ? (user?.email ?? "") : "")
+      setMustChangePassword(ok && mustChangePasswordFor(user))
+      setAuthLoading(false)
+    }
+    supabase.auth
+      .getSession()
+      .then(({ data }) => applyUser(data.session?.user ?? null))
       .catch(() => {
-        /* not logged in — stay anonymous */
+        if (!cancelled) setAuthLoading(false)
       })
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) =>
+      applyUser(session?.user ?? null),
+    )
+    // Safety net: never leave the admin stuck on a blank loader.
+    const settle = setTimeout(() => {
+      if (!cancelled) setAuthLoading(false)
+    }, 2500)
+
     return () => {
       cancelled = true
+      clearTimeout(settle)
+      subscription.unsubscribe()
     }
   }, [])
 
-  const login = useCallback(async (user: string, password: string) => {
+  // Load réalisations (live, or draft-merged inside the preview iframe). Exposed
+  // as refreshRealisations so other admin surfaces (e.g. the content workspace
+  // after publishing) can resync the shared list without a full reload.
+  const loadRealisations = useCallback(async () => {
     try {
-      const { username: name } = await api.auth.login(user, password)
-      // The server set an httpOnly session cookie; no token to keep client-side.
-      setIsAuthenticated(true)
-      setUsername(name)
-      return true
+      const rows = await api.realisations.list(previewToken)
+      setRealisations(rows.map(reviveRealisation))
     } catch (e) {
-      // 401 = wrong username/password → return false (caller shows that).
-      if (e instanceof ApiError && e.status === 401) return false
-      // Anything else (API down, network, 5xx) is NOT a credential problem —
-      // re-throw so the caller can show a distinct message.
-      throw e
+      console.warn("Chargement des réalisations impossible:", e)
     }
+  }, [previewToken])
+
+  // Initial load + (in the preview iframe) refresh on the workspace's postMessage
+  // so pending edits appear without a full reload (which replays the preloader).
+  useEffect(() => {
+    void (async () => {
+      await loadRealisations()
+    })()
+
+    if (!previewToken || typeof window === "undefined") return
+    const onPreviewMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return
+      if (e.data?.source !== "cl-content-admin") return
+      if (e.data.type === "refresh-realisations") {
+        // Re-fetch the live list (after publish/cancel).
+        void loadRealisations()
+      } else if (
+        e.data.type === "preview-realisations" &&
+        Array.isArray(e.data.data)
+      ) {
+        // Apply the workspace's staged (un-published) state for live preview —
+        // staged images arrive as data: URLs and render directly.
+        setRealisations((e.data.data as ApiRealisation[]).map(reviveRealisation))
+      }
+    }
+    window.addEventListener("message", onPreviewMessage)
+    return () => window.removeEventListener("message", onPreviewMessage)
+  }, [previewToken, loadRealisations])
+
+  // Re-fetch réalisations when a tab becomes visible again, so a page left open
+  // before a publish in another tab shows the new images on return. Skipped in
+  // the preview iframe (driven by the workspace via postMessage).
+  useEffect(() => {
+    if (previewToken || typeof document === "undefined") return
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void loadRealisations()
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => document.removeEventListener("visibilitychange", onVisible)
+  }, [previewToken, loadRealisations])
+
+  const login = useCallback(async (loginEmail: string, password: string) => {
+    const supabase = supabaseBrowser()
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: loginEmail,
+      password,
+    })
+    // Invalid credentials → not ok (caller shows "identifiants invalides").
+    if (error) {
+      if (error.status === 400 || error.status === 401)
+        return { ok: false, mustChangePassword: false }
+      // Network / server / config error — re-throw for a distinct message.
+      throw error
+    }
+    // Authenticated, but enforce the allowlist (defence in depth).
+    if (!isAllowedAdmin(data.user)) {
+      await supabase.auth.signOut()
+      return { ok: false, mustChangePassword: false }
+    }
+    const mustChange = mustChangePasswordFor(data.user)
+    setIsAuthenticated(true)
+    setEmail(data.user?.email ?? "")
+    setMustChangePassword(mustChange)
+    return { ok: true, mustChangePassword: mustChange }
   }, [])
 
   const logout = useCallback(() => {
-    void api.auth.logout().catch(() => {})
+    void supabaseBrowser().auth.signOut().catch(() => {})
     setIsAuthenticated(false)
-    setUsername("")
+    setEmail("")
+    setMustChangePassword(false)
+  }, [])
+
+  // Replace the signed-in user's password and clear the must-change flag in the
+  // same update. On success Supabase fires USER_UPDATED → applyUser re-syncs.
+  const changePassword = useCallback(async (newPassword: string) => {
+    const supabase = supabaseBrowser()
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+      data: { must_change_password: false },
+    })
+    if (error) throw error
+    setMustChangePassword(false)
   }, [])
 
   // --- Jobs ---
@@ -257,10 +391,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     <AdminContext.Provider
       value={{
         isAuthenticated,
-        username,
+        authLoading,
+        email,
         jobs,
         login,
         logout,
+        mustChangePassword,
+        changePassword,
         addJob,
         updateJob,
         deleteJob,
@@ -274,6 +411,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         getRealisation,
         togglePinned,
         reorderRealisations,
+        refreshRealisations: loadRealisations,
+        previewEdit,
       }}
     >
       {children}

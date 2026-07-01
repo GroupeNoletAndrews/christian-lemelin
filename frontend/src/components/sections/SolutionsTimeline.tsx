@@ -10,7 +10,6 @@ import {
   useSyncExternalStore,
 } from "react"
 import { createPortal } from "react-dom"
-import Image from "next/image"
 import { useSearchParams } from "next/navigation"
 import {
   AnimatePresence,
@@ -22,6 +21,11 @@ import {
 import { ArrowUpRight, Plus, X } from "@phosphor-icons/react"
 import { SOLUTIONS_OVERVIEW, imageUrl, type SolutionIndexEntry } from "@/content"
 import { useLenis } from "@/components/providers/LenisProvider"
+import { hoverSlot } from "@/lib/sections-registry"
+import { PLACEHOLDER_SRC } from "@/lib/media"
+import { useSlotOverride } from "@/lib/section-preview"
+import { SlotImage } from "@/components/sections/SlotImage"
+import { ImagePlaceholder } from "@/components/sections/ImagePlaceholder"
 
 // /solutions — refonte « from scratch » façon skiper-ui « skiper19 »
 // (stroke-follows-scroll), réinterprétée pour notre contenu :
@@ -56,6 +60,24 @@ const FADE_OUT = 0.62 // > cette distance → carte invisible
 export type SolutionItem = SolutionIndexEntry & {
   intro: string
   highlights: { title: string; body?: string }[]
+}
+
+// Résout l'image d'aperçu d'une solution en respectant, dans l'ordre : l'override
+// mis en scène dans l'aperçu de l'admin (postMessage), l'override publié en base
+// (prop `images` via resolveSectionImages), puis le défaut seed baké dans le code.
+// Retourne "" quand le proprio n'a pas encore mis de photo (sentinelle prod
+// PLACEHOLDER_SRC) → l'appelant affiche <ImagePlaceholder /> à la place de l'image.
+function useHoverSrc(
+  item: SolutionItem,
+  images: Record<string, string>,
+  w: number,
+  h: number,
+): string {
+  const staged = useSlotOverride("solutions", hoverSlot(item.slug))
+  const resolved = staged ?? images[hoverSlot(item.slug)]
+  if (resolved === PLACEHOLDER_SRC) return ""
+  if (resolved) return resolved
+  return imageUrl(item.hoverImage, w, h)
 }
 
 // Tailles variées (max-width px + ratio d'image) — « plus petites / plus grosses ».
@@ -102,14 +124,17 @@ const SPRING = { type: "spring" as const, bounce: 0.04, duration: 0.55 }
 
 function SolutionZoom({
   item,
+  images,
   reduce,
   onClose,
 }: {
   item: SolutionItem
+  images: Record<string, string>
   reduce: boolean
   onClose: () => void
 }) {
   const closeRef = useRef<HTMLButtonElement>(null)
+  const src = useHoverSrc(item, images, 2000, 1300)
   useEffect(() => {
     closeRef.current?.focus()
   }, [])
@@ -144,15 +169,19 @@ function SolutionZoom({
         transition={reduce ? { duration: 0.4, ease: EASE_OUT } : SPRING}
         className="absolute inset-0 overflow-hidden"
       >
-        <motion.img
-          initial={{ scale: reduce ? 1.05 : 1 }}
-          animate={{ scale: reduce ? 1 : 1.12 }}
-          transition={{ duration: reduce ? 0.4 : 9, ease: reduce ? EASE_OUT : "easeOut" }}
-          src={imageUrl(item.hoverImage, 2000, 1300)}
-          alt={item.hoverImage.alt}
-          draggable={false}
-          className="h-full w-full object-cover"
-        />
+        {src ? (
+          <motion.img
+            initial={{ scale: reduce ? 1.05 : 1 }}
+            animate={{ scale: reduce ? 1 : 1.12 }}
+            transition={{ duration: reduce ? 0.4 : 9, ease: reduce ? EASE_OUT : "easeOut" }}
+            src={src}
+            alt={item.hoverImage.alt}
+            draggable={false}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <ImagePlaceholder />
+        )}
       </motion.div>
 
       {/* Voile dégradé pour la lisibilité du texte en bas. */}
@@ -198,16 +227,19 @@ function SolutionZoom({
 // ── Carte solution (contenu) ────────────────────────────────────────────────
 function SolutionCard({
   item,
+  images,
   ratio,
   align,
   onOpen,
 }: {
   item: SolutionItem
+  images: Record<string, string>
   ratio: string
   align: "left" | "right"
   onOpen: () => void
 }) {
   const end = align === "right"
+  const src = useHoverSrc(item, images, 1000, 760)
   return (
     <button
       type="button"
@@ -221,12 +253,16 @@ function SolutionCard({
       >
         {/* Conteneur source du morph (layoutId partagé avec le zoom plein cadre). */}
         <motion.div layoutId={`sol-${item.slug}`} className="absolute inset-0">
-          <motion.img
-            src={imageUrl(item.hoverImage, 1000, 760)}
-            alt={item.hoverImage.alt}
-            draggable={false}
-            className="h-full w-full object-cover grayscale transition-[filter] duration-700 ease-out group-hover:grayscale-0"
-          />
+          {src ? (
+            <motion.img
+              src={src}
+              alt={item.hoverImage.alt}
+              draggable={false}
+              className="h-full w-full object-cover grayscale transition-[filter] duration-700 ease-out group-hover:grayscale-0"
+            />
+          ) : (
+            <ImagePlaceholder />
+          )}
         </motion.div>
         <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
         <span className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors group-hover:bg-accent">
@@ -255,9 +291,17 @@ function SolutionCard({
 }
 
 // ── Repli reduced-motion : liste simple ─────────────────────────────────────
-function SimpleList({ data, onOpen }: { data: SolutionItem[]; onOpen: (i: number) => void }) {
+function SimpleList({
+  data,
+  images,
+  onOpen,
+}: {
+  data: SolutionItem[]
+  images: Record<string, string>
+  onOpen: (i: number) => void
+}) {
   return (
-    <section data-header-theme="light" className="bg-background">
+    <section id="solutions" data-header-theme="light" className="bg-background">
       <div className="mx-auto grid max-w-[1100px] gap-10 px-6 py-16 sm:grid-cols-2 md:px-10">
         {data.map((it, i) => (
           <button
@@ -268,12 +312,14 @@ function SimpleList({ data, onOpen }: { data: SolutionItem[]; onOpen: (i: number
             className="group block w-full text-left"
           >
             <span className="relative block aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border bg-surface">
-              <Image
-                src={imageUrl(it.hoverImage, 900, 675)}
+              <SlotImage
+                section="solutions"
+                slot={hoverSlot(it.slug)}
+                src={images[hoverSlot(it.slug)] ?? imageUrl(it.hoverImage, 900, 675)}
                 alt={it.hoverImage.alt}
-                fill
                 sizes="(min-width: 640px) 50vw, 100vw"
-                className="object-cover grayscale"
+                grayscale
+                className="object-cover"
               />
             </span>
             <span className="mt-3 block font-display text-2xl font-medium text-foreground">{it.title}</span>
@@ -286,7 +332,14 @@ function SimpleList({ data, onOpen }: { data: SolutionItem[]; onOpen: (i: number
 }
 
 // ── Section principale ──────────────────────────────────────────────────────
-export function SolutionsTimeline({ items }: { items?: SolutionItem[] }) {
+export function SolutionsTimeline({
+  items,
+  images = {},
+}: {
+  items?: SolutionItem[]
+  /** Overrides d'images publiés/mis en scène, par slot (resolveSectionImages). */
+  images?: Record<string, string>
+}) {
   const data: SolutionItem[] =
     items ??
     SOLUTIONS_OVERVIEW.index.map((it) => ({ ...it, intro: it.tagline, highlights: [] }))
@@ -466,7 +519,13 @@ export function SolutionsTimeline({ items }: { items?: SolutionItem[] }) {
     createPortal(
       <AnimatePresence>
         {selectedItem && (
-          <SolutionZoom key={selectedItem.slug} item={selectedItem} reduce={reduce} onClose={close} />
+          <SolutionZoom
+            key={selectedItem.slug}
+            item={selectedItem}
+            images={images}
+            reduce={reduce}
+            onClose={close}
+          />
         )}
       </AnimatePresence>,
       document.body,
@@ -475,7 +534,7 @@ export function SolutionsTimeline({ items }: { items?: SolutionItem[] }) {
   if (reduce) {
     return (
       <>
-        <SimpleList data={data} onOpen={open} />
+        <SimpleList data={data} images={images} onOpen={open} />
         {modal}
       </>
     )
@@ -485,6 +544,7 @@ export function SolutionsTimeline({ items }: { items?: SolutionItem[] }) {
     <>
       <section
         ref={ref}
+        id="solutions"
         data-header-theme="light"
         className="relative bg-background"
         style={{ height: `${SCENE_VH}vh` }}
@@ -563,6 +623,7 @@ export function SolutionsTimeline({ items }: { items?: SolutionItem[] }) {
                 >
                   <SolutionCard
                     item={it}
+                    images={images}
                     ratio={size.ratio}
                     align={isMobile ? "left" : side}
                     onOpen={() => open(i)}

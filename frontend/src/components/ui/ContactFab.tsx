@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { PaperPlaneTilt, ArrowUpRight } from "@phosphor-icons/react"
+import { useAdmin } from "@/lib/admin-context"
 
 // Floating "Nous joindre" button, bottom-right. Collapsed = a black, icon-only
 // round button (no text, can't be dismissed). Clicking it expands a black panel
@@ -13,6 +14,7 @@ export function ContactFab() {
   const reduce = useReducedMotion()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const { isAuthenticated, previewEdit } = useAdmin()
 
   // Click-outside / Escape collapse the panel (the button itself stays).
   useEffect(() => {
@@ -30,6 +32,12 @@ export function ContactFab() {
       document.removeEventListener("keydown", onKey)
     }
   }, [open])
+
+  // Hidden for a signed-in admin: on the public site the "Tableau de bord"
+  // shortcut (AdminQuickAccess) already sits bottom-right — two FABs would
+  // overlap — and inside the content-workspace preview iframe it would clutter
+  // the real-page preview. Placed AFTER all hooks so hook order stays stable.
+  if (isAuthenticated || previewEdit) return null
 
   return (
     <motion.div

@@ -57,7 +57,7 @@ export function Installations({ images = {} }: { images?: Record<string, string>
   return (
     <>
       {/* Hero */}
-      <section data-header-theme="light" className="bg-background pt-40">
+      <section id="installations" data-header-theme="light" className="bg-background pt-40">
         <div className="mx-auto max-w-[1400px] px-6 md:px-12">
           <h1 className="max-w-[20ch] font-display text-[clamp(2.5rem,7vw,5rem)] font-semibold leading-[1.0] tracking-[-0.02em] text-foreground">
             {hero.heading}

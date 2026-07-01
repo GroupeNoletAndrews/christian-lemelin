@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import { Installations } from "@/components/sections/Installations"
-import { ContactCTA } from "@/components/sections/ContactCTA"
 import { resolveSectionImages } from "@/lib/server/sections"
 
 export const metadata: Metadata = {
@@ -13,11 +12,6 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic"
 
 export default async function InstallationsPage() {
-  const { cta } = INSTALLATIONS
   const images = await resolveSectionImages("installations")
-  return (
-    <>
-      <Installations images={images} />
-    </>
-  )
+  return <Installations images={images} />
 }

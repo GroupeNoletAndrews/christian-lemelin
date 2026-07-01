@@ -44,16 +44,56 @@ import {
 import { useConfirm, useToast } from "@/components/admin/FeedbackProvider"
 import { useUnsavedChanges } from "@/components/admin/use-unsaved-changes"
 
-// Sections in the menu. `enabled` = wired into the editor. Réalisations uses the
-// DB-backed staged editor; the others are static-section slot editors.
-const SECTIONS = [
-  { id: "realisations", label: "Réalisations", enabled: true },
-  { id: "savoir-faire", label: "Savoir-faire", enabled: true },
-  { id: "a-propos", label: "À propos", enabled: true },
-  { id: "installations", label: "Installations", enabled: true },
-  { id: "materiaux", label: "Matériaux", enabled: true },
-  { id: "solutions", label: "Solutions", enabled: true },
-] as const
+// Editable content grouped BY PAGE, then by section — so the menu mirrors the
+// real site. `anchor` is the DOM id of the section on its page: the preview
+// scrolls there so the admin lands ON the section (e.g. Savoir-faire sits far
+// down the home page, not at the top). `enabled` = wired into the editor.
+// Réalisations uses the DB-backed staged editor; the others are static-section
+// slot editors.
+type SectionEntry = {
+  id: string
+  label: string
+  enabled: boolean
+  /** DOM id of the section on its page; the preview scrolls here on load. */
+  anchor?: string
+}
+type PageGroup = { page: string; sections: SectionEntry[] }
+
+const PAGES: PageGroup[] = [
+  {
+    page: "Accueil",
+    sections: [
+      { id: "savoir-faire", label: "Savoir-faire", enabled: true, anchor: "savoir-faire" },
+    ],
+  },
+  {
+    page: "Réalisations",
+    sections: [{ id: "realisations", label: "Réalisations", enabled: true }],
+  },
+  {
+    page: "À propos",
+    sections: [{ id: "a-propos", label: "À propos", enabled: true, anchor: "a-propos" }],
+  },
+  {
+    page: "Installations",
+    sections: [
+      { id: "installations", label: "Installations", enabled: true, anchor: "installations" },
+    ],
+  },
+  {
+    page: "Fabrication",
+    sections: [{ id: "materiaux", label: "Matériaux", enabled: true, anchor: "materiaux" }],
+  },
+  {
+    page: "Solutions",
+    sections: [{ id: "solutions", label: "Solutions", enabled: true, anchor: "solutions" }],
+  },
+]
+
+// Flat lookup of a section's metadata by id (active state is a section id).
+const SECTION_BY_ID: Record<string, SectionEntry> = Object.fromEntries(
+  PAGES.flatMap((p) => p.sections.map((s) => [s.id, s])),
+)
 
 function readAsDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -148,36 +188,40 @@ export default function ContentWorkspacePage() {
             Contenu du site
           </h1>
         </div>
-        <nav className="flex-1 overflow-y-auto p-3">
-          <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground-muted">
-            Sections
-          </p>
-          <ul className="space-y-1">
-            {SECTIONS.map((s) => (
-              <li key={s.id}>
-                <button
-                  disabled={!s.enabled}
-                  onClick={() => {
-                    if (s.enabled) void handleSelect(s.id)
-                  }}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left font-sans text-sm transition-colors ${
-                    active === s.id
-                      ? "bg-foreground text-white"
-                      : s.enabled
-                        ? "text-foreground hover:bg-surface-elevated"
-                        : "cursor-not-allowed text-foreground-muted/50"
-                  }`}
-                >
-                  {s.label}
-                  {!s.enabled && (
-                    <span className="font-mono text-[9px] uppercase tracking-[0.1em]">
-                      bientôt
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
+        <nav className="flex-1 space-y-5 overflow-y-auto p-3">
+          {PAGES.map((group) => (
+            <div key={group.page}>
+              <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground-muted">
+                {group.page}
+              </p>
+              <ul className="space-y-1">
+                {group.sections.map((s) => (
+                  <li key={s.id}>
+                    <button
+                      disabled={!s.enabled}
+                      onClick={() => {
+                        if (s.enabled) void handleSelect(s.id)
+                      }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left font-sans text-sm transition-colors ${
+                        active === s.id
+                          ? "bg-foreground text-white"
+                          : s.enabled
+                            ? "text-foreground hover:bg-surface-elevated"
+                            : "cursor-not-allowed text-foreground-muted/50"
+                      }`}
+                    >
+                      {s.label}
+                      {!s.enabled && (
+                        <span className="font-mono text-[9px] uppercase tracking-[0.1em]">
+                          bientôt
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </nav>
       </aside>
 
@@ -187,6 +231,7 @@ export default function ContentWorkspacePage() {
         <StaticSectionEditor
           key={active}
           section={active}
+          anchor={SECTION_BY_ID[active]?.anchor}
           onDirtyChange={setDirty}
         />
       )}
@@ -653,9 +698,11 @@ function SortableProjectRow({
 
 function StaticSectionEditor({
   section,
+  anchor,
   onDirtyChange,
 }: {
   section: string
+  anchor?: string
   onDirtyChange: (dirty: boolean) => void
 }) {
   const confirm = useConfirm()
@@ -704,6 +751,22 @@ function StaticSectionEditor({
     },
     [section],
   )
+
+  // Ask the preview to scroll to this section's anchor so the admin lands ON it
+  // (Savoir-faire, for one, is far down the home page). Sent a few times because
+  // the iframe's scroll listener (Lenis) may attach a beat after `onLoad`; the
+  // scroll is idempotent so repeats are harmless.
+  const postScroll = useCallback(() => {
+    if (!anchor) return
+    const send = () =>
+      iframeRef.current?.contentWindow?.postMessage(
+        { source: "cl-content-admin", type: "preview-scroll", anchor },
+        window.location.origin,
+      )
+    send()
+    window.setTimeout(send, 300)
+    window.setTimeout(send, 800)
+  }, [anchor])
 
   useEffect(() => {
     if (!loading) pushPreview(staged)
@@ -809,7 +872,10 @@ function StaticSectionEditor({
         <PreviewFrame
           src={`${previewPath}?preview=1`}
           iframeRef={iframeRef}
-          onLoad={() => pushPreview(staged)}
+          onLoad={() => {
+            pushPreview(staged)
+            postScroll()
+          }}
         />
       </div>
     </section>

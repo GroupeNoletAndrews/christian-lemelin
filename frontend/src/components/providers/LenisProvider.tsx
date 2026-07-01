@@ -38,5 +38,28 @@ export function LenisProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Content-workspace preview: the admin posts `preview-scroll` with a section
+  // anchor so the iframe lands ON that section (e.g. Savoir-faire sits far down
+  // the home page). Jump instantly (no smooth animation) and re-run once after
+  // layout settles, since lazy images/fonts shift the section's offset.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return
+      if (e.data?.source !== "cl-content-admin" || e.data?.type !== "preview-scroll") return
+      const anchor = e.data.anchor as string | undefined
+      if (!anchor) return
+      const scroll = () => {
+        const el = document.getElementById(anchor)
+        if (!el) return
+        if (lenis) lenis.scrollTo(el, { immediate: true, force: true, offset: -80 })
+        else el.scrollIntoView()
+      }
+      scroll()
+      window.setTimeout(scroll, 400)
+    }
+    window.addEventListener("message", onMessage)
+    return () => window.removeEventListener("message", onMessage)
+  }, [lenis])
+
   return <LenisContext.Provider value={lenis}>{children}</LenisContext.Provider>
 }

@@ -28,10 +28,8 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <LenisProvider>
-      {/* Marker that drives the home-only "no blue" theming. globals.css uses
-          `body:has([data-home-neutral])` to neutralise the accent across the
-          whole page (header/footer/sections) — see DESIGN.md. */}
-      {isHome && <span data-home-neutral hidden aria-hidden />}
+      {/* The accent is neutral black site-wide now (globals.css "No blue"),
+          so no per-page marker is needed. */}
       <Preloader />
       <CustomScrollbar />
       <Header />

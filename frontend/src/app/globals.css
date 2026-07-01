@@ -17,33 +17,46 @@
   --font-display: var(--font-onest);
   --font-sans: var(--font-onest);
   --font-mono: var(--font-fragment-mono);
-
-  /* Marquee (components/ui/marquee.tsx — DESIGN.md §5). `--duration`/`--gap`
-     are set per instance; inlined here so they resolve on the marquee element. */
-  --animate-marquee: marquee var(--duration, 40s) linear infinite;
-  --animate-marquee-vertical: marquee-vertical var(--duration, 40s) linear infinite;
 }
 
 /* Accent kept as a runtime variable (NOT inlined) so utilities compile to
-   `var(--color-accent)` and the value can be overridden per scope — see
-   "Home — no blue" below. Internal pages keep the OPUS electric blue. */
+   `var(--color-accent)` and the value can be overridden per scope (dark sections
+   flip it to white — see "No blue" below). Client request: NO electric blue
+   anywhere — the accent is neutral black across the whole site AND admin. */
 @theme {
-  --color-accent: #0048f9;       /* OPUS electric blue */
-  --color-accent-hover: #0039c4; /* derived — OPUS defines no hover */
+  --color-accent: #141414;       /* neutral near-black (matches foreground) */
+  --color-accent-hover: #000000; /* derived */
 }
 
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(calc(-100% - var(--gap, 1rem))); }
+/* Marquee (components/ui/marquee.tsx — DESIGN.md §5).
+   Two Tailwind-v4 gotchas handled here:
+   1. @keyframes MUST live inside a @theme block or the compiler purges them.
+   2. The animation is applied via explicit utilities (below) instead of an
+      `--animate-*` theme var, because a theme var collapses `var(--duration)`
+      to its :root fallback (40s) — declaring it on the class keeps --duration /
+      --gap resolving PER INSTANCE off the marquee element. */
+@theme {
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(calc(-100% - var(--gap, 1rem))); }
+  }
+  @keyframes marquee-vertical {
+    from { transform: translateY(0); }
+    to { transform: translateY(calc(-100% - var(--gap, 1rem))); }
+  }
 }
-@keyframes marquee-vertical {
-  from { transform: translateY(0); }
-  to { transform: translateY(calc(-100% - var(--gap, 1rem))); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .animate-marquee,
+@layer utilities {
+  .animate-marquee {
+    animation: marquee var(--duration, 40s) linear infinite;
+  }
   .animate-marquee-vertical {
-    animation: none !important;
+    animation: marquee-vertical var(--duration, 40s) linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee,
+    .animate-marquee-vertical {
+      animation: none !important;
+    }
   }
 }
 
@@ -122,39 +135,34 @@ body {
   }
 }
 
-/* ── Home page — no blue ───────────────────────────────────────────────────
-   Client request: the home page drops the electric-blue accent entirely.
-   Everything that uses the accent token turns neutral black. We re-theme the
-   `--color-accent` variable on <body> via :has() so it cascades into the
-   header, footer and every section — including shared components (ArrowLink,
-   buttons) — WITHOUT touching internal pages, which keep the blue. The marker
-   `[data-home-neutral]` is rendered by SiteChrome only on "/". See DESIGN.md. */
-body:has([data-home-neutral]) {
-  --color-accent: #141414;       /* neutral near-black (matches foreground) */
-  --color-accent-hover: #000000;
-}
-/* Dark sections (Hero, SavoirFaire, Solutions, ContactCTA…) would hide a black
-   accent on a near-black background — flip the accent to white inside them.
-   They already carry data-header-theme="dark". */
-body:has([data-home-neutral]) [data-header-theme="dark"] {
+/* ── No blue, site-wide ────────────────────────────────────────────────────
+   Client request: drop the electric-blue accent entirely, EVERYWHERE (public
+   pages + admin). The accent token is neutral black by default (set in @theme
+   above) so it cascades into the header, footer, every section and admin —
+   including shared components (ArrowLink, buttons, the "Menu" pill). Dark
+   sections flip it to white so it stays visible. See DESIGN.md. */
+/* Dark sections (Hero, SavoirFaire, Solutions, ContactCTA, Footer…) would hide a
+   black accent on a near-black background — flip the accent to white inside
+   them. They already carry data-header-theme="dark". */
+[data-header-theme="dark"] {
   --color-accent: #ffffff;
   --color-accent-hover: rgba(255, 255, 255, 0.85);
 }
 /* …but a `bg-accent` button on a dark section is now white: keep its label
    dark so it stays readable (e.g. ContactCTA "Nous joindre"). Harmless on the
    text-less accent dots. */
-body:has([data-home-neutral]) [data-header-theme="dark"] .bg-accent {
+[data-header-theme="dark"] .bg-accent {
   color: #141414;
 }
-/* Keep focus ring + text selection neutral on the home page too. */
-body:has([data-home-neutral]) *:focus-visible {
+/* Focus ring + text selection stay neutral (never the browser blue). */
+*:focus-visible {
   outline-color: #141414;
 }
-body:has([data-home-neutral]) ::selection {
+::selection {
   background-color: #141414;
   color: #ffffff;
 }
-body:has([data-home-neutral]) ::-moz-selection {
+::-moz-selection {
   background-color: #141414;
   color: #ffffff;
 }

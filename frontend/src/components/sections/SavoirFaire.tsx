@@ -108,6 +108,7 @@ export function SavoirFaire({ images }: { images?: Record<string, string> }) {
 
   return (
     <section
+      id="savoir-faire"
       data-header-theme="dark"
       className="bg-background px-3 py-3 md:px-4 md:py-4"
     >

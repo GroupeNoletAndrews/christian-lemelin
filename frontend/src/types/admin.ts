@@ -17,6 +17,8 @@ export interface Realisation {
   images: string[]
   /** Pinned réalisations appear on the home page (max 6). */
   pinned: boolean
+  /** Whether it appears in the /realisations collection (independent of pinned). */
+  inCollection: boolean
   createdAt: Date
   updatedAt: Date
 }

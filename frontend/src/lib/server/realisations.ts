@@ -31,6 +31,7 @@ export async function createRealisation(dto: {
   name: string
   images: string[]
   pinned?: boolean
+  inCollection?: boolean
 }) {
   // Silently un-pin if the cap is full (matches the original addRealisation).
   let pinned = dto.pinned ?? false
@@ -42,13 +43,19 @@ export async function createRealisation(dto: {
   const max = await prisma.realisation.aggregate({ _max: { position: true } })
   const position = (max._max.position ?? -1) + 1
   return prisma.realisation.create({
-    data: { name: dto.name, images: dto.images, pinned, position },
+    data: {
+      name: dto.name,
+      images: dto.images,
+      pinned,
+      inCollection: dto.inCollection ?? true,
+      position,
+    },
   })
 }
 
 export async function updateRealisation(
   id: string,
-  dto: { name: string; images: string[]; pinned?: boolean },
+  dto: { name: string; images: string[]; pinned?: boolean; inCollection?: boolean },
 ) {
   const { updated, removed } = await prisma.$transaction(async (tx) => {
     const current = await tx.realisation.findUnique({ where: { id } })
@@ -71,7 +78,12 @@ export async function updateRealisation(
 
     const updated = await tx.realisation.update({
       where: { id },
-      data: { name: dto.name, images: dto.images, pinned: wantPinned },
+      data: {
+        name: dto.name,
+        images: dto.images,
+        pinned: wantPinned,
+        inCollection: dto.inCollection ?? current.inCollection,
+      },
     })
     return { updated, removed }
   })

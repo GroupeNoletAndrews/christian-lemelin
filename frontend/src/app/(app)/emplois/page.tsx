@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { JobAccordion } from "@/components/emplois/JobAccordion"
 
 export const metadata: Metadata = {
@@ -19,6 +20,17 @@ export default function EmploisPage() {
           <p className="mt-6 max-w-[52ch] text-lg leading-relaxed text-foreground-muted">
             Découvrez nos offres d&apos;emploi et prenez part à l&apos;aventure chez Entreprises
             Christian Lemelin.
+          </p>
+          <p className="mt-4 max-w-[60ch] text-sm leading-relaxed text-foreground-muted">
+            Les candidatures et CV reçus sont traités confidentiellement, conformément à
+            notre{" "}
+            <Link
+              href="/confidentialite"
+              className="underline decoration-border underline-offset-2 transition-colors hover:text-foreground"
+            >
+              politique de confidentialité
+            </Link>
+            .
           </p>
         </div>
       </section>

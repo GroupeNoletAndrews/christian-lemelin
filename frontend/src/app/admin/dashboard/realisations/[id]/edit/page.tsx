@@ -27,6 +27,7 @@ export default function RealisationFormPage() {
   const [images, setImages] = useState<string[]>([]);
   const [pinned, setPinned] = useState(false);
   const [wasPinned, setWasPinned] = useState(false);
+  const [inCollection, setInCollection] = useState(true);
   const [error, setError] = useState("");
 
   // Load réalisation when editing
@@ -38,6 +39,7 @@ export default function RealisationFormPage() {
         setImages(r.images);
         setPinned(r.pinned);
         setWasPinned(r.pinned);
+        setInCollection(r.inCollection);
       }
     }
   }, [isEditMode, id, getRealisation]);
@@ -75,6 +77,7 @@ export default function RealisationFormPage() {
       name: name.trim(),
       images,
       pinned: pinned && canPin,
+      inCollection,
     };
 
     try {
@@ -83,7 +86,7 @@ export default function RealisationFormPage() {
       } else {
         await addRealisation(data);
       }
-      router.push("/admin/dashboard#realisations");
+      router.push("/admin/dashboard/content");
     } catch {
       setError("L'enregistrement a échoué. Veuillez réessayer.");
     }
@@ -100,7 +103,7 @@ export default function RealisationFormPage() {
       <header className="bg-surface border-b border-border sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-6 py-5 flex items-center gap-4">
           <Link
-            href="/admin/dashboard#realisations"
+            href="/admin/dashboard/content"
             aria-label="Retour"
             className="p-2 hover:bg-surface-elevated rounded-lg transition-colors text-foreground"
           >
@@ -177,6 +180,28 @@ export default function RealisationFormPage() {
             </label>
           </div>
 
+          {/* Show in the /realisations collection (independent of home). */}
+          <div className="rounded-xl border border-border bg-background p-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={inCollection}
+                onChange={(e) => setInCollection(e.target.checked)}
+                className="mt-1 h-4 w-4 accent-accent"
+              />
+              <span>
+                <span className="font-sans text-sm font-medium text-foreground">
+                  Afficher dans la collection
+                </span>
+                <span className="mt-1 block font-sans text-xs text-foreground-muted">
+                  Apparaît sur la page « Réalisations ». Indépendant de l&apos;épinglage
+                  à l&apos;accueil — une réalisation peut être sur l&apos;accueil, dans la
+                  collection, les deux, ou aucune.
+                </span>
+              </span>
+            </label>
+          </div>
+
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-600 font-sans">{error}</p>
@@ -186,7 +211,7 @@ export default function RealisationFormPage() {
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Link
-              href="/admin/dashboard#realisations"
+              href="/admin/dashboard/content"
               className="flex-1 flex items-center justify-center px-6 py-3 border border-border text-foreground rounded-full hover:bg-surface-elevated hover:border-foreground/30 transition-colors font-sans text-sm font-medium"
             >
               Annuler

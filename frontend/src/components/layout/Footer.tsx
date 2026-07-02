@@ -4,8 +4,9 @@ import {
   InstagramLogoIcon,
   FacebookLogoIcon,
 } from "@phosphor-icons/react/dist/ssr"
-import { CONTACT, COMPANY } from "@/content"
+import { CONTACT, COMPANY, HOURS } from "@/content"
 import { mediaUrl, SITE_MEDIA } from "@/lib/media"
+import { openConsentManager } from "@/lib/consent"
 
 // Footer aligné sur la brochure PDF : bandeau « Durabilité & innovation », bloc
 // contact (coordonnées de site.ts), puis colonnes ENTREPRISE / MÉDIAS / NOS
@@ -80,7 +81,7 @@ export function Footer() {
         </div>
 
         {/* Colonnes de liens */}
-        <div className="mt-14 grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-3">
+        <div className="mt-14 grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-4">
           {columns.map((col) => (
             <div key={col.title}>
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">
@@ -100,6 +101,21 @@ export function Footer() {
               </ul>
             </div>
           ))}
+          {/* Heures d'ouverture — même gabarit que les colonnes, volontairement discret */}
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">
+              Heures d&apos;ouverture
+            </p>
+            <ul className="mt-5 space-y-3">
+              {HOURS.map((h) => (
+                <li key={h.days} className="text-sm leading-snug">
+                  <span className="text-white/70">{h.days}</span>
+                  <br />
+                  <span className="text-white/45">{h.hours}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
         {/* Wordmark de marque (logo blanc sur fond sombre) */}
@@ -126,6 +142,21 @@ export function Footer() {
             >
               G.N.A
             </a>
+            {" · "}
+            <Link
+              href="/confidentialite"
+              className="text-white/70 underline decoration-white/30 underline-offset-2 transition-colors hover:text-white hover:decoration-white"
+            >
+              Confidentialité
+            </Link>
+            {" · "}
+            <button
+              type="button"
+              onClick={openConsentManager}
+              className="text-white/70 underline decoration-white/30 underline-offset-2 transition-colors hover:text-white hover:decoration-white"
+            >
+              Gérer les cookies
+            </button>
           </p>
           <div className="flex items-center gap-3">
             {socials.map(({ Icon, label, href }) => (

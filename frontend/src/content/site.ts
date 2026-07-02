@@ -15,3 +15,11 @@ export const COMPANY = {
   shortName: "Entreprises Christian Lemelin",
   tagline: "Fabrication métallique sur mesure — Québec",
 }
+
+// Heures d'ouverture de l'atelier (affichées discrètement au footer).
+// Jours identiques regroupés pour rester compact.
+export const HOURS: { days: string; hours: string }[] = [
+  { days: "Lundi – Jeudi", hours: "7 h 30 – 12 h · 12 h 30 – 16 h 15" },
+  { days: "Vendredi", hours: "7 h 30 – 12 h" },
+  { days: "Samedi – Dimanche", hours: "Fermé" },
+]

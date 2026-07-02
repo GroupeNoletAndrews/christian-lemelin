@@ -36,15 +36,30 @@ model Realisation {
   id        String   @id @default(uuid()) @db.Uuid
   name      String
   images    String[]
+  // Independent membership: `pinned` = shown on the home page (max N);
+  // `inCollection` = shown on the /realisations page. A réalisation can be on
+  // home only, in the collection only, both, or neither (draft).
   pinned    Boolean  @default(false)
+  inCollection Boolean @default(true) @map("in_collection")
   // Admin-controlled display order (ascending). New réalisations append to the end.
   position  Int      @default(0)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([pinned])
+  @@index([inCollection])
   @@index([position])
   @@map("realisations")
+}
+
+// Generic key/value site settings (layout choices, etc.). Reusable across the
+// app so a small config can persist without a bespoke table each time.
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("site_settings")
 }
 
 /// Published image override for a static-section slot (e.g. section "savoir-faire",

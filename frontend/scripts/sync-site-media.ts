@@ -90,6 +90,10 @@ async function main(): Promise<void> {
       .upload(item.key, bytes, {
         contentType: contentType(item.source),
         upsert: true,
+        // Long browser/CDN cache. Static assets (logos, hero video) rarely
+        // change and a re-sync overwrites in place — bump the filename (or add
+        // a version query where it's rendered) if a stale copy ever matters.
+        cacheControl: "31536000",
       })
     if (error) {
       console.error(`  ✗ ${item.key} — ${error.message}`)

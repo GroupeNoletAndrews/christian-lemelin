@@ -60,6 +60,12 @@
   }
 }
 
+/* Admin content-workspace preview (html.cl-preview, set pre-paint in layout.tsx):
+   hide the intro preloader before it can flash while re-loading the preview. */
+html.cl-preview [data-cl-preloader] {
+  display: none !important;
+}
+
 html {
   color-scheme: light;
 }

@@ -1,7 +1,7 @@
 // Barrel for the hardcoded marketing content. Import from "@/content".
 export * from "./types"
 export { picsum, imageUrl } from "./image"
-export { CONTACT, COMPANY } from "./site"
+export { CONTACT, COMPANY, HOURS } from "./site"
 export { MATERIALS, MATERIAL_SLUGS, getMaterial } from "./materials"
 export {
   SOLUTIONS_OVERVIEW,

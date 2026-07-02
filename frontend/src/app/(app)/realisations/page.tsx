@@ -1,6 +1,12 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { RealisationsGallery } from "@/components/realisations/RealisationsGallery"
+import { getSiteSettings } from "@/lib/server/site-settings"
+import {
+  SETTING_KEYS,
+  asRealisationsLayout,
+  DEFAULT_REALISATIONS_COLLECTION_LAYOUT,
+} from "@/lib/layouts"
 
 export const metadata: Metadata = {
   title: "Réalisations",
@@ -8,7 +14,22 @@ export const metadata: Metadata = {
     "Nos projets en métal — de la cuisine professionnelle à la façade architecturale, fabriqués sur mesure dans nos ateliers à Québec.",
 }
 
-export default function RealisationsPage() {
+// Reads the collection layout choice at request time.
+export const dynamic = "force-dynamic"
+
+export default async function RealisationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ preview?: string; layout?: string }>
+}) {
+  const sp = await searchParams
+  const settings = await getSiteSettings([SETTING_KEYS.realisationsCollectionLayout])
+  const saved = asRealisationsLayout(
+    settings[SETTING_KEYS.realisationsCollectionLayout],
+    DEFAULT_REALISATIONS_COLLECTION_LAYOUT,
+  )
+  // Admin preview may stage a layout via ?layout=… before publishing.
+  const layout = sp.preview ? asRealisationsLayout(sp.layout, saved) : saved
   return (
     <div className="min-h-screen bg-background" data-header-theme="light">
       {/* Hero */}
@@ -25,7 +46,7 @@ export default function RealisationsPage() {
       </section>
 
       <Suspense>
-        <RealisationsGallery />
+        <RealisationsGallery layout={layout} />
       </Suspense>
     </div>
   )

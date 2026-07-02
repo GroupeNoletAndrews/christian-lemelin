@@ -60,6 +60,7 @@ export interface ApiRealisation {
   name: string
   images: string[]
   pinned: boolean
+  inCollection: boolean
   createdAt: string
   updatedAt: string
 }
@@ -77,6 +78,7 @@ export interface RealisationInput {
   name: string
   images: string[]
   pinned: boolean
+  inCollection?: boolean
 }
 
 /** One editable image slot of a static section (admin view). */
@@ -182,6 +184,15 @@ export const api = {
           body: JSON.stringify({ changes }),
         }),
     },
+  },
+  // Admin site settings — small key/value config (layout choices).
+  settings: {
+    get: () => request<Record<string, string>>("/admin/settings"),
+    set: (entries: Record<string, string>) =>
+      request<{ ok: true }>("/admin/settings", {
+        method: "POST",
+        body: JSON.stringify(entries),
+      }),
   },
   // Admin media — signed upload to an exact storage key (overwrite in place).
   media: {

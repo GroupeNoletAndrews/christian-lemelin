@@ -60,6 +60,18 @@ export const MEDIA_UNOPTIMIZED = /\/\/(127\.0\.0\.1|localhost|0\.0\.0\.0)(:|\/|$
 )
 
 /**
+ * Per-src version of {@link MEDIA_UNOPTIMIZED} for slots whose src can be an
+ * in-browser staged preview: true only for data:/blob: URLs (the optimizer
+ * can't fetch those) and media served by a local/private host. Everything else
+ * (prod Supabase, /public assets) goes through the Next optimizer so prod gets
+ * resized/AVIF variants cached at the edge.
+ */
+export function isUnoptimizedSrc(src: string): boolean {
+  if (/^(data:|blob:)/i.test(src)) return true
+  return /^https?:\/\/(127\.0\.0\.1|localhost|0\.0\.0\.0)(:|\/|$)/i.test(src)
+}
+
+/**
  * mediaUrl + a cache-busting version query so an in-place overwrite (same storage
  * key) is shown fresh instead of the previously-rendered image. Pass-through
  * values (data:/blob:/http/local) are returned untouched. `version` is typically
@@ -67,7 +79,10 @@ export const MEDIA_UNOPTIMIZED = /\/\/(127\.0\.0\.1|localhost|0\.0\.0\.0)(:|\/|$
  */
 export function imgSrc(keyOrUrl: string, version?: string | number): string {
   const url = mediaUrl(keyOrUrl)
-  if (version == null || /^(data:|blob:)/i.test(url)) return url
+  // No version on data:/blob: (meaningless) or local "/…" paths: files under
+  // /public only change with a deploy, and the Next optimizer rejects local
+  // URLs carrying a query string unless images.localPatterns allows it.
+  if (version == null || /^(data:|blob:)/i.test(url) || url.startsWith("/")) return url
   return `${url}${url.includes("?") ? "&" : "?"}v=${version}`
 }
 

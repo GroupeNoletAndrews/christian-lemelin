@@ -11,7 +11,7 @@ import {
 } from "motion/react"
 import { PencilSimple } from "@phosphor-icons/react"
 import { Realisation } from "@/types/admin"
-import { imgSrc } from "@/lib/media"
+import { imgSrc, isUnoptimizedSrc } from "@/lib/media"
 
 // Alternating aspect ratios give the masonry layout its rhythm.
 const RATIOS = ["aspect-[4/3]", "aspect-[4/5]", "aspect-[4/5]", "aspect-[4/3]"]
@@ -33,6 +33,7 @@ export function RealisationCard({
   href,
   onSelect,
   onEdit,
+  noMargin = false,
 }: {
   realisation: Realisation
   index?: number
@@ -43,6 +44,8 @@ export function RealisationCard({
   onSelect?: () => void
   /** Content-workspace preview only: shows a pencil to edit this réalisation. */
   onEdit?: () => void
+  /** Drop the masonry bottom-margin (for grid / carousel layouts). */
+  noMargin?: boolean
 }) {
   const cardRatio = ratio ?? RATIOS[index % RATIOS.length]
   const images = realisation.images.length ? realisation.images : [""]
@@ -87,7 +90,7 @@ export function RealisationCard({
 
   return (
     <motion.article
-      className="group relative mb-6 break-inside-avoid"
+      className={`group relative break-inside-avoid ${noMargin ? "" : "mb-6"}`}
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.1 }}
@@ -106,21 +109,23 @@ export function RealisationCard({
               style={{ y: reduce ? 0 : y }}
               className="absolute inset-x-0 -top-[35%] h-[170%] will-change-transform"
             >
-              {images.map((src, i) =>
-                src ? (
+              {images.map((src, i) => {
+                if (!src) return null
+                const url = imgSrc(src, realisation.updatedAt.getTime())
+                return (
                   <Image
                     key={i}
-                    src={imgSrc(src, realisation.updatedAt.getTime())}
+                    src={url}
                     alt={realisation.name}
                     fill
-                    unoptimized
+                    unoptimized={isUnoptimizedSrc(url)}
                     sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                     className={`object-cover transition-opacity duration-500 ${
                       i === active ? "opacity-100" : "opacity-0"
                     }`}
                   />
-                ) : null
-              )}
+                )
+              })}
             </motion.div>
 
             {/* Carousel indicator (fixed on the frame, not parallaxed) */}

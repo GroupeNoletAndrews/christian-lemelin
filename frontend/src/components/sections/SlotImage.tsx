@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useSlotOverride, useSlotStyleOverride } from "@/lib/section-preview"
-import { PLACEHOLDER_SRC } from "@/lib/media"
+import { PLACEHOLDER_SRC, isUnoptimizedSrc } from "@/lib/media"
 import { slotBoxCss, slotImgCss, type SlotStyle } from "@/lib/section-style"
 import { usePublishedSlotStyle } from "@/components/sections/SectionStyle"
 import { ImagePlaceholder } from "@/components/sections/ImagePlaceholder"
@@ -55,7 +55,7 @@ export function SlotImage({
       src={resolved}
       alt={alt}
       fill
-      unoptimized
+      unoptimized={isUnoptimizedSrc(resolved)}
       priority={priority}
       sizes={sizes}
       data-cl-section={section}

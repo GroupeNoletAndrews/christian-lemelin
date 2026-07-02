@@ -19,6 +19,7 @@ export const RealisationSchema = z.object({
   name: z.string().min(1),
   images: z.array(z.string()),
   pinned: z.boolean().optional(),
+  inCollection: z.boolean().optional(),
 })
 
 export const ReorderSchema = z.object({

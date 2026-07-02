@@ -51,6 +51,7 @@ interface AdminContextType {
   getRealisation: (id: string) => Realisation | undefined
   /** Toggle pinned state. Returns false if it would exceed the pin limit. */
   togglePinned: (id: string) => Promise<boolean>
+  toggleInCollection: (id: string) => Promise<void>
   /** Persist a new réalisations order (drag-and-drop). Optimistic, reverts on failure. */
   reorderRealisations: (orderedIds: string[]) => Promise<void>
   /** Re-fetch réalisations from the server into the shared state — so surfaces
@@ -86,6 +87,7 @@ function reviveRealisation(r: ApiRealisation): Realisation {
     name: r.name,
     images: Array.isArray(r.images) ? r.images : [],
     pinned: r.pinned,
+    inCollection: r.inCollection ?? true,
     createdAt: new Date(r.createdAt),
     updatedAt: new Date(r.updatedAt),
   }
@@ -313,6 +315,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         name: data.name,
         images: data.images,
         pinned: data.pinned,
+        inCollection: data.inCollection,
       })
       // New réalisations go to the end (matches the backend's position order).
       setRealisations((prev) => [...prev, reviveRealisation(created)])
@@ -329,6 +332,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         name: data.name,
         images: data.images,
         pinned: data.pinned,
+        inCollection: data.inCollection,
       })
       setRealisations((prev) =>
         prev.map((r) => (r.id === id ? reviveRealisation(updated) : r))
@@ -361,6 +365,25 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       throw e
     }
   }, [])
+
+  // Toggle whether a réalisation appears in the /realisations collection
+  // (independent of home pinning). Reuses the update endpoint.
+  const toggleInCollection = useCallback(
+    async (id: string) => {
+      const current = realisations.find((r) => r.id === id)
+      if (!current) return
+      const updated = await api.realisations.update(id, {
+        name: current.name,
+        images: current.images,
+        pinned: current.pinned,
+        inCollection: !current.inCollection,
+      })
+      setRealisations((prev) =>
+        prev.map((r) => (r.id === id ? reviveRealisation(updated) : r))
+      )
+    },
+    [realisations]
+  )
 
   const reorderRealisations = useCallback(
     async (orderedIds: string[]) => {
@@ -410,6 +433,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         deleteRealisation,
         getRealisation,
         togglePinned,
+        toggleInCollection,
         reorderRealisations,
         refreshRealisations: loadRealisations,
         previewEdit,

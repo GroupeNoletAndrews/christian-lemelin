@@ -8,6 +8,7 @@ import { motion } from "motion/react";
 import { useAdmin } from "@/lib/admin-context";
 import { useToast } from "@/components/admin/FeedbackProvider";
 import { mediaUrl, SITE_MEDIA, MEDIA_UNOPTIMIZED } from "@/lib/media";
+import { passwordSchema, yupErrors } from "@/lib/forms";
 
 const MIN_LENGTH = 8;
 
@@ -25,6 +26,7 @@ export default function ChangePasswordPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
   // The admin layout redirects signed-out visitors to /admin — render nothing
@@ -36,14 +38,10 @@ export default function ChangePasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password.length < MIN_LENGTH) {
-      setError(`Le mot de passe doit contenir au moins ${MIN_LENGTH} caractères.`);
-      return;
-    }
-    if (password !== confirm) {
-      setError("Les mots de passe ne correspondent pas.");
-      return;
-    }
+    // Validation Yup (le <form> est noValidate — pas de validation navigateur).
+    const fieldErrors = await yupErrors(passwordSchema, { password, confirm });
+    setErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) return;
     setIsLoading(true);
     try {
       await changePassword(password);
@@ -68,7 +66,7 @@ export default function ChangePasswordPage() {
   };
 
   const inputClass =
-    "w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder-foreground-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all font-sans";
+    "w-full px-4 py-3 rounded-lg border bg-background text-foreground placeholder-foreground-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all font-sans";
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-16">
@@ -104,7 +102,7 @@ export default function ChangePasswordPage() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="bg-surface rounded-2xl border border-border p-8"
         >
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
             <div>
               <label
                 htmlFor="password"
@@ -119,9 +117,12 @@ export default function ChangePasswordPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={`Au moins ${MIN_LENGTH} caractères`}
-                className={inputClass}
-                required
+                aria-invalid={!!errors.password}
+                className={`${inputClass} ${errors.password ? "border-red-400" : "border-border"}`}
               />
+              {errors.password && (
+                <p className="mt-1.5 font-sans text-xs text-red-600">{errors.password}</p>
+              )}
             </div>
 
             <div>
@@ -138,9 +139,12 @@ export default function ChangePasswordPage() {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="Retapez le mot de passe"
-                className={inputClass}
-                required
+                aria-invalid={!!errors.confirm}
+                className={`${inputClass} ${errors.confirm ? "border-red-400" : "border-border"}`}
               />
+              {errors.confirm && (
+                <p className="mt-1.5 font-sans text-xs text-red-600">{errors.confirm}</p>
+              )}
             </div>
 
             {error && (

@@ -166,6 +166,22 @@ export const SECTION_SLOTS: SectionDef[] = [
     caps: REFRAME_ONLY_CAPS,
     slots: buildSolutionSlots(),
   },
+  {
+    id: "admin-login",
+    label: "Connexion admin",
+    previewPath: "/admin",
+    revalidate: ["/admin"],
+    caps: REFRAME_ONLY_CAPS,
+    slots: [
+      {
+        id: "hero",
+        label: "Image de connexion",
+        source: "site-media",
+        default: SITE_MEDIA.savoirFaire.fabrication,
+        aspect: "3/4",
+      },
+    ],
+  },
 ]
 
 export function getSection(id: string): SectionDef | undefined {

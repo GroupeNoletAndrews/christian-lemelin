@@ -2,7 +2,7 @@
 
 import { ParallaxImage } from "@/components/ui/ParallaxImage"
 import { useSlotOverride, useSlotStyleOverride } from "@/lib/section-preview"
-import { PLACEHOLDER_SRC } from "@/lib/media"
+import { PLACEHOLDER_SRC, isUnoptimizedSrc } from "@/lib/media"
 import { slotBoxCss, type SlotStyle } from "@/lib/section-style"
 import { usePublishedSlotStyle } from "@/components/sections/SectionStyle"
 import { ImagePlaceholder } from "@/components/sections/ImagePlaceholder"
@@ -51,7 +51,7 @@ export function SlotParallaxImage({
       alt={alt}
       sizes={sizes}
       amount={amount}
-      unoptimized={override ? true : unoptimized}
+      unoptimized={unoptimized || isUnoptimizedSrc(resolved)}
       objectPosition={style?.objectPosition ?? undefined}
       scale={style?.zoom ?? undefined}
       grayscale={style?.grayscale ?? grayscale}

@@ -2,6 +2,11 @@ import { api } from "./api"
 import { fileToCompressedBlob } from "./image-utils"
 import { uploadToBucket } from "./supabase-browser"
 
+// Public site images are requested with a versioned URL (?v=updatedAt), so
+// Supabase can serve them with a year-long Cache-Control — an in-place
+// replacement is busted by the new version query, never by TTL expiry.
+const IMAGE_CACHE_CONTROL = "31536000"
+
 /**
  * Compress a réalisation image and upload it straight to Supabase Storage. The
  * object is named after the project + a 1-based picture number; returns the
@@ -18,7 +23,7 @@ export async function uploadRealisationImage(
     index,
     "image.jpg", // compressed to JPEG above; only the extension is used server-side
   )
-  await uploadToBucket(bucket, path, token, blob)
+  await uploadToBucket(bucket, path, token, blob, { cacheControl: IMAGE_CACHE_CONTROL })
   return path
 }
 
@@ -50,7 +55,7 @@ export async function uploadRealisationImages(
 export async function uploadImageToKey(file: File, key: string): Promise<string> {
   const blob = await fileToCompressedBlob(file)
   const { bucket, path, token } = await api.media.uploadUrlForKey(key)
-  await uploadToBucket(bucket, path, token, blob)
+  await uploadToBucket(bucket, path, token, blob, { cacheControl: IMAGE_CACHE_CONTROL })
   return path
 }
 

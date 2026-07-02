@@ -7,6 +7,7 @@ import { LenisProvider } from "@/components/providers/LenisProvider"
 import { Preloader } from "@/components/ui/Preloader"
 import { CustomScrollbar } from "@/components/ui/CustomScrollbar"
 import { ContactFab } from "@/components/ui/ContactFab"
+import { ConsentBanner } from "@/components/ConsentBanner"
 
 /**
  * Renders the public site chrome (nav, footer, preloader, smooth scroll,
@@ -28,8 +29,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <LenisProvider>
-      {/* The accent is neutral black site-wide now (globals.css "No blue"),
-          so no per-page marker is needed. */}
+      {/* The Preloader self-skips inside the admin preview iframe (html.cl-preview). */}
       <Preloader />
       <CustomScrollbar />
       <Header />
@@ -39,6 +39,9 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
           small floating "Nous joindre" pop-out points to the contact form
           (skipped on /contact itself). */}
       {!isHome && !isContact && <ContactFab />}
+      {/* Consentement témoins — public seulement (l'admin/maintenance sortent
+          plus haut) ; se masque seule dans l'aperçu admin et après un choix. */}
+      <ConsentBanner />
     </LenisProvider>
   )
 }

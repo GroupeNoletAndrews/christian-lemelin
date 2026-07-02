@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { X, CheckCircle, Paperclip } from "@phosphor-icons/react";
 import { Job } from "@/types/admin";
 import { api } from "@/lib/api";
 import { uploadCv } from "@/lib/uploads";
+import { applySchema, yupErrors } from "@/lib/forms";
 
 interface ApplyModalProps {
   job: Job | null;
@@ -17,6 +19,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
   const [fileName, setFileName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Reset state whenever a new job is opened
@@ -25,6 +28,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
       setSubmitted(false);
       setFileName("");
       setError("");
+      setErrors({});
     }
   }, [job]);
 
@@ -47,20 +51,23 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
     e.preventDefault();
     if (!job) return;
     setError("");
+    const fd = new FormData(e.currentTarget);
+    const values = {
+      name: String(fd.get("name") ?? ""),
+      email: String(fd.get("email") ?? ""),
+      phone: (fd.get("phone") as string) || undefined,
+      message: (fd.get("message") as string) || undefined,
+    };
+    // Validation Yup (le <form> est noValidate — pas de validation navigateur).
+    const fieldErrors = await yupErrors(applySchema, values);
+    setErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) return;
     setSubmitting(true);
     try {
-      const fd = new FormData(e.currentTarget);
       // Upload the CV (if any) straight to storage, then send JSON metadata.
       const file = fileRef.current?.files?.[0];
       const cv = file ? await uploadCv(file) : undefined;
-      await api.applications.create({
-        name: String(fd.get("name") ?? ""),
-        email: String(fd.get("email") ?? ""),
-        phone: (fd.get("phone") as string) || undefined,
-        message: (fd.get("message") as string) || undefined,
-        jobId: job.id,
-        ...cv,
-      });
+      await api.applications.create({ ...values, jobId: job.id, ...cv });
       setSubmitted(true);
     } catch {
       setError("L'envoi a échoué. Veuillez réessayer.");
@@ -72,7 +79,10 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
   const labelClass =
     "block font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted mb-2";
   const fieldClass =
-    "w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder-foreground-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all font-sans";
+    "w-full px-4 py-3 rounded-lg border bg-background text-foreground placeholder-foreground-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all font-sans";
+  const fieldBorder = (key: string) => (errors[key] ? "border-red-400" : "border-border");
+  const fieldError = (key: string) =>
+    errors[key] ? <p className="mt-1.5 font-sans text-xs text-red-600">{errors[key]}</p> : null;
 
   return (
     <AnimatePresence>
@@ -140,7 +150,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                   {job.department} · {job.location}
                 </p>
 
-                <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+                <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-5">
                   <div>
                     <label htmlFor="ap-name" className={labelClass}>
                       Nom complet <span className="text-accent">*</span>
@@ -149,10 +159,11 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                       id="ap-name"
                       name="name"
                       type="text"
-                      required
                       placeholder="Votre nom"
-                      className={fieldClass}
+                      aria-invalid={!!errors.name}
+                      className={`${fieldClass} ${fieldBorder("name")}`}
                     />
+                    {fieldError("name")}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -164,10 +175,11 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                         id="ap-email"
                         name="email"
                         type="email"
-                        required
                         placeholder="vous@exemple.com"
-                        className={fieldClass}
+                        aria-invalid={!!errors.email}
+                        className={`${fieldClass} ${fieldBorder("email")}`}
                       />
+                      {fieldError("email")}
                     </div>
                     <div>
                       <label htmlFor="ap-phone" className={labelClass}>
@@ -181,7 +193,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                         name="phone"
                         type="tel"
                         placeholder="418 000-0000"
-                        className={fieldClass}
+                        className={`${fieldClass} border-border`}
                       />
                     </div>
                   </div>
@@ -198,7 +210,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                       name="message"
                       rows={4}
                       placeholder="Parlez-nous de votre expérience..."
-                      className={`${fieldClass} resize-none`}
+                      className={`${fieldClass} border-border resize-none`}
                     />
                   </div>
 
@@ -242,6 +254,16 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                   >
                     {submitting ? "Envoi..." : "Envoyer ma candidature"}
                   </button>
+                  <p className="text-center font-sans text-xs leading-relaxed text-foreground-muted">
+                    Votre candidature et votre CV restent confidentiels — voir la{" "}
+                    <Link
+                      href="/confidentialite"
+                      className="underline decoration-border underline-offset-2 transition-colors hover:text-foreground"
+                    >
+                      politique de confidentialité
+                    </Link>
+                    .
+                  </p>
                 </form>
               </>
             )}

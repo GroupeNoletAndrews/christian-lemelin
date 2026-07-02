@@ -33,6 +33,7 @@ import {
   PencilSimple,
   Plus,
   PushPin,
+  Stack,
   Trash,
 } from "@phosphor-icons/react"
 import { useAdmin } from "@/lib/admin-context"
@@ -46,11 +47,25 @@ import {
   type ManagedImage,
 } from "@/components/admin/SectionImageManager"
 import { useConfirm, useToast } from "@/components/admin/FeedbackProvider"
+import { jobSchema, yupErrors } from "@/lib/forms"
 import { useUnsavedChanges } from "@/components/admin/use-unsaved-changes"
 import { JobPreview } from "@/components/admin/JobPreview"
 import { StorageMeter } from "@/components/admin/StorageMeter"
 import { ReframeModal } from "@/components/admin/ReframeModal"
 import { slotBoxCss, slotImgCss, type SlotStyle } from "@/lib/section-style"
+import {
+  REALISATIONS_LAYOUTS,
+  REALISATIONS_LAYOUT_LABELS,
+  APROPOS_LAYOUTS,
+  APROPOS_LAYOUT_LABELS,
+  SETTING_KEYS,
+  asRealisationsLayout,
+  asAProposLayout,
+  DEFAULT_REALISATIONS_HOME_LAYOUT,
+  DEFAULT_REALISATIONS_COLLECTION_LAYOUT,
+  type RealisationsLayout,
+  type AProposLayout,
+} from "@/lib/layouts"
 import type { Job } from "@/types/admin"
 
 // Editable content grouped BY PAGE (mirrors the real site), plus DB-backed
@@ -64,16 +79,27 @@ type SectionEntry = {
   enabled: boolean
   /** DOM id of the section on its page; the preview scrolls here on load. */
   anchor?: string
+  /** For réalisations: which surface this entry edits (home grid vs collection). */
+  context?: "home" | "collection"
 }
 type PageGroup = { page: string; sections: SectionEntry[] }
 
 // Pages → the photo-bearing components rendered on them. (Matériaux lives on the
-// home page, NOT /fabrication — that page is text-only.)
+// home page, NOT /fabrication — that page is text-only.) Réalisations appears
+// under BOTH Accueil (home grid) and Collections (full collection) — same data,
+// each entry previews its own surface + layout.
 const PAGES: PageGroup[] = [
   {
     page: "Accueil",
     sections: [
       { id: "savoir-faire", label: "Savoir-faire", enabled: true, anchor: "savoir-faire" },
+      {
+        id: "realisations-home",
+        label: "Réalisations",
+        enabled: true,
+        anchor: "realisations",
+        context: "home",
+      },
       { id: "materiaux", label: "Matériaux", enabled: true, anchor: "materiaux" },
     ],
   },
@@ -91,12 +117,16 @@ const PAGES: PageGroup[] = [
     page: "Solutions",
     sections: [{ id: "solutions", label: "Solutions", enabled: true, anchor: "solutions" }],
   },
+  {
+    page: "Connexion admin",
+    sections: [{ id: "admin-login", label: "Image de connexion", enabled: true }],
+  },
 ]
 
-// DB-backed collections (not page image-slots) — their own editors, no preview
-// anchor. Emplois + Réalisations were migrated here from the dashboard.
+// DB-backed collections managed in their own editors. Réalisations also appears
+// under Accueil (home grid); here it edits the full /realisations collection.
 const COLLECTIONS: SectionEntry[] = [
-  { id: "realisations", label: "Réalisations", enabled: true },
+  { id: "realisations", label: "Réalisations", enabled: true, context: "collection" },
   { id: "emplois", label: "Emplois", enabled: true },
 ]
 
@@ -253,8 +283,12 @@ export default function ContentWorkspacePage() {
         <StorageMeter />
       </aside>
 
-      {active === "realisations" ? (
-        <RealisationsEditor onDirtyChange={setDirty} />
+      {active === "realisations" || active === "realisations-home" ? (
+        <RealisationsEditor
+          key={active}
+          context={SECTION_BY_ID[active]?.context === "home" ? "home" : "collection"}
+          onDirtyChange={setDirty}
+        />
       ) : active === "emplois" ? (
         <JobsEditor onDirtyChange={setDirty} />
       ) : (
@@ -358,17 +392,21 @@ type WorkItem = {
   id: string
   name: string
   pinned: boolean
+  inCollection: boolean
   createdAt: string
   updatedAt: string
   slots: ImgSlot[]
 }
 
 function RealisationsEditor({
+  context,
   onDirtyChange,
 }: {
+  context: "home" | "collection"
   onDirtyChange: (dirty: boolean) => void
 }) {
-  const { refreshRealisations, togglePinned, deleteRealisation, maxPinned } = useAdmin()
+  const { refreshRealisations, togglePinned, toggleInCollection, deleteRealisation, maxPinned } =
+    useAdmin()
   const confirm = useConfirm()
   const toast = useToast()
 
@@ -385,6 +423,48 @@ function RealisationsEditor({
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const rowRefs = useRef<Record<string, HTMLLIElement | null>>({})
 
+  const isHome = context === "home"
+  const layoutKey = isHome
+    ? SETTING_KEYS.realisationsHomeLayout
+    : SETTING_KEYS.realisationsCollectionLayout
+  const defaultLayout = isHome
+    ? DEFAULT_REALISATIONS_HOME_LAYOUT
+    : DEFAULT_REALISATIONS_COLLECTION_LAYOUT
+
+  // Layout is STAGED: changing it only previews (via the ?layout/?rlayout query
+  // the public pages honour in preview) — it goes live on Publish.
+  const [savedLayout, setSavedLayout] = useState<RealisationsLayout>(defaultLayout)
+  const [stagedLayout, setStagedLayout] = useState<RealisationsLayout>(defaultLayout)
+  useEffect(() => {
+    api.settings
+      .get()
+      .then((s) => {
+        const v = asRealisationsLayout(s[layoutKey], defaultLayout)
+        setSavedLayout(v)
+        setStagedLayout(v)
+      })
+      .catch(() => {})
+  }, [layoutKey, defaultLayout])
+
+  // Declarative preview URL: it carries the STAGED layout, so changing the
+  // picker re-renders → the iframe reloads with the new layout (no persist).
+  const previewSrc = isHome
+    ? `/?preview=1&rlayout=${stagedLayout}`
+    : `/realisations?preview=1&layout=${stagedLayout}`
+
+  // Home preview loads "/", so scroll it to the réalisations section on load.
+  const postScroll = useCallback(() => {
+    if (!isHome) return
+    const send = () =>
+      iframeRef.current?.contentWindow?.postMessage(
+        { source: "cl-content-admin", type: "preview-scroll", anchor: "realisations" },
+        window.location.origin,
+      )
+    send()
+    window.setTimeout(send, 300)
+    window.setTimeout(send, 800)
+  }, [isHome])
+
   const load = useCallback(async () => {
     try {
       const rows = await api.realisations.list()
@@ -393,6 +473,7 @@ function RealisationsEditor({
           id: r.id,
           name: r.name,
           pinned: r.pinned,
+          inCollection: r.inCollection ?? true,
           createdAt: r.createdAt,
           updatedAt: r.updatedAt,
           slots: (Array.isArray(r.images) ? r.images : []).map((key) => ({ key })),
@@ -424,6 +505,7 @@ function RealisationsEditor({
           id: it.id,
           name: it.name,
           pinned: it.pinned,
+          inCollection: it.inCollection,
           createdAt: it.createdAt,
           updatedAt: it.updatedAt,
           images: it.slots.map((s) => s.dataUrl ?? s.key),
@@ -438,6 +520,7 @@ function RealisationsEditor({
   }, [items, loading, pushPreview])
 
   const dirty = useMemo(() => {
+    if (stagedLayout !== savedLayout) return true
     if (items.map((i) => i.id).join(",") !== original.order.join(",")) return true
     for (const it of items) {
       if (it.slots.some((s) => s.file)) return true
@@ -445,7 +528,7 @@ function RealisationsEditor({
         return true
     }
     return false
-  }, [items, original])
+  }, [items, original, stagedLayout, savedLayout])
 
   // Report dirtiness up so the page can guard navigation away from the editor;
   // reset on unmount so a switched-away editor never leaves the page stuck dirty.
@@ -505,10 +588,16 @@ function RealisationsEditor({
           name: it.name,
           images: keys,
           pinned: it.pinned,
+          inCollection: it.inCollection,
         })
       }
       if (items.map((i) => i.id).join(",") !== o.order.join(",")) {
         await api.realisations.reorder(items.map((i) => i.id))
+      }
+      // Persist the staged layout only now (Publish makes it live).
+      if (stagedLayout !== savedLayout) {
+        await api.settings.set({ [layoutKey]: stagedLayout })
+        setSavedLayout(stagedLayout)
       }
       await refreshRealisations()
       await load()
@@ -532,6 +621,7 @@ function RealisationsEditor({
     if (!ok) return
     setDiscarding(true)
     try {
+      setStagedLayout(savedLayout)
       await load()
       toast("Modifications annulées.")
     } finally {
@@ -577,6 +667,17 @@ function RealisationsEditor({
       return
     }
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, pinned: !it.pinned } : it)))
+  }
+
+  const handleToggleCollection = async (id: string) => {
+    try {
+      await toggleInCollection(id)
+      setItems((prev) =>
+        prev.map((it) => (it.id === id ? { ...it, inCollection: !it.inCollection } : it)),
+      )
+    } catch {
+      toast("L'action a échoué. Veuillez réessayer.", "error")
+    }
   }
 
   const handleDeleteItem = async (id: string, name: string) => {
@@ -626,6 +727,31 @@ function RealisationsEditor({
               Ajouter
             </Link>
           </div>
+          {/* Layout picker for THIS surface (Accueil grid vs Collection grid).
+              Staged: it previews live but only goes live on « Publier ». */}
+          <div className="border-b border-border px-5 py-3">
+            <label className="block">
+              <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.14em] text-foreground-muted">
+                Grille — {isHome ? "Accueil" : "Collection"}
+              </span>
+              <select
+                value={stagedLayout}
+                onChange={(e) => setStagedLayout(e.target.value as RealisationsLayout)}
+                className="w-full rounded-lg border border-border bg-background px-2 py-1.5 font-sans text-xs text-foreground focus:border-foreground/30 focus:outline-none"
+              >
+                {REALISATIONS_LAYOUTS.map((l) => (
+                  <option key={l} value={l}>
+                    {REALISATIONS_LAYOUT_LABELS[l]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {stagedLayout !== savedLayout && (
+              <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground-muted">
+                Aperçu — appliqué à la publication
+              </p>
+            )}
+          </div>
           {loading ? (
             <div className="flex flex-1 items-center justify-center text-foreground-muted">
               <CircleNotch size={24} className="animate-spin" />
@@ -657,6 +783,7 @@ function RealisationsEditor({
                       onReplace={(index, file) => handleReplace(it.id, index, file)}
                       onMove={(index, dir) => handleMove(it.id, index, dir)}
                       onTogglePin={() => void handleTogglePin(it.id)}
+                      onToggleCollection={() => void handleToggleCollection(it.id)}
                       onDelete={() => void handleDeleteItem(it.id, it.name)}
                       rowRef={(el) => {
                         rowRefs.current[it.id] = el
@@ -668,7 +795,14 @@ function RealisationsEditor({
             </DndContext>
           )}
         </div>
-        <PreviewFrame src="/realisations?preview=1" iframeRef={iframeRef} />
+        <PreviewFrame
+          src={previewSrc}
+          iframeRef={iframeRef}
+          onLoad={() => {
+            pushPreview(items)
+            postScroll()
+          }}
+        />
       </div>
     </section>
   )
@@ -681,6 +815,7 @@ function SortableProjectRow({
   onReplace,
   onMove,
   onTogglePin,
+  onToggleCollection,
   onDelete,
   rowRef,
 }: {
@@ -690,6 +825,7 @@ function SortableProjectRow({
   onReplace: (index: number, file: File) => void
   onMove: (index: number, dir: -1 | 1) => void
   onTogglePin: () => void
+  onToggleCollection: () => void
   onDelete: () => void
   rowRef: (el: HTMLLIElement | null) => void
 }) {
@@ -745,26 +881,47 @@ function SortableProjectRow({
           <p className="truncate font-sans text-sm font-medium text-foreground">
             {item.name}
           </p>
-          <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground-muted">
+          <p className="flex flex-wrap items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground-muted">
             {item.pinned && (
               <span className="inline-flex items-center gap-0.5 text-foreground">
                 <PushPin size={10} weight="fill" />
                 Accueil
               </span>
             )}
-            {item.slots.length} image{item.slots.length > 1 ? "s" : ""}
+            {item.inCollection && (
+              <span className="inline-flex items-center gap-0.5 text-foreground">
+                <Stack size={10} weight="fill" />
+                Collection
+              </span>
+            )}
+            {!item.pinned && !item.inCollection && (
+              <span className="text-foreground-muted/70">Masquée</span>
+            )}
+            <span>· {item.slots.length} image{item.slots.length > 1 ? "s" : ""}</span>
           </p>
         </div>
         <div className="flex items-center gap-0.5">
           <button
             type="button"
             onClick={onTogglePin}
-            aria-label={item.pinned ? "Désépingler" : "Épingler à l'accueil"}
+            aria-label={item.pinned ? "Retirer de l'accueil" : "Afficher sur l'accueil"}
+            title={item.pinned ? "Retirer de l'accueil" : "Afficher sur l'accueil"}
             className={`rounded p-1.5 transition-colors ${
               item.pinned ? "text-foreground" : "text-foreground-muted hover:text-foreground"
             }`}
           >
             <PushPin size={16} weight={item.pinned ? "fill" : "regular"} />
+          </button>
+          <button
+            type="button"
+            onClick={onToggleCollection}
+            aria-label={item.inCollection ? "Retirer de la collection" : "Ajouter à la collection"}
+            title={item.inCollection ? "Retirer de la collection" : "Ajouter à la collection"}
+            className={`rounded p-1.5 transition-colors ${
+              item.inCollection ? "text-foreground" : "text-foreground-muted hover:text-foreground"
+            }`}
+          >
+            <Stack size={16} weight={item.inCollection ? "fill" : "regular"} />
           </button>
           <button
             type="button"
@@ -831,6 +988,7 @@ function JobsEditor({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void
   const [editing, setEditing] = useState<string | "new" | null>(null)
   const [form, setForm] = useState<JobForm>(EMPTY_JOB)
   const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const current =
     editing && editing !== "new" ? (jobs.find((j) => j.id === editing) ?? null) : null
@@ -855,6 +1013,7 @@ function JobsEditor({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void
   const startNew = () => {
     setForm(EMPTY_JOB)
     setEditing("new")
+    setErrors({})
   }
   const startEdit = (job: Job) => {
     setForm({
@@ -866,10 +1025,12 @@ function JobsEditor({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void
       salary: job.salary ?? "",
     })
     setEditing(job.id)
+    setErrors({})
   }
   const cancel = () => {
     setEditing(null)
     setForm(EMPTY_JOB)
+    setErrors({})
   }
   const set =
     (k: keyof JobForm) =>
@@ -878,10 +1039,10 @@ function JobsEditor({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.title || !form.description || !form.location || !form.department) {
-      toast("Veuillez remplir tous les champs obligatoires.", "error")
-      return
-    }
+    // Validation Yup (le <form> est noValidate — pas de validation navigateur).
+    const fieldErrors = await yupErrors(jobSchema, form)
+    setErrors(fieldErrors)
+    if (Object.keys(fieldErrors).length > 0) return
     setSaving(true)
     try {
       if (editing === "new") {
@@ -921,7 +1082,10 @@ function JobsEditor({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void
   const labelClass =
     "mb-1.5 block font-mono text-[11px] uppercase tracking-[0.16em] text-foreground-muted"
   const fieldClass =
-    "w-full rounded-lg border border-border bg-background px-3.5 py-2.5 font-sans text-sm text-foreground placeholder-foreground-muted transition-colors focus:border-foreground/30 focus:outline-none"
+    "w-full rounded-lg border bg-background px-3.5 py-2.5 font-sans text-sm text-foreground placeholder-foreground-muted transition-colors focus:border-foreground/30 focus:outline-none"
+  const fieldBorder = (key: string) => (errors[key] ? "border-red-400" : "border-border")
+  const fieldError = (key: string) =>
+    errors[key] ? <p className="mt-1.5 font-sans text-xs text-red-600">{errors[key]}</p> : null
 
   return (
     <section className="flex min-w-0 flex-1 flex-col">
@@ -995,6 +1159,7 @@ function JobsEditor({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void
             <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-[1.4fr_1fr]">
               <form
                 onSubmit={save}
+                noValidate
                 className="space-y-5 rounded-2xl border border-border bg-surface p-6"
               >
                 <div>
@@ -1005,9 +1170,10 @@ function JobsEditor({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void
                     value={form.title}
                     onChange={set("title")}
                     placeholder="Ex: Ingénieur Fabrication"
-                    className={fieldClass}
-                    required
+                    aria-invalid={!!errors.title}
+                    className={`${fieldClass} ${fieldBorder("title")}`}
                   />
+                  {fieldError("title")}
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
@@ -1018,15 +1184,16 @@ function JobsEditor({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void
                       value={form.department}
                       onChange={set("department")}
                       placeholder="Ex: Production"
-                      className={fieldClass}
-                      required
+                      aria-invalid={!!errors.department}
+                      className={`${fieldClass} ${fieldBorder("department")}`}
                     />
+                    {fieldError("department")}
                   </div>
                   <div>
                     <label className={labelClass}>
                       Type <span className="text-accent">*</span>
                     </label>
-                    <select value={form.type} onChange={set("type")} className={fieldClass}>
+                    <select value={form.type} onChange={set("type")} className={`${fieldClass} border-border`}>
                       <option value="full-time">Temps plein</option>
                       <option value="part-time">Temps partiel</option>
                       <option value="contract">Contrat</option>
@@ -1042,9 +1209,10 @@ function JobsEditor({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void
                       value={form.location}
                       onChange={set("location")}
                       placeholder="Ex: Québec, QC"
-                      className={fieldClass}
-                      required
+                      aria-invalid={!!errors.location}
+                      className={`${fieldClass} ${fieldBorder("location")}`}
                     />
+                    {fieldError("location")}
                   </div>
                   <div>
                     <label className={labelClass}>
@@ -1057,7 +1225,7 @@ function JobsEditor({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void
                       value={form.salary}
                       onChange={set("salary")}
                       placeholder="Ex: 65 000 – 85 000 $/an"
-                      className={fieldClass}
+                      className={`${fieldClass} border-border`}
                     />
                   </div>
                 </div>
@@ -1070,9 +1238,10 @@ function JobsEditor({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void
                     onChange={set("description")}
                     rows={6}
                     placeholder="Responsabilités, qualifications requises…"
-                    className={`${fieldClass} resize-none`}
-                    required
+                    aria-invalid={!!errors.description}
+                    className={`${fieldClass} ${fieldBorder("description")} resize-none`}
                   />
+                  {fieldError("description")}
                 </div>
                 <div className="flex gap-3 pt-1">
                   <button
@@ -1133,6 +1302,23 @@ function StaticSectionEditor({
   const [discarding, setDiscarding] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
+  // À-propos has a selectable page layout (other sections don't). It is STAGED:
+  // the picker previews via ?layout, and only goes live on Publish.
+  const hasLayout = section === "a-propos"
+  const [savedAproposLayout, setSavedAproposLayout] = useState<AProposLayout>("bento")
+  const [aproposLayout, setAproposLayout] = useState<AProposLayout>("bento")
+  useEffect(() => {
+    if (!hasLayout) return
+    api.settings
+      .get()
+      .then((s) => {
+        const v = asAProposLayout(s[SETTING_KEYS.aproposLayout])
+        setSavedAproposLayout(v)
+        setAproposLayout(v)
+      })
+      .catch(() => {})
+  }, [hasLayout])
+
   const load = useCallback(async () => {
     try {
       setState(await api.sections.static.get(section))
@@ -1149,7 +1335,10 @@ function StaticSectionEditor({
     })()
   }, [load])
 
-  const dirty = Object.keys(staged).length > 0 || Object.keys(stagedStyle).length > 0
+  const dirty =
+    Object.keys(staged).length > 0 ||
+    Object.keys(stagedStyle).length > 0 ||
+    (hasLayout && aproposLayout !== savedAproposLayout)
 
   // Report dirtiness up so the page can guard navigation away from the editor;
   // reset on unmount so a switched-away editor never leaves the page stuck dirty.
@@ -1231,13 +1420,19 @@ function StaticSectionEditor({
         changes.push(change)
       }
       await api.sections.static.publish(section, changes)
+      // Persist the staged à-propos layout only now (Publish makes it live).
+      if (hasLayout && aproposLayout !== savedAproposLayout) {
+        await api.settings.set({ [SETTING_KEYS.aproposLayout]: aproposLayout })
+        setSavedAproposLayout(aproposLayout)
+      }
       setStaged({})
       setStagedStyle({})
       await load()
       // Reload the iframe so the server re-renders with the published images.
       const path = state?.previewPath ?? "/"
       if (iframeRef.current) {
-        iframeRef.current.src = `${path}?preview=1&t=${Date.now()}`
+        const q = hasLayout ? `&layout=${aproposLayout}` : ""
+        iframeRef.current.src = `${path}?preview=1${q}&t=${Date.now()}`
       }
       toast("Modifications publiées.")
     } catch {
@@ -1261,6 +1456,7 @@ function StaticSectionEditor({
     try {
       setStaged({})
       setStagedStyle({})
+      setAproposLayout(savedAproposLayout)
       toast("Modifications annulées.")
     } finally {
       setDiscarding(false)
@@ -1268,6 +1464,11 @@ function StaticSectionEditor({
   }
 
   const previewPath = state?.previewPath ?? "/"
+  // À-propos: carry the STAGED layout in the preview URL so the picker previews
+  // it live without persisting (declarative → reloads on change).
+  const previewSrc = hasLayout
+    ? `${previewPath}?preview=1&layout=${aproposLayout}`
+    : `${previewPath}?preview=1`
   const caps = state?.caps ?? { reframe: false, filter: false, style: false }
   const modalSlotState = modalSlot ? state?.slots.find((s) => s.id === modalSlot) : undefined
   const modalCurrentStyle = modalSlot
@@ -1293,6 +1494,24 @@ function StaticSectionEditor({
             L&apos;aperçu se met à jour à droite. Rien n&apos;est enregistré avant
             « Publier ».
           </p>
+          {hasLayout && (
+            <label className="block border-b border-border px-5 py-3">
+              <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.14em] text-foreground-muted">
+                Disposition de la page
+              </span>
+              <select
+                value={aproposLayout}
+                onChange={(e) => setAproposLayout(e.target.value as AProposLayout)}
+                className="w-full rounded-lg border border-border bg-background px-2 py-1.5 font-sans text-xs text-foreground focus:border-foreground/30 focus:outline-none"
+              >
+                {APROPOS_LAYOUTS.map((l) => (
+                  <option key={l} value={l}>
+                    {APROPOS_LAYOUT_LABELS[l]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {loading ? (
             <div className="flex flex-1 items-center justify-center text-foreground-muted">
               <CircleNotch size={24} className="animate-spin" />
@@ -1327,7 +1546,7 @@ function StaticSectionEditor({
           )}
         </div>
         <PreviewFrame
-          src={`${previewPath}?preview=1`}
+          src={previewSrc}
           iframeRef={iframeRef}
           onLoad={() => {
             pushPreview(staged, stagedStyle)

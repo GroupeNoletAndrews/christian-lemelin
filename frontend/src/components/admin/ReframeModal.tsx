@@ -54,8 +54,14 @@ export function ReframeModal({
   const [gray, setGray] = useState<boolean | null>(null)
   const [radius, setRadius] = useState("")
   const [border, setBorder] = useState(false)
+  // Preview-only crop ratio to help centring — the same focal point can be
+  // checked against several ratios (the slot's real ratio + common ones).
+  const [previewRatio, setPreviewRatio] = useState(aspect)
   const frameRef = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
+
+  // The slot's own ratio first, then common presets (deduped).
+  const ratios = Array.from(new Set([aspect, "1/1", "4/3", "3/4", "16/9"]))
 
   // Seed the controls from the current style whenever the modal opens.
   useEffect(() => {
@@ -67,7 +73,8 @@ export function ReframeModal({
     setGray(initial?.grayscale ?? null)
     setRadius(initial?.borderRadius ?? "")
     setBorder(!!initial?.border)
-  }, [open, initial])
+    setPreviewRatio(aspect)
+  }, [open, initial, aspect])
 
   useEffect(() => {
     if (!open) return
@@ -123,7 +130,29 @@ export function ReframeModal({
           </button>
         </div>
 
-        {/* Live frame — drag to set the focal point. */}
+        {/* Ratio chips — check the framing against several ratios (preview only). */}
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 font-mono text-[10px] uppercase tracking-[0.14em] text-foreground-muted">
+            Aperçu ratio
+          </span>
+          {ratios.map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setPreviewRatio(r)}
+              className={`rounded-full px-2.5 py-1 font-sans text-xs transition-colors ${
+                previewRatio === r
+                  ? "bg-foreground text-white"
+                  : "border border-border text-foreground hover:bg-surface-elevated"
+              }`}
+            >
+              {r}
+              {r === aspect ? " ·" : ""}
+            </button>
+          ))}
+        </div>
+
+        {/* Live frame — drag to set the focal point. Rule-of-thirds grid helps centring. */}
         <div
           ref={frameRef}
           onPointerDown={(e) => {
@@ -133,8 +162,8 @@ export function ReframeModal({
           }}
           onPointerMove={(e) => dragging.current && move(e)}
           onPointerUp={() => (dragging.current = false)}
-          className="relative w-full cursor-grab touch-none select-none overflow-hidden bg-surface-elevated active:cursor-grabbing"
-          style={{ aspectRatio: aspect.replace("/", " / "), ...slotBoxCss(style) }}
+          className="relative mx-auto w-full max-h-[50vh] cursor-grab touch-none select-none overflow-hidden bg-surface-elevated active:cursor-grabbing"
+          style={{ aspectRatio: previewRatio.replace("/", " / "), ...slotBoxCss(style) }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -144,6 +173,18 @@ export function ReframeModal({
             className={`pointer-events-none absolute inset-0 h-full w-full object-cover${effGray ? " grayscale" : ""}`}
             style={slotImgCss(style)}
           />
+          {/* Rule-of-thirds grid overlay. */}
+          <div aria-hidden className="pointer-events-none absolute inset-0">
+            <div className="absolute inset-y-0 left-1/3 w-px bg-white/40" />
+            <div className="absolute inset-y-0 left-2/3 w-px bg-white/40" />
+            <div className="absolute inset-x-0 top-1/3 h-px bg-white/40" />
+            <div className="absolute inset-x-0 top-2/3 h-px bg-white/40" />
+            {/* Centre marker at the current focal point. */}
+            <div
+              className="absolute size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/90 mix-blend-difference"
+              style={{ left: `${posX}%`, top: `${posY}%` }}
+            />
+          </div>
           <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-foreground/70 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white">
             Glissez pour recadrer
           </span>

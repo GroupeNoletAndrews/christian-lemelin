@@ -8,6 +8,8 @@ import { ArrowLeft, Eye } from "@phosphor-icons/react";
 import { useAdmin } from "@/lib/admin-context";
 import { Job } from "@/types/admin";
 import { JobPreview } from "@/components/admin/JobPreview";
+import { useToast } from "@/components/admin/FeedbackProvider";
+import { jobSchema, yupErrors } from "@/lib/forms";
 
 type FormData = Omit<Job, "id" | "createdAt" | "updatedAt">;
 
@@ -18,6 +20,7 @@ export default function JobFormPage() {
   const isEditMode = jobId && jobId !== "create";
 
   const { isAuthenticated, getJob, addJob, updateJob } = useAdmin();
+  const toast = useToast();
 
   const [formData, setFormData] = useState<FormData>({
     title: "",
@@ -30,6 +33,7 @@ export default function JobFormPage() {
 
   const [showPreview, setShowPreview] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Load job data if editing
   useEffect(() => {
@@ -77,15 +81,10 @@ export default function JobFormPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      !formData.title ||
-      !formData.description ||
-      !formData.location ||
-      !formData.department
-    ) {
-      alert("Veuillez remplir tous les champs obligatoires");
-      return;
-    }
+    // Validation Yup (le <form> est noValidate — pas de validation navigateur).
+    const fieldErrors = await yupErrors(jobSchema, formData);
+    setErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) return;
 
     setIsSaving(true);
     try {
@@ -99,7 +98,7 @@ export default function JobFormPage() {
       }
       router.push("/admin/dashboard");
     } catch {
-      alert("L'enregistrement a échoué. Veuillez réessayer.");
+      toast("L'enregistrement a échoué. Veuillez réessayer.", "error");
       setIsSaving(false);
     }
   };
@@ -107,7 +106,10 @@ export default function JobFormPage() {
   const labelClass =
     "block font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted mb-2";
   const fieldClass =
-    "w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder-foreground-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all font-sans";
+    "w-full px-4 py-3 rounded-lg border bg-background text-foreground placeholder-foreground-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all font-sans";
+  const fieldBorder = (key: string) => (errors[key] ? "border-red-400" : "border-border");
+  const fieldError = (key: string) =>
+    errors[key] ? <p className="mt-1.5 font-sans text-xs text-red-600">{errors[key]}</p> : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -146,6 +148,7 @@ export default function JobFormPage() {
           >
             <form
               onSubmit={handleSubmit}
+              noValidate
               className="bg-surface rounded-2xl p-8 border border-border"
             >
               <div className="space-y-6">
@@ -161,9 +164,10 @@ export default function JobFormPage() {
                     value={formData.title}
                     onChange={handleInputChange}
                     placeholder="Ex: Ingénieur Fabrication"
-                    className={fieldClass}
-                    required
+                    aria-invalid={!!errors.title}
+                    className={`${fieldClass} ${fieldBorder("title")}`}
                   />
+                  {fieldError("title")}
                 </div>
 
                 {/* Department and Type */}
@@ -179,9 +183,10 @@ export default function JobFormPage() {
                       value={formData.department}
                       onChange={handleInputChange}
                       placeholder="Ex: Production"
-                      className={fieldClass}
-                      required
+                      aria-invalid={!!errors.department}
+                      className={`${fieldClass} ${fieldBorder("department")}`}
                     />
+                    {fieldError("department")}
                   </div>
                   <div>
                     <label htmlFor="type" className={labelClass}>
@@ -192,7 +197,7 @@ export default function JobFormPage() {
                       name="type"
                       value={formData.type}
                       onChange={handleInputChange}
-                      className={fieldClass}
+                      className={`${fieldClass} border-border`}
                     >
                       <option value="full-time">Temps plein</option>
                       <option value="part-time">Temps partiel</option>
@@ -214,9 +219,10 @@ export default function JobFormPage() {
                       value={formData.location}
                       onChange={handleInputChange}
                       placeholder="Ex: Québec, QC"
-                      className={fieldClass}
-                      required
+                      aria-invalid={!!errors.location}
+                      className={`${fieldClass} ${fieldBorder("location")}`}
                     />
+                    {fieldError("location")}
                   </div>
                   <div>
                     <label htmlFor="salary" className={labelClass}>
@@ -232,7 +238,7 @@ export default function JobFormPage() {
                       value={formData.salary}
                       onChange={handleInputChange}
                       placeholder="Ex: 65,000 - 85,000 $/an"
-                      className={fieldClass}
+                      className={`${fieldClass} border-border`}
                     />
                   </div>
                 </div>
@@ -249,9 +255,10 @@ export default function JobFormPage() {
                     onChange={handleInputChange}
                     placeholder="Décrivez le poste, les responsabilités, les qualifications requises..."
                     rows={6}
-                    className={`${fieldClass} resize-none`}
-                    required
+                    aria-invalid={!!errors.description}
+                    className={`${fieldClass} ${fieldBorder("description")} resize-none`}
                   />
+                  {fieldError("description")}
                 </div>
 
                 {/* Actions */}

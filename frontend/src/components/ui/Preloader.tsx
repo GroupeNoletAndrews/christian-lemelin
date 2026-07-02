@@ -42,6 +42,14 @@ export function Preloader() {
     setDim({ w: window.innerWidth, h: window.innerHeight })
   }, [])
 
+  // Inside the admin content-workspace preview iframe (html.cl-preview, set by a
+  // pre-paint script in the layout), dismiss instantly — no intro, no scroll
+  // lock — so re-loading the preview on every edit isn't jarring. CSS also hides
+  // it before paint, so there's no flash.
+  useEffect(() => {
+    if (document.documentElement.classList.contains("cl-preview")) setIsLoading(false)
+  }, [])
+
   // Lock scroll while the intro plays (Lenis + native fallback)
   useEffect(() => {
     if (isLoading) {
@@ -54,8 +62,11 @@ export function Preloader() {
       // ScrollTriggers (e.g. Materiaux) re-measure against the real layout.
       window.dispatchEvent(new Event("eclemelin:preloader-done"))
     }
+    // Always restore scroll on cleanup/unmount — never leave Lenis stopped
+    // (which would freeze the page if the preloader unmounts mid-lock).
     return () => {
       document.body.style.overflow = ""
+      lenis?.start()
     }
   }, [isLoading, lenis])
 
@@ -82,6 +93,7 @@ export function Preloader() {
     <AnimatePresence mode="wait">
       {isLoading && (
         <motion.div
+          data-cl-preloader
           variants={slideUp}
           initial="initial"
           exit="exit"

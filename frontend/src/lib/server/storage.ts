@@ -182,6 +182,60 @@ export async function getStorageUsage(): Promise<StorageUsage> {
 }
 
 /**
+ * Given stored image values (bucket keys or full public URLs), return the subset
+ * that STILL EXISTS as an object in the public media bucket — used to detect
+ * dangling references (e.g. a section-image whose file was deleted straight from
+ * Supabase Storage while its DB row lingers) so the site can fall back to the
+ * placeholder instead of a broken/cached image.
+ *
+ * FAIL-OPEN by design: if storage isn't configured, or a listing errors, the
+ * affected values are treated as PRESENT (returned) — a storage hiccup must
+ * never blank real images. Values that don't live in the bucket (legacy /public
+ * paths, foreign URLs) are always treated as present (we don't manage them).
+ *
+ * Objects are grouped by folder and each folder is listed once, so a section's
+ * slots (all under photos/sections/<section>/) cost a single list call.
+ */
+export async function existingMediaValues(values: string[]): Promise<Set<string>> {
+  const present = new Set<string>()
+  if (values.length === 0) return present
+  const client = getStorageClient()
+  if (!client) {
+    for (const v of values) present.add(v) // fail-open: can't check → assume present
+    return present
+  }
+  // folder → [{ base filename, original value }]
+  const byFolder = new Map<string, { base: string; orig: string }[]>()
+  for (const v of values) {
+    const key = mediaKeyOf(v)
+    if (key === null) {
+      present.add(v) // not in the bucket → not ours to validate
+      continue
+    }
+    const slash = key.lastIndexOf("/")
+    const folder = slash === -1 ? "" : key.slice(0, slash)
+    const base = slash === -1 ? key : key.slice(slash + 1)
+    const list = byFolder.get(folder)
+    if (list) list.push({ base, orig: v })
+    else byFolder.set(folder, [{ base, orig: v }])
+  }
+  await Promise.all(
+    Array.from(byFolder.entries()).map(async ([folder, items]) => {
+      const { data, error } = await client.storage
+        .from(MEDIA_BUCKET)
+        .list(folder, { limit: 1000 })
+      if (error || !data) {
+        for (const it of items) present.add(it.orig) // fail-open for this folder
+        return
+      }
+      const names = new Set(data.map((e) => e.name))
+      for (const it of items) if (names.has(it.base)) present.add(it.orig)
+    }),
+  )
+  return present
+}
+
+/**
  * Best-effort: remove media objects from the public bucket (e.g. when a
  * réalisation or one of its photos is deleted). Accepts stored values — keys or
  * full public URLs — and skips anything not in the bucket (legacy /public

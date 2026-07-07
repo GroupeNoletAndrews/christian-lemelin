@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache"
 import { prisma } from "./prisma"
+import { existingMediaValues } from "./storage"
 import { AppError } from "./http"
 import { mediaUrl, imgSrc, PLACEHOLDER_SRC } from "@/lib/media"
 import { imageUrl } from "@/content/image"
@@ -53,8 +54,16 @@ function placeholdersEnabled(): boolean {
 // (updatedAt ms) versions the URL so a same-key overwrite is served fresh.
 async function getPublishedKeys(section: string): Promise<Record<string, Override>> {
   const rows = await prisma.sectionImage.findMany({ where: { section } })
+  // Drop overrides whose storage object no longer exists (e.g. the file was
+  // deleted straight from Supabase Storage while its DB row lingered): the slot
+  // then falls back to the placeholder / code default instead of rendering a
+  // dangling URL the browser or image optimiser would still serve from cache.
+  // existingMediaValues is fail-open, so a storage hiccup keeps the image.
+  const present = await existingMediaValues(rows.map((r) => r.key))
   return Object.fromEntries(
-    rows.map((r) => [r.slot, { key: r.key, v: r.updatedAt.getTime() }]),
+    rows
+      .filter((r) => present.has(r.key))
+      .map((r) => [r.slot, { key: r.key, v: r.updatedAt.getTime() }]),
   )
 }
 
@@ -121,19 +130,23 @@ export async function getSectionAdminState(section: string) {
   const def = getSection(section)
   if (!def) return null
   const rows = await prisma.sectionImage.findMany({ where: { section } })
+  // Treat a row whose storage object is gone as "no override" so the editor
+  // shows the placeholder (and can re-upload), matching the public page.
+  const present = await existingMediaValues(rows.map((r) => r.key))
   const bySlot = new Map(rows.map((r) => [r.slot, r]))
   const slots = def.slots.map((slot) => {
     const row = bySlot.get(slot.id)
-    const override = row ? { key: row.key, v: row.updatedAt.getTime() } : undefined
+    const has = !!row && present.has(row.key)
+    const override = has ? { key: row!.key, v: row!.updatedAt.getTime() } : undefined
     return {
       id: slot.id,
       label: slot.label,
       aspect: slot.aspect,
       /** Baked-in grayscale design default (the filter toggle starts here). */
       grayscaleDefault: !!slot.grayscale,
-      publishedKey: row?.key ?? null,
+      publishedKey: has ? row!.key : null,
       url: resolveSlotUrl(slot, override),
-      style: row ? rowStyle(row) : null,
+      style: has ? rowStyle(row!) : null,
     }
   })
   return {

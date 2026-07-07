@@ -3,7 +3,7 @@
  *
  * These mirror the website's OPUS-aligned design system (see DESIGN.md):
  * cream page background, white surface card, hairline borders, neutral near-black
- * text, a single electric-blue accent reserved for the action button. Web fonts
+ * text, a single near-black accent reserved for the action button. Web fonts
  * aren't reliable in email clients, so we fall back to a system sans/mono stack
  * (Onest / Fragment Mono on the site → closest system equivalents here).
  *
@@ -19,7 +19,7 @@ const C = {
   border: '#e4e4e1', // hairline (≈ rgba(151,151,151,.2) flattened)
   foreground: '#141414', // neutral near-black
   muted: '#6b6b6b', // secondary text (≈ rgba(20,20,20,.6))
-  accent: '#0048f9', // OPUS electric blue — button only
+  accent: '#141414', // near-black — client dropped the electric-blue accent site-wide (matches --color-accent in globals.css); button + card top-rule only
   ink: '#111111', // dark footer
 } as const
 

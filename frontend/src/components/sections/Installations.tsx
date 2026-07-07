@@ -11,6 +11,8 @@ import {
 } from "motion/react"
 import { INSTALLATIONS, imageUrl } from "@/content"
 import { SlotParallaxImage } from "@/components/sections/SlotParallaxImage"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { t, tr } from "@/lib/i18n"
 
 // Page /installations — capacité de fabrication. Réutilise le compteur animé
 // (façon StatsBar), le parallax et le bloc « feature » sombre. Voir DESIGN.md.
@@ -53,6 +55,7 @@ function StatCount({ value }: { value: string }) {
 
 export function Installations({ images = {} }: { images?: Record<string, string> }) {
   const { hero, capabilities, stats, eco, partner } = INSTALLATIONS
+  const locale = useLocale()
 
   return (
     <>
@@ -60,10 +63,10 @@ export function Installations({ images = {} }: { images?: Record<string, string>
       <section id="installations" data-header-theme="light" className="bg-background pt-40">
         <div className="mx-auto max-w-[1400px] px-6 md:px-12">
           <h1 className="max-w-[20ch] font-display text-[clamp(2.5rem,7vw,5rem)] font-semibold leading-[1.0] tracking-[-0.02em] text-foreground">
-            {hero.heading}
+            {tr(hero.heading, locale)}
           </h1>
           <p className="mt-6 max-w-[60ch] text-lg leading-relaxed text-foreground-muted">
-            {hero.intro}
+            {tr(hero.intro, locale)}
           </p>
         </div>
         <div className="mx-auto mt-12 max-w-[1400px] px-6 md:mt-16 md:px-12">
@@ -72,7 +75,7 @@ export function Installations({ images = {} }: { images?: Record<string, string>
               section="installations"
               slot="hero-aerial"
               src={images["hero-aerial"] ?? imageUrl(hero.image, 2000, 1100)}
-              alt={hero.heading}
+              alt={tr(hero.heading, locale)}
               sizes="100vw"
               amount={12}
             />
@@ -86,33 +89,43 @@ export function Installations({ images = {} }: { images?: Record<string, string>
           <div className="grid gap-12 lg:grid-cols-[0.85fr_1.2fr] lg:gap-16">
             <div className="lg:sticky lg:top-32 lg:self-start">
               <h2 className="font-display text-[clamp(1.75rem,4vw,3rem)] font-semibold leading-[1.08] tracking-[-0.01em] text-foreground">
-                Une maîtrise technologique au service de la performance.
+                {t(
+                  "Une maîtrise technologique au service de la performance.",
+                  "Technological mastery in service of performance.",
+                  locale,
+                )}
               </h2>
               <div className="mt-10 grid grid-cols-2 gap-x-8 gap-y-10">
-                {stats.map((s) => (
-                  <div key={s.label}>
-                    <StatCount value={s.value} />
-                    <p className="mt-3 max-w-[18ch] text-sm leading-relaxed text-foreground-muted">
-                      {s.label}
-                    </p>
-                  </div>
-                ))}
+                {stats.map((s) => {
+                  const label = tr(s.label, locale)
+                  return (
+                    <div key={label}>
+                      <StatCount value={tr(s.value, locale)} />
+                      <p className="mt-3 max-w-[18ch] text-sm leading-relaxed text-foreground-muted">
+                        {label}
+                      </p>
+                    </div>
+                  )
+                })}
               </div>
             </div>
             <div>
-              {capabilities.map((c) => (
-                <div
-                  key={c.title}
-                  className="border-t border-border py-5 md:grid md:grid-cols-[1fr_1.2fr] md:gap-8 md:py-6"
-                >
-                  <h3 className="font-display text-lg font-medium text-foreground md:text-xl">
-                    {c.title}
-                  </h3>
-                  <p className="mt-2 max-w-[48ch] leading-relaxed text-foreground-muted md:mt-0">
-                    {c.body}
-                  </p>
-                </div>
-              ))}
+              {capabilities.map((c) => {
+                const title = tr(c.title, locale)
+                return (
+                  <div
+                    key={title}
+                    className="border-t border-border py-5 md:grid md:grid-cols-[1fr_1.2fr] md:gap-8 md:py-6"
+                  >
+                    <h3 className="font-display text-lg font-medium text-foreground md:text-xl">
+                      {title}
+                    </h3>
+                    <p className="mt-2 max-w-[48ch] leading-relaxed text-foreground-muted md:mt-0">
+                      {tr(c.body, locale)}
+                    </p>
+                  </div>
+                )
+              })}
               <div className="border-t border-border" />
             </div>
           </div>
@@ -128,27 +141,30 @@ export function Installations({ images = {} }: { images?: Record<string, string>
                 section="installations"
                 slot="eco-press"
                 src={images["eco-press"] ?? imageUrl(eco.image, 1400, 1400)}
-                alt={eco.heading}
+                alt={tr(eco.heading, locale)}
                 sizes="(min-width: 1024px) 50vw, 100vw"
               />
               <div className="pointer-events-none absolute inset-0 bg-black/30" />
             </div>
             <div className="flex flex-col justify-center px-6 py-14 md:px-12 md:py-20">
               <h2 className="max-w-[18ch] font-display text-[clamp(1.75rem,3.5vw,2.75rem)] font-semibold leading-[1.08] text-white">
-                {eco.heading}
+                {tr(eco.heading, locale)}
               </h2>
-              <p className="mt-5 max-w-[48ch] leading-relaxed text-white/65">{eco.intro}</p>
+              <p className="mt-5 max-w-[48ch] leading-relaxed text-white/65">{tr(eco.intro, locale)}</p>
               <div className="mt-8">
-                {eco.points.map((pt) => (
-                  <div key={pt.title} className="border-t border-white/12 py-5">
-                    <h3 className="font-display text-base font-medium text-white md:text-lg">
-                      {pt.title}
-                    </h3>
-                    <p className="mt-1.5 max-w-[46ch] text-sm leading-relaxed text-white/55">
-                      {pt.body}
-                    </p>
-                  </div>
-                ))}
+                {eco.points.map((pt) => {
+                  const title = tr(pt.title, locale)
+                  return (
+                    <div key={title} className="border-t border-white/12 py-5">
+                      <h3 className="font-display text-base font-medium text-white md:text-lg">
+                        {title}
+                      </h3>
+                      <p className="mt-1.5 max-w-[46ch] text-sm leading-relaxed text-white/55">
+                        {tr(pt.body, locale)}
+                      </p>
+                    </div>
+                  )
+                })}
                 <div className="border-t border-white/12" />
               </div>
             </div>
@@ -164,16 +180,16 @@ export function Installations({ images = {} }: { images?: Record<string, string>
               section="installations"
               slot="partner-factory"
               src={images["partner-factory"] ?? imageUrl(partner.image, 1200, 900)}
-              alt={partner.heading}
+              alt={tr(partner.heading, locale)}
               sizes="(min-width: 1024px) 45vw, 90vw"
             />
           </div>
           <div>
             <h2 className="max-w-[20ch] font-display text-[clamp(1.75rem,4vw,3rem)] font-semibold leading-[1.08] tracking-[-0.01em] text-foreground">
-              {partner.heading}
+              {tr(partner.heading, locale)}
             </h2>
             <p className="mt-6 max-w-[52ch] leading-relaxed text-foreground-muted">
-              {partner.body}
+              {tr(partner.body, locale)}
             </p>
           </div>
         </div>

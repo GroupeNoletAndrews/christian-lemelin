@@ -150,22 +150,32 @@ export function realisationImageIndex(keyOrUrl: string): number {
   return m ? parseInt(m[1], 10) : 0
 }
 
-// Client / partner logos shown in the home "Ils nous font confiance" marquee
-// (StatsBar). Source files live in frontend/public/logos/; `media:sync` uploads
-// them to MEDIA_BUCKET under photos/logo/clients/ and the app resolves them with
-// mediaUrl(). To add/replace a logo: drop the file in public/logos/, add a line
-// here, then run `npm run media:sync` (or let the next deploy push it).
-const CLIENT_LOGOS = [
-  { name: "Pomerleau", file: "pomerleau.svg" },
-  { name: "EBC", file: "ebc.png" },
-  { name: "Cascades", file: "cascades.svg" },
-  { name: "Quirion Métal", file: "quirion.png" },
-  { name: "Concordia", file: "concordia.png" },
-  { name: "Saputo", file: "saputo.svg" },
-  { name: "Agropur", file: "agropur.png" },
-  { name: "Olymel", file: "olymel.png" },
-  { name: "Lassonde", file: "lassonde.png" },
-] as const
+// Entreprises affichées sous « Ils nous font confiance » (accueil, StatsBar).
+//  • `file` = logo réel dans public/logos/ (téléversé au bucket par `media:sync`).
+//    Sans `file`, le NOM s'affiche en texte sur la tuile — ainsi chaque entreprise
+//    de la liste paraît, avec ou sans logo. Pour activer un logo : déposer le
+//    fichier dans public/logos/, renseigner `file` ici, puis `npm run media:sync`.
+//  • `group` documente le type de relation (client / projet / santé) — conservé
+//    pour un éventuel regroupement (non affiché pour l'instant).
+type ClientGroup = "client" | "projet" | "sante"
+const CLIENT_LOGOS: { name: string; group: ClientGroup; file?: string }[] = [
+  // Avec logo réel (sites officiels / Wikimedia).
+  { name: "Pomerleau", group: "client", file: "pomerleau.svg" },
+  { name: "Musée de la civilisation", group: "client", file: "musee-civilisation.png" },
+  { name: "Centre des congrès de Québec", group: "client", file: "centre-des-congres-quebec.svg" },
+  { name: "Beaubois", group: "client", file: "beaubois.png" },
+  { name: "Boisdaction", group: "client", file: "boisdaction.svg" },
+  { name: "Chocolats Favoris", group: "client", file: "chocolats-favoris.svg" },
+  { name: "Yuzu", group: "client", file: "yuzu.png" },
+  { name: "CHU de Québec", group: "sante", file: "chu-de-quebec.png" },
+  { name: "Ford", group: "projet", file: "ford.png" },
+  { name: "Audi", group: "projet", file: "audi.png" },
+  { name: "Disney", group: "projet", file: "disney.png" },
+  { name: "Universal", group: "projet", file: "universal.png" },
+  { name: "Simons", group: "projet", file: "simons.jpg" },
+  { name: "Polybois", group: "client", file: "polybois.png" },
+  { name: "Deloitte", group: "projet", file: "deloitte.svg" },
+]
 
 /** Known static site assets (uploaded to MEDIA_BUCKET; resolve with mediaUrl). */
 export const SITE_MEDIA = {
@@ -182,10 +192,13 @@ export const SITE_MEDIA = {
     soudure: `${MEDIA_FOLDERS.fabrication}/savoir-faire-soudure.jpg`,
     polissage: `${MEDIA_FOLDERS.fabrication}/savoir-faire-polissage.jpg`,
   },
-  // name = display/alt text, file = source under public/logos/, key = storage key.
+  // name = display/alt text, group = relation type, file = source under
+  // public/logos/, key = storage key when a logo file exists (both undefined →
+  // the name is rendered as text in the marquee, and media:sync skips it).
   clients: CLIENT_LOGOS.map((c) => ({
     name: c.name,
+    group: c.group,
     file: c.file,
-    key: `${MEDIA_FOLDERS.logo}/clients/${c.file}`,
+    key: c.file ? `${MEDIA_FOLDERS.logo}/clients/${c.file}` : undefined,
   })),
 } as const

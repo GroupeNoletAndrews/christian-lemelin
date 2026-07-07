@@ -8,6 +8,8 @@ import {
   readConsent,
   writeConsent,
 } from "@/lib/consent"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { t } from "@/lib/i18n"
 
 /**
  * Bannière de consentement minimale (Loi 25) : le site ne pose aucun cookie de
@@ -17,6 +19,7 @@ import {
  * rendue dans l'aperçu admin (html.cl-preview) — l'admin n'a pas ce chrome.
  */
 export function ConsentBanner() {
+  const locale = useLocale()
   const [open, setOpen] = useState(false)
   const [customize, setCustomize] = useState(false)
   const [analytics, setAnalytics] = useState(false)
@@ -51,7 +54,7 @@ export function ConsentBanner() {
       {open && (
         <motion.aside
           role="dialog"
-          aria-label="Préférences de témoins (cookies)"
+          aria-label={t("Préférences de témoins (cookies)", "Cookie preferences", locale)}
           initial={reduce ? { opacity: 0 } : { opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, y: 24 }}
@@ -59,17 +62,19 @@ export function ConsentBanner() {
           className="fixed inset-x-4 bottom-4 z-[95] max-w-xl rounded-2xl border border-border bg-surface p-6 shadow-xl sm:inset-x-auto sm:left-6 sm:bottom-6 md:p-7"
         >
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted">
-            Témoins (cookies)
+            {t("Témoins (cookies)", "Cookies", locale)}
           </p>
           <p className="mt-3 text-sm leading-relaxed text-foreground-muted">
-            Ce site n&apos;utilise que des témoins essentiels ; notre mesure
-            d&apos;audience se fait sans témoin. Des témoins analytiques ou
-            marketing ne seraient activés qu&apos;avec votre accord.{" "}
+            {t(
+              "Ce site n'utilise que des témoins essentiels ; notre mesure d'audience se fait sans témoin. Des témoins analytiques ou marketing ne seraient activés qu'avec votre accord.",
+              "This site uses only essential cookies; our audience measurement is cookieless. Analytics or marketing cookies would only be enabled with your consent.",
+              locale,
+            )}{" "}
             <Link
               href="/confidentialite"
               className="text-foreground underline decoration-border underline-offset-4 transition-colors hover:decoration-foreground"
             >
-              Politique de confidentialité
+              {t("Politique de confidentialité", "Privacy policy", locale)}
             </Link>
           </p>
 
@@ -78,8 +83,12 @@ export function ConsentBanner() {
               <label className="flex items-start gap-3 text-sm text-foreground-muted">
                 <input type="checkbox" checked disabled className="mt-0.5 accent-accent" />
                 <span>
-                  <span className="text-foreground">Nécessaires</span> — fonctionnement du
-                  site et mémorisation de ce choix. Toujours actifs.
+                  <span className="text-foreground">{t("Nécessaires", "Essential", locale)}</span>
+                  {t(
+                    " — fonctionnement du site et mémorisation de ce choix. Toujours actifs.",
+                    " — site functionality and remembering this choice. Always on.",
+                    locale,
+                  )}
                 </span>
               </label>
               <label className="flex items-start gap-3 text-sm text-foreground-muted">
@@ -90,8 +99,12 @@ export function ConsentBanner() {
                   className="mt-0.5 accent-accent"
                 />
                 <span>
-                  <span className="text-foreground">Analytiques</span> — mesure
-                  d&apos;audience avec témoin (aucune utilisée actuellement).
+                  <span className="text-foreground">{t("Analytiques", "Analytics", locale)}</span>
+                  {t(
+                    " — mesure d'audience avec témoin (aucune utilisée actuellement).",
+                    " — cookie-based audience measurement (none used currently).",
+                    locale,
+                  )}
                 </span>
               </label>
               <label className="flex items-start gap-3 text-sm text-foreground-muted">
@@ -102,8 +115,12 @@ export function ConsentBanner() {
                   className="mt-0.5 accent-accent"
                 />
                 <span>
-                  <span className="text-foreground">Marketing</span> — publicité
-                  personnalisée (aucune utilisée actuellement).
+                  <span className="text-foreground">Marketing</span>
+                  {t(
+                    " — publicité personnalisée (aucune utilisée actuellement).",
+                    " — personalized advertising (none used currently).",
+                    locale,
+                  )}
                 </span>
               </label>
             </div>
@@ -115,11 +132,11 @@ export function ConsentBanner() {
               onClick={() => save({ analytics: true, marketing: true })}
               className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover active:scale-[0.99]"
             >
-              Tout accepter
+              {t("Tout accepter", "Accept all", locale)}
             </button>
             {customize ? (
               <button type="button" onClick={() => save({ analytics, marketing })} className={secondaryBtn}>
-                Enregistrer mes choix
+                {t("Enregistrer mes choix", "Save my choices", locale)}
               </button>
             ) : (
               <button
@@ -127,7 +144,7 @@ export function ConsentBanner() {
                 onClick={() => save({ analytics: false, marketing: false })}
                 className={secondaryBtn}
               >
-                Refuser le non-essentiel
+                {t("Refuser le non-essentiel", "Reject non-essential", locale)}
               </button>
             )}
             {!customize && (
@@ -136,7 +153,7 @@ export function ConsentBanner() {
                 onClick={() => setCustomize(true)}
                 className="text-sm text-foreground-muted underline decoration-border underline-offset-4 transition-colors hover:text-foreground"
               >
-                Personnaliser
+                {t("Personnaliser", "Customize", locale)}
               </button>
             )}
           </div>

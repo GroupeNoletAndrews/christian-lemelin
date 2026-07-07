@@ -1,6 +1,18 @@
 import { SlotParallaxImage } from "@/components/sections/SlotParallaxImage"
+import { SlotImage } from "@/components/sections/SlotImage"
+import { AProposStats } from "@/components/sections/AProposStats"
 import { imageUrl } from "@/content/image"
+import {
+  COMPANY,
+  APROPOS_SECTEURS,
+  APROPOS_VALEURS,
+  APROPOS_VALEURS_INTRO,
+  APROPOS_TIMELINE,
+  APROPOS_CITATION,
+} from "@/content"
 import { DEFAULT_APROPOS_LAYOUT, type AProposLayout } from "@/lib/layouts"
+import { getLocale } from "@/lib/server/locale"
+import { t, tr } from "@/lib/i18n"
 
 // Page /a-propos — the image arrangement is admin-selectable (apropos.layout):
 //   • bento     — asymmetric two-column editorial (default, text interleaved)
@@ -21,13 +33,6 @@ const SLOTS = {
 
 type SlotDef = (typeof SLOTS)[keyof typeof SLOTS]
 
-const INTRO =
-  "Fondée à Québec, Entreprises Christian Lemelin conçoit, fabrique et installe des ouvrages métalliques sur mesure. De la pièce unique à la grande série, nous mettons la même exigence dans chaque projet."
-const ATELIER_P1 =
-  "Notre atelier réunit découpe laser et plasma, postes de soudure certifiés et finition complète sous un même toit. Cette intégration nous permet de maîtriser chaque étape, du plan à la pose."
-const ATELIER_P2 =
-  "Soudeurs, machinistes et installateurs expérimentés y travaillent l’inox, l’acier, l’aluminium, le laiton et le cuivre avec une précision constante — partout au Québec."
-
 function Frame({
   s,
   src,
@@ -46,24 +51,44 @@ function Frame({
   )
 }
 
-export function APropos({
+export async function APropos({
   images = {},
   layout = DEFAULT_APROPOS_LAYOUT,
 }: {
   images?: Record<string, string>
   layout?: AProposLayout
 }) {
+  const locale = await getLocale()
   const src = (s: SlotDef) => images[s.slot] ?? imageUrl({ seed: s.seed, alt: s.alt }, s.w, s.h)
+  const portraitSrc =
+    images["pdg-portrait"] ??
+    imageUrl({ seed: "ecl-about-pdg-portrait", alt: "Christian Lemelin, président-directeur général" }, 720, 900)
+
+  const INTRO = t(
+    "Fondée à Québec, Entreprises Christian Lemelin conçoit, fabrique et installe des ouvrages métalliques sur mesure. De la pièce unique à la grande série, nous mettons la même exigence dans chaque projet.",
+    "Founded in Québec City, Entreprises Christian Lemelin designs, fabricates and installs custom metalwork. From the single piece to large production runs, we bring the same standard of care to every project.",
+    locale,
+  )
+  const ATELIER_P1 = t(
+    "Notre atelier réunit découpe laser et plasma, postes de soudure certifiés et finition complète sous un même toit. Cette intégration nous permet de maîtriser chaque étape, du plan à la pose.",
+    "Our workshop brings together laser and plasma cutting, certified welding stations and complete finishing under one roof. This integration lets us control every step, from drawing to installation.",
+    locale,
+  )
+  const ATELIER_P2 = t(
+    "Soudeurs, machinistes et installateurs expérimentés y travaillent l’inox, l’acier, l’aluminium, le laiton et le cuivre avec une précision constante — partout au Québec.",
+    "Experienced welders, machinists and installers work stainless steel, steel, aluminium, brass and copper there with consistent precision — throughout Québec.",
+    locale,
+  )
 
   const heading = (
     <h1 className="font-display text-[clamp(2.5rem,6vw,4.5rem)] font-semibold leading-[1.02] tracking-[-0.02em] text-foreground">
-      Le métal, notre métier depuis 40 ans.
+      {t("Le métal, notre métier depuis 30 ans.", "Metal, our trade for 30 years.", locale)}
     </h1>
   )
   const atelier = (
     <div>
       <h2 className="font-display text-[clamp(1.75rem,3.5vw,2.75rem)] font-medium leading-tight text-foreground">
-        L’atelier
+        {t("L’atelier", "The workshop", locale)}
       </h2>
       <p className="mt-5 max-w-[46ch] leading-relaxed text-foreground-muted">{ATELIER_P1}</p>
       <p className="mt-4 max-w-[46ch] leading-relaxed text-foreground-muted">{ATELIER_P2}</p>
@@ -71,6 +96,7 @@ export function APropos({
   )
 
   return (
+    <>
     <section
       id="a-propos"
       data-header-theme="light"
@@ -147,5 +173,113 @@ export function APropos({
         )}
       </div>
     </section>
+
+      {/* Nos performances en chiffres */}
+      <section data-header-theme="light" className="bg-background">
+        <div className="mx-auto max-w-[1400px] border-t border-border px-6 py-20 md:px-12 md:py-28">
+          <h2 className="font-display text-[clamp(1.75rem,3.5vw,2.75rem)] font-medium leading-tight text-foreground">
+            {t("Nos performances en chiffres", "Our performance in numbers", locale)}
+          </h2>
+          <div className="mt-10 md:mt-14">
+            <AProposStats />
+          </div>
+        </div>
+      </section>
+
+      {/* Nos secteurs d'activité */}
+      <section data-header-theme="light" className="bg-background">
+        <div className="mx-auto max-w-[1400px] border-t border-border px-6 py-20 md:px-12 md:py-28">
+          <h2 className="max-w-[22ch] font-display text-[clamp(1.75rem,3.5vw,2.75rem)] font-medium leading-tight text-foreground">
+            {t("Nos secteurs d’activité", "Our sectors of activity", locale)}
+          </h2>
+          <div className="mt-12 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+            {APROPOS_SECTEURS.map((s) => (
+              <div key={tr(s.group, locale)}>
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted">
+                  {tr(s.group, locale)}
+                </p>
+                <ul className="mt-5 space-y-2.5">
+                  {s.items.map((it) => (
+                    <li key={tr(it, locale)} className="leading-relaxed text-foreground-muted">
+                      {tr(it, locale)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Nos valeurs fondamentales */}
+      <section data-header-theme="light" className="bg-background">
+        <div className="mx-auto max-w-[1400px] border-t border-border px-6 py-20 md:px-12 md:py-28">
+          <div className="max-w-[60ch]">
+            <h2 className="font-display text-[clamp(1.75rem,3.5vw,2.75rem)] font-medium leading-tight text-foreground">
+              {t("Nos valeurs fondamentales", "Our core values", locale)}
+            </h2>
+            <p className="mt-5 leading-relaxed text-foreground-muted">{tr(APROPOS_VALEURS_INTRO, locale)}</p>
+          </div>
+          <div className="mt-12 grid gap-x-8 gap-y-10 md:grid-cols-3">
+            {APROPOS_VALEURS.map((v) => (
+              <div key={tr(v.title, locale)} className="border-t border-border pt-6">
+                <h3 className="font-display text-xl font-medium text-foreground">{tr(v.title, locale)}</h3>
+                <p className="mt-3 leading-relaxed text-foreground-muted">{tr(v.body, locale)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Chronologie */}
+      <section data-header-theme="light" className="bg-background">
+        <div className="mx-auto max-w-[1400px] border-t border-border px-6 py-20 md:px-12 md:py-28">
+          <h2 className="font-display text-[clamp(1.75rem,3.5vw,2.75rem)] font-medium leading-tight text-foreground">
+            {t("Des jalons qui nous ont façonnés", "Milestones that shaped us", locale)}
+          </h2>
+          <div className="mt-10">
+            {APROPOS_TIMELINE.map((j) => (
+              <div
+                key={j.year}
+                className="grid grid-cols-[auto_1fr] items-center gap-6 border-t border-border py-6 md:gap-12"
+              >
+                <span className="font-display text-2xl font-semibold tabular-nums text-foreground md:text-3xl">
+                  {j.year}
+                </span>
+                <span className="text-lg leading-snug text-foreground-muted">{tr(j.title, locale)}</span>
+              </div>
+            ))}
+            <div className="border-t border-border" />
+          </div>
+        </div>
+      </section>
+
+      {/* Citation du président-directeur général */}
+      <section data-header-theme="light" className="bg-background">
+        <div className="mx-auto max-w-[1400px] border-t border-border px-6 py-20 md:px-12 md:py-28">
+          <div className="grid gap-10 md:grid-cols-[auto_1fr] md:items-center md:gap-16">
+            <div className="relative aspect-[4/5] w-full max-w-[320px] overflow-hidden rounded-2xl border border-border">
+              <SlotImage
+                section={SECTION}
+                slot="pdg-portrait"
+                src={portraitSrc}
+                alt="Christian Lemelin, président-directeur général"
+                sizes="(min-width:768px) 320px, 80vw"
+              />
+            </div>
+            <figure>
+              <blockquote className="font-display text-[clamp(1.5rem,3vw,2.5rem)] font-medium leading-[1.2] tracking-[-0.01em] text-foreground">
+                «&nbsp;{tr(APROPOS_CITATION.quote, locale)}&nbsp;»
+              </blockquote>
+              <figcaption className="mt-8 leading-relaxed text-foreground-muted">
+                <span className="font-medium text-foreground">{APROPOS_CITATION.author}</span>
+                <br />
+                {tr(APROPOS_CITATION.role, locale)}, {COMPANY.shortName}
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+    </>
   )
 }

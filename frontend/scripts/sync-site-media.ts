@@ -61,8 +61,9 @@ const items: Item[] = [
 ]
 
 // Client / partner logos (home marquee). Source files in public/logos/.
+// Entries without a logo file are rendered as text and skipped here.
 for (const c of SITE_MEDIA.clients) {
-  items.push({ source: `logos/${c.file}`, key: c.key })
+  if (c.file && c.key) items.push({ source: `logos/${c.file}`, key: c.key })
 }
 
 // Demo réalisation images (keys must match prisma/seed.ts).

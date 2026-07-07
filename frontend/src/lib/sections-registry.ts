@@ -2,7 +2,11 @@ import { SITE_MEDIA } from "@/lib/media"
 import { MATERIALS } from "@/content/materials"
 import { SOLUTION_DETAILS, SOLUTIONS_OVERVIEW } from "@/content/solutions"
 import type { ContentBlock } from "@/content/types"
+import { tr } from "@/lib/i18n"
 import { FULL_CAPS, REFRAME_ONLY_CAPS, type SlotCaps } from "@/lib/section-style"
+
+// Libellés admin (statiques, hors requête) → toujours résolus en français.
+const frLabel = (v: Parameters<typeof tr>[0]) => tr(v, "fr")
 
 // Single registry of editable image slots per static section. Client+server safe
 // (no DB, no secrets) so the admin UI, the resolver, and publish-revalidation all
@@ -83,8 +87,8 @@ function blockSlots(slug: string, blocks: ContentBlock[]): SlotDef[] {
 
 function buildMaterialSlots(): SlotDef[] {
   return MATERIALS.flatMap((m) => [
-    { id: cardSlot(m.slug), label: `${m.name} — carte`, source: "seed-manifest" as const, default: m.cardImage.seed, grayscale: m.cardImage.grayscale, aspect: "4/5" },
-    { id: heroSlot(m.slug), label: `${m.name} — héro`, source: "seed-manifest" as const, default: m.hero.image.seed, grayscale: m.hero.image.grayscale, aspect: "16/9" },
+    { id: cardSlot(m.slug), label: `${frLabel(m.name)} — carte`, source: "seed-manifest" as const, default: m.cardImage.seed, grayscale: m.cardImage.grayscale, aspect: "4/5" },
+    { id: heroSlot(m.slug), label: `${frLabel(m.name)} — héro`, source: "seed-manifest" as const, default: m.hero.image.seed, grayscale: m.hero.image.grayscale, aspect: "16/9" },
     ...blockSlots(m.slug, m.blocks),
   ])
 }
@@ -97,8 +101,8 @@ function buildSolutionSlots(): SlotDef[] {
     const hover = hoverBySlug.get(s.slug)
     const slots: SlotDef[] = []
     if (hover)
-      slots.push({ id: hoverSlot(s.slug), label: `${s.title} — aperçu`, source: "seed-manifest", default: hover.seed, grayscale: hover.grayscale, aspect: "4/5" })
-    slots.push({ id: heroSlot(s.slug), label: `${s.title} — héro`, source: "seed-manifest", default: s.hero.image.seed, grayscale: s.hero.image.grayscale, aspect: "16/9" })
+      slots.push({ id: hoverSlot(s.slug), label: `${frLabel(s.title)} — aperçu`, source: "seed-manifest", default: hover.seed, grayscale: hover.grayscale, aspect: "4/5" })
+    slots.push({ id: heroSlot(s.slug), label: `${frLabel(s.title)} — héro`, source: "seed-manifest", default: s.hero.image.seed, grayscale: s.hero.image.grayscale, aspect: "16/9" })
     slots.push(...blockSlots(s.slug, s.blocks))
     return slots
   })
@@ -133,6 +137,7 @@ export const SECTION_SLOTS: SectionDef[] = [
       { id: "decoupe-laser", label: "Découpe laser", source: "seed-manifest", default: "ecl-about-decoupe-laser", aspect: "1/1" },
       { id: "finitions-poli", label: "Finitions & polissage", source: "seed-manifest", default: "ecl-about-finitions-poli", aspect: "3/4" },
       { id: "equipe-plancher", label: "Équipe au plancher", source: "seed-manifest", default: "ecl-about-equipe-plancher", aspect: "1/1" },
+      { id: "pdg-portrait", label: "Portrait du PDG", source: "seed-manifest", default: "ecl-about-pdg-portrait", aspect: "4/5" },
     ],
   },
   {

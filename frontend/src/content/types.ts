@@ -1,67 +1,73 @@
 // Shapes for the hardcoded marketing content (src/content/*). Consumed only by
 // server components → zero client-bundle cost. Images are picsum seeds resolved
 // via image.ts (the site-wide placeholder convention). See DESIGN.md.
+//
+// Les champs de texte sont typés `LocalizedText` (string FR OU { fr, en }) pour
+// permettre une traduction bilingue progressive ; on les rend via tr(x, locale).
+
+import type { LocalizedText } from "@/lib/i18n"
 
 export interface ImageRef {
   /** picsum seed, e.g. "ecl-inox-hero". */
   seed: string
+  /** alt reste une string simple (peu utile à traduire, évite du bruit partout). */
   alt: string
   /** Render in monochrome (?grayscale) — used for the moody full-bleed treatments. */
   grayscale?: boolean
 }
 
 export interface CTA {
-  heading: string
-  body: string
+  heading: LocalizedText
+  body: LocalizedText
   href: string
-  label: string
+  label: LocalizedText
 }
 
 /** A content section rendered generically by ContentBlocks.tsx. No badges,
  *  no numbering — lists are hairline rows, sections open on their title. */
 export type ContentBlock =
-  | { kind: "prose"; heading?: string; paragraphs: string[] }
+  | { kind: "prose"; heading?: LocalizedText; paragraphs: LocalizedText[] }
   | {
       kind: "list"
-      heading?: string
-      intro?: string
-      items: { title: string; body?: string }[]
+      heading?: LocalizedText
+      intro?: LocalizedText
+      items: { title: LocalizedText; body?: LocalizedText }[]
     }
-  | { kind: "properties"; heading?: string; items: { label: string; value: string }[] }
-  | { kind: "gallery"; heading?: string; images: ImageRef[] }
+  | { kind: "properties"; heading?: LocalizedText; items: { label: LocalizedText; value: LocalizedText }[] }
+  | { kind: "gallery"; heading?: LocalizedText; images: ImageRef[] }
   | {
       kind: "split"
-      heading: string
-      paragraphs: string[]
+      heading: LocalizedText
+      paragraphs: LocalizedText[]
       image: ImageRef
       reverse?: boolean
     }
   | {
       // Dark, full-width "expertise" block (bg-ink) — the PDF's dark sections.
       kind: "feature"
-      heading: string
-      intro?: string
+      heading: LocalizedText
+      intro?: LocalizedText
       image: ImageRef
-      points: { title: string; body?: string }[]
+      points: { title: LocalizedText; body?: LocalizedText }[]
     }
 
 export interface DetailHero {
-  heading: string
-  intro: string
+  heading: LocalizedText
+  intro: LocalizedText
   image: ImageRef
 }
 
 export interface SolutionIndexEntry {
   slug: string
-  title: string
-  tagline: string
+  title: LocalizedText
+  tagline: LocalizedText
   hoverImage: ImageRef
 }
 
 export interface SolutionDetail {
   slug: string
-  title: string
-  metaDescription: string
+  title: LocalizedText
+  metaDescription: LocalizedText
   hero: DetailHero
   blocks: ContentBlock[]
   /** Material slugs to cross-link at the bottom. */
@@ -77,16 +83,16 @@ export interface MaterialDetail {
   slug: string
   code: string
   /** Canonical name (footer, detail hero, cross-links) — e.g. "Acier inoxydable". */
-  name: string
+  name: LocalizedText
   /** Compact label (home carousel, switcher list) — e.g. "Inox". */
-  shortName: string
+  shortName: LocalizedText
   /** Descriptive subtitle — e.g. "Inox 304 / 316L". */
-  fullName: string
-  metaDescription: string
+  fullName: LocalizedText
+  metaDescription: LocalizedText
   /** Short blurb reused by the fabrication switcher, home carousel & index. */
-  blurb: string
+  blurb: LocalizedText
   /** Short property chips (home Materiaux carousel uses these). */
-  properties: string[]
+  properties: LocalizedText[]
   /** Portrait image for the carousel card / switcher list. */
   cardImage: ImageRef
   hero: DetailHero
@@ -96,40 +102,40 @@ export interface MaterialDetail {
 }
 
 export interface Reason {
-  title: string
-  body: string
+  title: LocalizedText
+  body: LocalizedText
 }
 
 export interface FabricationContent {
-  hero: { heading: string; intro: string; points: string[] }
-  raisonsHeading: string
-  raisonsIntro: string
+  hero: { heading: LocalizedText; intro: LocalizedText; points: LocalizedText[] }
+  raisonsHeading: LocalizedText
+  raisonsIntro: LocalizedText
   raisons: Reason[]
-  showcase: { heading: string; intro: string; materialSlugs: string[] }
+  showcase: { heading: LocalizedText; intro: LocalizedText; materialSlugs: string[] }
   cta?: CTA
 }
 
 export interface SolutionsOverviewContent {
   hero: {
-    heading: string
-    intro: string
-    points: { title: string; body: string }[]
+    heading: LocalizedText
+    intro: LocalizedText
+    points: { title: LocalizedText; body: LocalizedText }[]
   }
   index: SolutionIndexEntry[]
-  closing: { heading: string }
+  closing: { heading: LocalizedText }
 }
 
 export interface InstallationsContent {
   hero: DetailHero
-  capabilities: { title: string; body: string }[]
-  stats: { value: string; label: string }[]
+  capabilities: { title: LocalizedText; body: LocalizedText }[]
+  stats: { value: LocalizedText; label: LocalizedText }[]
   eco: {
-    heading: string
-    intro: string
-    points: { title: string; body: string }[]
+    heading: LocalizedText
+    intro: LocalizedText
+    points: { title: LocalizedText; body: LocalizedText }[]
     image: ImageRef
   }
-  partner: { heading: string; body: string; image: ImageRef }
+  partner: { heading: LocalizedText; body: LocalizedText; image: ImageRef }
   cta?: CTA
 }
 

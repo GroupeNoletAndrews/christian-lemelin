@@ -8,18 +8,21 @@ import { motion, AnimatePresence, type Variants } from "motion/react"
 import { useLenis } from "@/components/providers/LenisProvider"
 import { CONTACT } from "@/content"
 import { mediaUrl, SITE_MEDIA } from "@/lib/media"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { tr, t, type Localized } from "@/lib/i18n"
+import { LanguageToggle } from "@/components/ui/LanguageToggle"
 
 type HeaderTheme = "dark" | "light"
 
 const HEADER_MID_Y = 56
 
-const navLinks = [
-  { href: "/", label: "Accueil" },
-  { href: "/solutions", label: "Solutions" },
-  { href: "/fabrication", label: "Fabrication" },
-  { href: "/realisations", label: "Réalisations" },
-  { href: "/a-propos", label: "À Propos" },
-  { href: "/emplois", label: "Emplois" },
+const navLinks: { href: string; label: Localized }[] = [
+  { href: "/", label: { fr: "Accueil", en: "Home" } },
+  { href: "/solutions", label: { fr: "Solutions", en: "Solutions" } },
+  { href: "/fabrication", label: { fr: "Fabrication", en: "Fabrication" } },
+  { href: "/realisations", label: { fr: "Réalisations", en: "Projects" } },
+  { href: "/a-propos", label: { fr: "À Propos", en: "About" } },
+  { href: "/emplois", label: { fr: "Emplois", en: "Careers" } },
 ]
 
 // Placeholder partners (à remplacer par les vrais logos)
@@ -65,6 +68,7 @@ const linkRiseV: Variants = {
 
 export function Header() {
   const pathname = usePathname()
+  const locale = useLocale()
   const lenis = useLenis()
   const [open, setOpen] = useState(false)
   const [theme, setTheme] = useState<HeaderTheme>("light")
@@ -162,21 +166,24 @@ export function Header() {
             </span>
           </Link>
 
-          {/* Menu toggle — transforms to "Fermer" when open (stays in the exact
-              same spot, so it's perfectly aligned). White on the black overlay. */}
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
-            className={`relative z-50 inline-flex h-9 items-center rounded-full px-5 text-[13px] font-medium tracking-[0.02em] transition-colors duration-200 ${
-              open
-                ? "bg-white text-foreground hover:bg-white/90"
-                : "bg-accent text-white hover:bg-accent-hover"
-            }`}
-          >
-            {open ? "Fermer" : "Menu"}
-          </button>
+          {/* Contrôles à droite : petite bascule FR/EN (masquée quand le menu est
+              ouvert — l'overlay a la sienne) + bouton Menu/Fermer. */}
+          <div className="relative z-50 flex items-center gap-2 md:gap-3">
+            {!open && <LanguageToggle variant="pill" tone={darkBar ? "dark" : "light"} />}
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              aria-label={open ? t("Fermer le menu", "Close menu", locale) : t("Ouvrir le menu", "Open menu", locale)}
+              className={`inline-flex h-9 items-center rounded-full px-5 text-[13px] font-medium tracking-[0.02em] transition-colors duration-200 ${
+                open
+                  ? "bg-white text-foreground hover:bg-white/90"
+                  : "bg-accent text-white hover:bg-accent-hover"
+              }`}
+            >
+              {open ? t("Fermer", "Close", locale) : t("Menu", "Menu", locale)}
+            </button>
+          </div>
         </div>
       </motion.header>
 
@@ -215,7 +222,7 @@ export function Header() {
                               href={link.href}
                               className="block py-0.5 font-display text-[clamp(2rem,5.5vw,4.25rem)] font-medium leading-[1.08] tracking-[-0.02em] text-white/90 transition-colors hover:text-white"
                             >
-                              {link.label}
+                              {tr(link.label, locale)}
                             </Link>
                           </motion.div>
                         </div>
@@ -232,7 +239,7 @@ export function Header() {
                           Entreprises Christian Lemelin
                         </p>
                         <p className="mt-1 text-sm text-white/75">
-                          Fabrication métallique sur mesure — Québec
+                          {t("Fabrication métallique sur mesure — Québec", "Custom metal fabrication — Québec", locale)}
                         </p>
                       </motion.div>
 
@@ -251,13 +258,12 @@ export function Header() {
                           href="/contact"
                           className="mt-6 inline-flex h-12 w-fit items-center rounded-full bg-white px-7 text-[14px] font-medium text-foreground transition-colors hover:bg-white/90 md:mt-8"
                         >
-                          Nous joindre
+                          {t("Nous joindre", "Contact us", locale)}
                         </Link>
                       </motion.div>
 
-                      <motion.div variants={contentV} custom={3} className="mt-6 flex items-center gap-4 text-[12px] uppercase tracking-[0.15em] md:mt-8">
-                        <span className="text-white/45">English</span>
-                        <span className="text-white underline decoration-white decoration-2 underline-offset-4">Français</span>
+                      <motion.div variants={contentV} custom={3} className="mt-6 md:mt-8">
+                        <LanguageToggle variant="inline" />
                       </motion.div>
                     </div>
                   </div>

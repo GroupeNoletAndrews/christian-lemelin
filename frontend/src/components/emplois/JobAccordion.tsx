@@ -7,6 +7,8 @@ import { useAdmin } from "@/lib/admin-context"
 import { Job } from "@/types/admin"
 import { ApplyModal } from "@/components/emplois/ApplyModal"
 import { ArrowLink } from "@/components/ui/ArrowLink"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { t, type Locale } from "@/lib/i18n"
 
 // Liste d'offres en accordéon typographique — aucune carte, aucun badge. Chaque
 // offre est une grande ligne sur hairlines ; au clic, dépliage inline (réutilise
@@ -14,21 +16,22 @@ import { ArrowLink } from "@/components/ui/ArrowLink"
 // qui ouvre l'ApplyModal existant. Voir DESIGN.md §7.
 const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
-function typeLabel(t: string) {
-  switch (t) {
+function typeLabel(type: string, locale: Locale) {
+  switch (type) {
     case "full-time":
-      return "Temps plein"
+      return t("Temps plein", "Full-time", locale)
     case "part-time":
-      return "Temps partiel"
+      return t("Temps partiel", "Part-time", locale)
     case "contract":
-      return "Contrat"
+      return t("Contrat", "Contract", locale)
     default:
-      return t
+      return type
   }
 }
 
 export function JobAccordion() {
   const { jobs } = useAdmin()
+  const locale = useLocale()
   const reduce = useReducedMotion()
   const [openId, setOpenId] = useState<string | null>(jobs[0]?.id ?? null)
   const [applyJob, setApplyJob] = useState<Job | null>(null)
@@ -43,14 +46,17 @@ export function JobAccordion() {
     return (
       <div className="mx-auto max-w-[1100px] px-6 py-16 md:py-24">
         <h2 className="font-display text-[clamp(1.75rem,4vw,2.75rem)] font-semibold leading-[1.08] tracking-[-0.01em] text-foreground">
-          Aucun poste ouvert pour le moment.
+          {t("Aucun poste ouvert pour le moment.", "No open positions at the moment.", locale)}
         </h2>
         <p className="mt-4 max-w-[50ch] leading-relaxed text-foreground-muted">
-          Les bons projets se font avec les bonnes personnes. Envoyez-nous votre candidature
-          spontanée — nous gardons les profils intéressants pour nos futures opportunités.
+          {t(
+            "Les bons projets se font avec les bonnes personnes. Envoyez-nous votre candidature spontanée — nous gardons les profils intéressants pour nos futures opportunités.",
+            "Great projects are built with the right people. Send us an unsolicited application — we keep promising profiles on file for future opportunities.",
+            locale,
+          )}
         </p>
         <ArrowLink href="/contact" className="mt-6 text-lg">
-          Envoyer une candidature spontanée
+          {t("Envoyer une candidature spontanée", "Send an unsolicited application", locale)}
         </ArrowLink>
       </div>
     )
@@ -61,7 +67,7 @@ export function JobAccordion() {
       <div>
         {jobs.map((job) => {
           const open = job.id === openId
-          const meta = [typeLabel(job.type), job.location, job.salary]
+          const meta = [typeLabel(job.type, locale), job.location, job.salary]
             .filter(Boolean)
             .join("  ·  ")
           return (
@@ -109,7 +115,7 @@ export function JobAccordion() {
                         onClick={() => setApplyJob(job)}
                         className="mt-7 inline-flex h-12 items-center rounded-full bg-accent px-7 text-sm font-medium text-white transition-colors hover:bg-accent-hover active:scale-[0.99]"
                       >
-                        Postuler
+                        {t("Postuler", "Apply", locale)}
                       </button>
                     </div>
                   </motion.div>

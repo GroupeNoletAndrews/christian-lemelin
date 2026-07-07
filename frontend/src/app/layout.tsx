@@ -6,6 +6,8 @@ import { RootLayoutWrapper } from "@/components/layout/RootLayoutWrapper"
 import { Analytics } from "@vercel/analytics/react"
 import { ConsoleSignature } from "@/components/ui/ConsoleSignature"
 import { ImageCache } from "@/lib/image-cache/ImageCache"
+import { LocaleProvider } from "@/components/providers/LocaleProvider"
+import { getLocale } from "@/lib/server/locale"
 
 // OPUS design system — see DESIGN.md
 // Onest: variable font for headings + body. Fragment Mono: eyebrows, labels, section numbers.
@@ -55,15 +57,16 @@ function supabaseOrigin(): string | null {
   }
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   const mediaOrigin = supabaseOrigin()
+  const locale = await getLocale()
   return (
     <html
-      lang="fr"
+      lang={locale}
       className={`${onest.variable} ${fragmentMono.variable}`}
       // The pre-paint script below may add `cl-preview` to <html> before React
       // hydrates — suppress the resulting attribute-mismatch warning.
@@ -93,9 +96,11 @@ export default function RootLayout({
         {/* Mesure d'audience SANS témoin (cookieless) — aucun consentement requis. */}
         <Analytics />
 
-        <RootLayoutWrapper>
-          <SiteChrome>{children}</SiteChrome>
-        </RootLayoutWrapper>
+        <LocaleProvider locale={locale}>
+          <RootLayoutWrapper>
+            <SiteChrome>{children}</SiteChrome>
+          </RootLayoutWrapper>
+        </LocaleProvider>
       </body>
     </html>
   )

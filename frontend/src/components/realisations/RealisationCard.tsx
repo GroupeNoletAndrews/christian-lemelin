@@ -12,6 +12,8 @@ import {
 import { PencilSimple } from "@phosphor-icons/react"
 import { Realisation } from "@/types/admin"
 import { imgSrc, isUnoptimizedSrc } from "@/lib/media"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { t } from "@/lib/i18n"
 
 // Alternating aspect ratios give the masonry layout its rhythm.
 const RATIOS = ["aspect-[4/3]", "aspect-[4/5]", "aspect-[4/5]", "aspect-[4/3]"]
@@ -47,6 +49,7 @@ export function RealisationCard({
   /** Drop the masonry bottom-margin (for grid / carousel layouts). */
   noMargin?: boolean
 }) {
+  const locale = useLocale()
   const cardRatio = ratio ?? RATIOS[index % RATIOS.length]
   const images = realisation.images.length ? realisation.images : [""]
   const [active, setActive] = useState(0)
@@ -171,7 +174,7 @@ export function RealisationCard({
         <button
           type="button"
           onClick={onEdit}
-          aria-label="Modifier cette réalisation"
+          aria-label={t("Modifier cette réalisation", "Edit this project", locale)}
           className="absolute right-3 top-3 z-20 inline-flex items-center justify-center rounded-full bg-accent p-2 text-white shadow-lg transition-colors hover:bg-accent-hover"
         >
           <PencilSimple size={16} weight="bold" />

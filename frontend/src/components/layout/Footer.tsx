@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
 import {
@@ -7,30 +9,38 @@ import {
 import { CONTACT, COMPANY, HOURS } from "@/content"
 import { mediaUrl, SITE_MEDIA } from "@/lib/media"
 import { openConsentManager } from "@/lib/consent"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { tr, t, type Localized } from "@/lib/i18n"
 
 // Footer aligné sur la brochure PDF : bandeau « Durabilité & innovation », bloc
 // contact (coordonnées de site.ts), puis colonnes ENTREPRISE / MÉDIAS / NOS
 // EMPLOIS — liens dérivés du contenu pour ne jamais diverger des routes. Voir
-// DESIGN.md.
+// DESIGN.md. Bilingue FR/EN (locale via cookie).
 
-const columns: { title: string; links: { label: string; href: string }[] }[] = [
+const columns: { title: Localized; links: { label: Localized; href: string }[] }[] = [
   {
-    title: "Entreprise",
+    title: { fr: "Entreprise", en: "Company" },
     links: [
-      { label: "À propos de nous", href: "/a-propos" },
-      { label: "Installations & capacité", href: "/installations" },
-      { label: "Fabrication sur mesure", href: "/fabrication" },
-      { label: "Nous contacter", href: "/contact" },
+      { label: { fr: "À propos de nous", en: "About us" }, href: "/a-propos" },
+      { label: { fr: "Installations & capacité", en: "Facilities & capacity" }, href: "/installations" },
+      { label: { fr: "Fabrication sur mesure", en: "Custom fabrication" }, href: "/fabrication" },
+      { label: { fr: "Nous contacter", en: "Contact us" }, href: "/contact" },
     ],
   },
-  { title: "Médias", links: [{ label: "Nos réalisations", href: "/realisations" }] },
-  { title: "Nos emplois", links: [{ label: "Emplois disponibles", href: "/emplois" }] },
+  {
+    title: { fr: "Médias", en: "Media" },
+    links: [{ label: { fr: "Nos réalisations", en: "Our projects" }, href: "/realisations" }],
+  },
+  {
+    title: { fr: "Nos emplois", en: "Careers" },
+    links: [{ label: { fr: "Emplois disponibles", en: "Open positions" }, href: "/emplois" }],
+  },
 ]
 
-const contactCells = [
-  { label: "Atelier", lines: [CONTACT.addressLine, CONTACT.addressCity] },
-  { label: "Courriel", href: `mailto:${CONTACT.email}`, value: CONTACT.email },
-  { label: "Téléphone", href: `tel:${CONTACT.phoneHref}`, value: CONTACT.phoneDisplay },
+const contactCells: { label: Localized; lines?: string[]; href?: string; value?: string }[] = [
+  { label: { fr: "Atelier", en: "Workshop" }, lines: [CONTACT.addressLine, CONTACT.addressCity] },
+  { label: { fr: "Courriel", en: "Email" }, href: `mailto:${CONTACT.email}`, value: CONTACT.email },
+  { label: { fr: "Téléphone", en: "Phone" }, href: `tel:${CONTACT.phoneHref}`, value: CONTACT.phoneDisplay },
 ]
 
 const socials = [
@@ -39,16 +49,17 @@ const socials = [
 ]
 
 export function Footer() {
+  const locale = useLocale()
   return (
     <footer className="mt-auto bg-ink text-white">
       <div className="mx-auto max-w-[1400px] px-6 pb-10 pt-20 md:px-12 md:pt-28">
         {/* Bandeau */}
         <div>
           <h2 className="font-display text-[clamp(1.75rem,4vw,3rem)] font-semibold leading-[1.1] tracking-[-0.01em] text-white">
-            Durabilité &amp; innovation
+            {t("Durabilité & innovation", "Durability & innovation", locale)}
           </h2>
           <p className="font-display text-[clamp(1.75rem,4vw,3rem)] font-semibold leading-[1.1] tracking-[-0.01em] text-white/45">
-            E.C. Lemelin, synonyme de qualité.
+            {t("E.C. Lemelin, synonyme de qualité.", "E.C. Lemelin, a byword for quality.", locale)}
           </p>
         </div>
 
@@ -56,11 +67,11 @@ export function Footer() {
         <div className="mt-12 grid overflow-hidden rounded-2xl border border-white/12 md:grid-cols-3">
           {contactCells.map((c) => (
             <div
-              key={c.label}
+              key={c.label.fr}
               className="border-t border-white/12 p-6 first:border-t-0 md:border-l md:border-t-0 md:first:border-l-0"
             >
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">
-                {c.label}
+                {tr(c.label, locale)}
               </p>
               {c.lines
                 ? c.lines.map((line) => (
@@ -83,18 +94,18 @@ export function Footer() {
         {/* Colonnes de liens */}
         <div className="mt-14 grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-4">
           {columns.map((col) => (
-            <div key={col.title}>
+            <div key={col.title.fr}>
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">
-                {col.title}
+                {tr(col.title, locale)}
               </p>
               <ul className="mt-5 space-y-3">
                 {col.links.map((l) => (
-                  <li key={l.label}>
+                  <li key={l.href}>
                     <Link
                       href={l.href}
                       className="text-sm text-white/70 transition-colors hover:text-white"
                     >
-                      {l.label}
+                      {tr(l.label, locale)}
                     </Link>
                   </li>
                 ))}
@@ -104,14 +115,14 @@ export function Footer() {
           {/* Heures d'ouverture — même gabarit que les colonnes, volontairement discret */}
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">
-              Heures d&apos;ouverture
+              {t("Heures d'ouverture", "Opening hours", locale)}
             </p>
             <ul className="mt-5 space-y-3">
               {HOURS.map((h) => (
-                <li key={h.days} className="text-sm leading-snug">
-                  <span className="text-white/70">{h.days}</span>
+                <li key={h.days.fr} className="text-sm leading-snug">
+                  <span className="text-white/70">{tr(h.days, locale)}</span>
                   <br />
-                  <span className="text-white/45">{h.hours}</span>
+                  <span className="text-white/45">{tr(h.hours, locale)}</span>
                 </li>
               ))}
             </ul>
@@ -133,7 +144,7 @@ export function Footer() {
         {/* Bas de page */}
         <div className="mt-12 flex flex-col gap-6 border-t border-white/12 pt-8 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[12px] text-white/45">
-            © {new Date().getFullYear()} {COMPANY.legalName} Tous droits réservés. · Québec · Canada · powered by{" "}
+            © {new Date().getFullYear()} {COMPANY.legalName} {t("Tous droits réservés.", "All rights reserved.", locale)} · Québec · Canada · RBQ {COMPANY.rbq} · powered by{" "}
             <a
               href="https://www.noletandrews.ca/"
               target="_blank"
@@ -147,7 +158,14 @@ export function Footer() {
               href="/confidentialite"
               className="text-white/70 underline decoration-white/30 underline-offset-2 transition-colors hover:text-white hover:decoration-white"
             >
-              Confidentialité
+              {t("Confidentialité", "Privacy", locale)}
+            </Link>
+            {" · "}
+            <Link
+              href="/conditions-utilisation"
+              className="text-white/70 underline decoration-white/30 underline-offset-2 transition-colors hover:text-white hover:decoration-white"
+            >
+              {t("Conditions d'utilisation", "Terms of use", locale)}
             </Link>
             {" · "}
             <button
@@ -155,12 +173,11 @@ export function Footer() {
               onClick={openConsentManager}
               className="text-white/70 underline decoration-white/30 underline-offset-2 transition-colors hover:text-white hover:decoration-white"
             >
-              Gérer les cookies
+              {t("Gérer les cookies", "Manage cookies", locale)}
             </button>
           </p>
           <div className="flex items-center gap-3">
             {socials.map(({ Icon, label, href }) => (
-              // TODO: remplacer href="#" par les vraies URLs des réseaux sociaux
               <a
                 key={label}
                 href={href}

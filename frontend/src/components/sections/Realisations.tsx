@@ -4,12 +4,15 @@ import { useAdmin } from "@/lib/admin-context"
 import { ArrowLink } from "@/components/ui/ArrowLink"
 import { RealisationsGrid } from "@/components/realisations/RealisationsGrid"
 import { DEFAULT_REALISATIONS_HOME_LAYOUT, type RealisationsLayout } from "@/lib/layouts"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { t } from "@/lib/i18n"
 
 export function Realisations({
   layout = DEFAULT_REALISATIONS_HOME_LAYOUT,
 }: {
   layout?: RealisationsLayout
 }) {
+  const locale = useLocale()
   const { realisations, maxPinned } = useAdmin()
   // Home membership = pinned, capped at the max.
   const pinned = realisations.filter((r) => r.pinned).slice(0, maxPinned)
@@ -19,9 +22,9 @@ export function Realisations({
       <div className="mx-auto max-w-[1400px] px-6 md:px-12">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <h2 className="font-display text-[clamp(2rem,5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
-            Quelques projets récents.
+            {t("Quelques projets récents.", "A few recent projects.", locale)}
           </h2>
-          <ArrowLink href="/realisations">Voir tout</ArrowLink>
+          <ArrowLink href="/realisations">{t("Voir tout", "View all", locale)}</ArrowLink>
         </div>
 
         <div className="mt-14">
@@ -33,7 +36,11 @@ export function Realisations({
             />
           ) : (
             <p className="font-sans text-foreground-muted">
-              Aucune réalisation épinglée pour le moment.
+              {t(
+                "Aucune réalisation épinglée pour le moment.",
+                "No featured projects at the moment.",
+                locale,
+              )}
             </p>
           )}
         </div>

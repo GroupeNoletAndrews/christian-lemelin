@@ -11,8 +11,6 @@ import {
 } from "@react-three/drei"
 import * as THREE from "three"
 
-const MODEL_URL = "/assets/home._zip.glb"
-
 export type Hotspot = {
   id: string
   index: number
@@ -22,6 +20,7 @@ export type Hotspot = {
 }
 
 type SceneProps = {
+  src: string
   hotspots: Hotspot[]
   activeId: string | null
   onSelect: (id: string) => void
@@ -129,8 +128,8 @@ function HotspotMarker({
   )
 }
 
-function Model({ hotspots, activeId, onSelect, compact, shiftX, fitScale, reduce }: SceneProps) {
-  const { scene } = useGLTF(MODEL_URL)
+function Model({ src, hotspots, activeId, onSelect, compact, shiftX, fitScale, reduce }: SceneProps) {
+  const { scene } = useGLTF(src)
   const groupRef = useRef<THREE.Group>(null!)
 
   // Centre + normalise the model once (so hotspot positions live in ±1.2 space).
@@ -212,6 +211,7 @@ function Model({ hotspots, activeId, onSelect, compact, shiftX, fitScale, reduce
 }
 
 export function SolutionsModel({
+  src,
   hotspots,
   activeId,
   onSelect,
@@ -222,6 +222,8 @@ export function SolutionsModel({
   autoRotate = true,
   reduce = false,
 }: {
+  /** GLB URL to display (swaps per selected sector). */
+  src: string
   hotspots: Hotspot[]
   activeId: string | null
   onSelect: (id: string) => void
@@ -246,8 +248,12 @@ export function SolutionsModel({
       <ambientLight intensity={0.6} />
       <directionalLight position={[4, 7, 3]} intensity={1.7} />
       <directionalLight position={[-5, 2, -3]} intensity={0.45} color="#9db4ff" />
+      {/* Only the model suspends when the GLB is swapped — the environment,
+          lights and contact shadow stay mounted so the stage doesn't flash. */}
       <Suspense fallback={null}>
         <Model
+          key={src}
+          src={src}
           hotspots={hotspots}
           activeId={activeId}
           onSelect={onSelect}
@@ -256,16 +262,16 @@ export function SolutionsModel({
           fitScale={fitScale}
           reduce={reduce}
         />
-        <Environment preset="city" />
-        <ContactShadows
-          position={[0, -0.34 * fitScale, 0]}
-          opacity={0.5}
-          scale={2.9 * fitScale}
-          blur={2.6}
-          far={1.1 * fitScale}
-          color="#000000"
-        />
       </Suspense>
+      <Environment preset="city" />
+      <ContactShadows
+        position={[0, -0.34 * fitScale, 0]}
+        opacity={0.5}
+        scale={2.9 * fitScale}
+        blur={2.6}
+        far={1.1 * fitScale}
+        color="#000000"
+      />
       <OrbitControls
         makeDefault
         enablePan={false}
@@ -280,5 +286,3 @@ export function SolutionsModel({
     </Canvas>
   )
 }
-
-useGLTF.preload(MODEL_URL)

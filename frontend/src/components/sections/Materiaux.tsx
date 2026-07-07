@@ -30,6 +30,8 @@ import {
   DialogClose,
 } from "@/components/ui/linear-modal"
 import { cardSlot } from "@/lib/sections-registry"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { tr, t } from "@/lib/i18n"
 import { PLACEHOLDER_SRC } from "@/lib/media"
 import { useSlotOverride, useSlotStyleOverride } from "@/lib/section-preview"
 import { usePublishedSlotStyle } from "@/components/sections/SectionStyle"
@@ -93,6 +95,7 @@ function MaterialModal({
   const { src: img, style: imgStyle } = useCardSrc(mat, images, 1100, 1400)
   const reasons = reasonsOf(mat)
   const reduce = useReducedMotion()
+  const locale = useLocale()
 
   // Pointer-driven tilt. rx/ry are the raw target angles; the springs smooth
   // them so the card eases rather than snaps. gx/gy drive the sheen position.
@@ -145,7 +148,7 @@ function MaterialModal({
             {img ? (
               <DialogImage
                 src={img}
-                alt={mat.name}
+                alt={tr(mat.name, locale)}
                 className="absolute inset-0 h-full w-full object-cover"
                 style={slotImgCss(imgStyle)}
               />
@@ -173,10 +176,10 @@ function MaterialModal({
                   {mat.code}
                 </span>
                 <h3 className="mt-2 font-display text-4xl font-semibold leading-[0.95] text-white sm:text-5xl">
-                  {mat.shortName}
+                  {tr(mat.shortName, locale)}
                 </h3>
                 <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.18em] text-white/60">
-                  {mat.fullName}
+                  {tr(mat.fullName, locale)}
                 </p>
               </DialogTitle>
             </motion.div>
@@ -186,23 +189,23 @@ function MaterialModal({
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-7 sm:px-8 sm:py-9">
             <DialogDescription variants={descV}>
               <p className="text-pretty text-[1.0625rem] leading-relaxed text-foreground">
-                {mat.hero.intro}
+                {tr(mat.hero.intro, locale)}
               </p>
 
               {reasons.length > 0 && (
                 <div className="mt-8">
                   <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted">
-                    Pourquoi le choisir
+                    {t("Pourquoi le choisir", "Why choose it", locale)}
                   </p>
                   <div className="mt-4 border-t border-border">
                     {reasons.map((it, i) => (
                       <div key={i} className="border-b border-border py-5">
                         <h4 className="font-display text-lg font-medium leading-snug text-foreground">
-                          {it.title}
+                          {tr(it.title, locale)}
                         </h4>
                         {it.body && (
                           <p className="mt-1.5 leading-relaxed text-foreground-muted">
-                            {it.body}
+                            {tr(it.body, locale)}
                           </p>
                         )}
                       </div>
@@ -230,12 +233,13 @@ function CardInner({
   titleClass: string
 }) {
   const { src, style: imgStyle } = useCardSrc(mat, images, 900, 1100)
+  const locale = useLocale()
   return (
     <>
       {src ? (
         <DialogImage
           src={src}
-          alt={mat.name}
+          alt={tr(mat.name, locale)}
           className="absolute inset-0 h-full w-full object-cover"
           style={slotImgCss(imgStyle)}
         />
@@ -255,7 +259,7 @@ function CardInner({
         <DialogTitle>
           <div className="flex items-baseline gap-3">
             <span className="font-mono text-xs tracking-[0.2em] text-white/70">{mat.code}</span>
-            <h3 className={titleClass}>{mat.shortName}</h3>
+            <h3 className={titleClass}>{tr(mat.shortName, locale)}</h3>
           </div>
         </DialogTitle>
       </div>
@@ -272,6 +276,7 @@ export function Materiaux({
   const wrapRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const reduce = useReducedMotion()
+  const locale = useLocale()
 
   useEffect(() => {
     if (reduce || !wrapRef.current || !trackRef.current) return
@@ -319,10 +324,14 @@ export function Materiaux({
       <div className="md:hidden">
         <div className="px-6 pb-8 pt-24">
           <h2 className="font-display text-[clamp(2rem,9vw,2.75rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
-            Une maîtrise complète de la gamme.
+            {t("Une maîtrise complète de la gamme.", "Complete mastery of the range.", locale)}
           </h2>
           <p className="mt-4 max-w-[40ch] text-sm leading-relaxed text-foreground-muted">
-            Glissez pour parcourir les matières — touchez-en une pour ses propriétés et nos savoir-faire.
+            {t(
+              "Glissez pour parcourir les matières — touchez-en une pour ses propriétés et nos savoir-faire.",
+              "Swipe to browse the materials — tap one for its properties and our expertise.",
+              locale,
+            )}
           </p>
         </div>
         <div className="flex snap-x snap-mandatory touch-pan-x gap-4 overflow-x-auto scroll-pl-6 px-6 pb-16 [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -336,7 +345,7 @@ export function Materiaux({
                     titleClass="font-display text-2xl font-semibold leading-none text-white"
                   />
                 </DialogTrigger>
-                <p className="mt-3 text-sm text-foreground-muted">{mat.fullName}</p>
+                <p className="mt-3 text-sm text-foreground-muted">{tr(mat.fullName, locale)}</p>
                 <MaterialModal mat={mat} images={images} />
               </Dialog>
             </div>
@@ -350,11 +359,14 @@ export function Materiaux({
           {/* Intro panel */}
           <div className="flex h-full w-[40vw] shrink-0 flex-col justify-center px-14 xl:px-20">
             <h2 className="font-display text-[clamp(2.25rem,3.8vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
-              Une maîtrise complète de la gamme.
+              {t("Une maîtrise complète de la gamme.", "Complete mastery of the range.", locale)}
             </h2>
             <p className="mt-6 max-w-[36ch] leading-relaxed text-foreground-muted">
-              Inox, acier, aluminium, laiton et cuivre, travaillés avec la même
-              exigence depuis des décennies. Cliquez une matière pour en savoir plus.
+              {t(
+                "Inox, acier, aluminium, laiton et cuivre, travaillés avec la même exigence depuis des décennies. Cliquez une matière pour en savoir plus.",
+                "Stainless steel, steel, aluminium, brass and copper, worked with the same rigour for decades. Click a material to learn more.",
+                locale,
+              )}
             </p>
             <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6">
               {materials.map((mat) => (
@@ -362,7 +374,7 @@ export function Materiaux({
                   key={mat.code}
                   className="flex items-center gap-4 font-mono text-xs tracking-[0.12em]"
                 >
-                  <span className="flex-1 text-foreground">{mat.shortName}</span>
+                  <span className="flex-1 text-foreground">{tr(mat.shortName, locale)}</span>
                   <span className="text-foreground-muted">{mat.code}</span>
                 </div>
               ))}
@@ -383,7 +395,7 @@ export function Materiaux({
                     titleClass="font-display text-[clamp(1.75rem,2.4vw,2.5rem)] font-semibold leading-none text-white"
                   />
                 </DialogTrigger>
-                <p className="mt-4 text-sm text-foreground-muted">{mat.fullName}</p>
+                <p className="mt-4 text-sm text-foreground-muted">{tr(mat.fullName, locale)}</p>
                 <MaterialModal mat={mat} images={images} />
               </Dialog>
             </div>

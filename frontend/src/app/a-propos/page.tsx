@@ -8,7 +8,7 @@ import { SETTING_KEYS, asAProposLayout } from "@/lib/layouts"
 export const metadata: Metadata = {
   title: "À propos",
   description:
-    "Entreprises Christian Lemelin — atelier de fabrication métallique sur mesure à Québec depuis des décennies. Inox, acier, aluminium, laiton et cuivre.",
+    "Entreprises Christian Lemelin — atelier de fabrication métallique sur mesure à Québec depuis plus de 30 ans. Inox, acier, aluminium, laiton et cuivre.",
 }
 
 // Reads published À-propos image overrides + presentation + layout at request time.

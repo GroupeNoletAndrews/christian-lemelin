@@ -5,6 +5,8 @@ import { motion, type Variants } from "motion/react"
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr"
 import { mediaUrl, SITE_MEDIA } from "@/lib/media"
 import { RandomizedTextEffect } from "@/components/ui/text-randomized"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { t } from "@/lib/i18n"
 
 // Full-bleed looping video hero (pointlaz-inspired) in our OPUS style.
 // The video autoplays/loops with no controls; the text reveals after 3 s.
@@ -21,6 +23,7 @@ const item: Variants = {
 }
 
 export function Hero() {
+  const locale = useLocale()
   const [show, setShow] = useState(false)
 
   // Start the title scramble only once the Preloader has dismissed — otherwise
@@ -93,15 +96,17 @@ export function Hero() {
             className="mt-8 grid gap-6 md:grid-cols-[1fr_auto] md:items-end md:gap-12"
           >
             <p className="max-w-[52ch] text-lg leading-relaxed text-white/80 md:text-xl">
-              Atelier de fabrication métallique sur mesure à Québec. Inox, acier,
-              aluminium, laiton et cuivre — travaillés avec la même exigence depuis
-              des décennies.
+              {t(
+                "Atelier de fabrication métallique sur mesure à Québec. Inox, acier, aluminium, laiton et cuivre — travaillés avec la même exigence depuis plus de 30 ans.",
+                "Custom metal fabrication workshop in Québec City. Stainless steel, steel, aluminium, brass and copper — worked with the same exacting standards for over 30 years.",
+                locale,
+              )}
             </p>
             <a
               href="/solutions"
               className="w-fit shrink-0 text-lg font-medium text-white underline decoration-2 underline-offset-[6px] decoration-white/80 transition-colors hover:decoration-white md:text-xl"
             >
-              Voir nos solutions
+              {t("Voir nos solutions", "Explore our solutions", locale)}
               <ArrowUpRight
                 size={26}
                 weight="bold"

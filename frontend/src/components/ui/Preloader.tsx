@@ -3,19 +3,21 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useLenis } from "@/components/providers/LenisProvider"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { tr, type LocalizedText } from "@/lib/i18n"
 
 // Onboarding preloader — identical behaviour to skiper-ui "Skiper8" (curved
 // path reveal + cycling words), but presenting the company. See DESIGN.md §9.
 // Plays on every full page load (replays on refresh — intentional).
 
 // Words presenting the company. Easy to edit.
-const words = [
-  "Inox",
-  "Acier",
-  "Aluminium",
-  "Laiton",
-  "Cuivre",
-  "Sur mesure",
+const words: LocalizedText[] = [
+  { fr: "Inox", en: "Stainless" },
+  { fr: "Acier", en: "Steel" },
+  { fr: "Aluminium", en: "Aluminium" },
+  { fr: "Laiton", en: "Brass" },
+  { fr: "Cuivre", en: "Copper" },
+  { fr: "Sur mesure", en: "Bespoke" },
 ]
 
 const EASE: [number, number, number, number] = [0.76, 0, 0.24, 1]
@@ -31,6 +33,7 @@ const opacity = {
 }
 
 export function Preloader() {
+  const locale = useLocale()
   const lenis = useLenis()
   const [isLoading, setIsLoading] = useState(true)
   const [index, setIndex] = useState(0)
@@ -107,7 +110,7 @@ export function Preloader() {
                 animate="enter"
                 className="relative z-10 flex items-center font-display text-[clamp(2.75rem,10vw,6.5rem)] font-medium text-white"
               >
-                {words[index]}
+                {tr(words[index], locale)}
               </motion.p>
               <svg
                 className="absolute top-0 h-[calc(100%+300px)] w-full"

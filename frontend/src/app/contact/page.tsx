@@ -2,26 +2,37 @@ import type { Metadata } from "next"
 import { MapPin, Phone, EnvelopeSimple } from "@phosphor-icons/react/dist/ssr"
 import { CONTACT } from "@/content"
 import { ContactForm } from "@/components/sections/ContactForm"
+import { getLocale } from "@/lib/server/locale"
+import { t } from "@/lib/i18n"
 
-export const metadata: Metadata = {
-  title: "Nous joindre",
-  description:
-    "Communiquez avec Entreprises Christian Lemelin — 680, rue du Carbone, Québec. Parlons de votre projet de fabrication métallique sur mesure.",
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale()
+  return {
+    title: t("Nous joindre", "Contact us", locale),
+    description: t(
+      "Communiquez avec Entreprises Christian Lemelin — 680, rue du Carbone, Québec. Parlons de votre projet de fabrication métallique sur mesure.",
+      "Get in touch with Entreprises Christian Lemelin — 680, rue du Carbone, Québec. Let's talk about your custom metal fabrication project.",
+      locale,
+    ),
+  }
 }
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const locale = await getLocale()
   return (
     <div data-header-theme="light" className="min-h-screen bg-background">
       {/* Hero */}
       <section className="pb-12 pt-40">
         <div className="mx-auto max-w-[1400px] px-6 md:px-12">
           <h1 className="max-w-[16ch] font-display text-[clamp(2.5rem,7vw,5rem)] font-semibold leading-[1.0] tracking-[-0.02em] text-foreground">
-            Communiquez avec nous.
+            {t("Communiquez avec nous.", "Get in touch.", locale)}
           </h1>
           <p className="mt-6 max-w-[56ch] text-lg leading-relaxed text-foreground-muted">
-            Grâce à notre expertise en fabrication sur mesure, nous accompagnons nos clients et
-            partenaires dans la conception de solutions innovantes et durables. Un simple message
-            suffit pour démarrer la conversation.
+            {t(
+              "Grâce à notre expertise en fabrication sur mesure, nous accompagnons nos clients et partenaires dans la conception de solutions innovantes et durables. Un simple message suffit pour démarrer la conversation.",
+              "Drawing on our expertise in custom fabrication, we support our clients and partners in designing innovative, durable solutions. A single message is all it takes to start the conversation.",
+              locale,
+            )}
           </p>
         </div>
       </section>
@@ -35,7 +46,7 @@ export default function ContactPage() {
                 <MapPin size={20} weight="regular" className="mt-1 shrink-0 text-foreground-muted" />
                 <div>
                   <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted">
-                    Atelier
+                    {t("Atelier", "Workshop", locale)}
                   </p>
                   <p className="mt-2 text-lg text-foreground">{CONTACT.addressLine}</p>
                   <p className="text-lg text-foreground">{CONTACT.addressCity}</p>
@@ -45,7 +56,7 @@ export default function ContactPage() {
                 <Phone size={20} weight="regular" className="mt-1 shrink-0 text-foreground-muted" />
                 <div>
                   <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted">
-                    Téléphone
+                    {t("Téléphone", "Phone", locale)}
                   </p>
                   <a
                     href={`tel:${CONTACT.phoneHref}`}
@@ -63,7 +74,7 @@ export default function ContactPage() {
                 />
                 <div>
                   <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted">
-                    Courriel
+                    {t("Courriel", "Email", locale)}
                   </p>
                   <a
                     href={`mailto:${CONTACT.email}`}

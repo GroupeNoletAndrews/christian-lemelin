@@ -5,64 +5,96 @@ import dynamic from "next/dynamic"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { Plus, CaretRight, CaretLeft } from "@phosphor-icons/react/dist/ssr"
 import { ArrowLink } from "@/components/ui/ArrowLink"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { t, tr, type LocalizedText } from "@/lib/i18n"
+
+// Small localized loading fallback for the lazily-loaded 3D model. Rendered
+// inside the provider tree, so useLocale is available.
+function ModelLoading() {
+  const locale = useLocale()
+  return (
+    <div className="grid h-full w-full place-items-center">
+      <span className="animate-pulse font-mono text-[11px] uppercase tracking-[0.2em] text-white/40">
+        {t("Chargement du modèle…", "Loading model…", locale)}
+      </span>
+    </div>
+  )
+}
 
 const SolutionsModel = dynamic(
   () => import("@/components/ui/SolutionsModel").then((m) => m.SolutionsModel),
   {
     ssr: false,
-    loading: () => (
-      <div className="grid h-full w-full place-items-center">
-        <span className="animate-pulse font-mono text-[11px] uppercase tracking-[0.2em] text-white/40">
-          Chargement du modèle…
-        </span>
-      </div>
-    ),
+    loading: () => <ModelLoading />,
   },
 )
 
 type Sector = {
   id: string
-  title: string
-  description: string
+  title: LocalizedText
+  description: LocalizedText
   href: string
+  /** GLB affiché dans la visionneuse quand ce secteur est sélectionné
+   *  (fichiers dans public/assets/3D/ — la casse compte en production Linux). */
+  model: string
 }
 
 const sectors: Sector[] = [
   {
     id: "restauration",
-    title: "Restauration & hôtellerie",
-    description:
-      "Comptoirs, hottes et équipements en inox sur mesure pour les cuisines professionnelles les plus exigeantes.",
+    title: { fr: "Restauration & hôtellerie", en: "Food service & hospitality" },
+    description: {
+      fr: "Comptoirs, hottes et équipements en inox sur mesure pour les cuisines professionnelles les plus exigeantes.",
+      en: "Custom stainless steel counters, hoods and equipment for the most demanding professional kitchens.",
+    },
     href: "/solutions",
+    model: "/assets/3D/Hotelerie.glb",
   },
   {
     id: "architecture",
-    title: "Architecture & design",
-    description:
-      "Rampes, balustrades et panneaux décoratifs en inox, laiton et cuivre pour les projets d'exception.",
+    title: { fr: "Architecture & design", en: "Architecture & design" },
+    description: {
+      fr: "Rampes, balustrades et panneaux décoratifs en inox, laiton et cuivre pour les projets d'exception.",
+      en: "Railings, balustrades and decorative panels in stainless steel, brass and copper for exceptional projects.",
+    },
     href: "/solutions",
+    model: "/assets/3D/ARCHITECTURE_ET_DESIGN.glb",
   },
   {
     id: "industrie",
-    title: "Industrie & manufacturier",
-    description:
-      "Pièces de précision, gabarits, structures et composants pour la production industrielle.",
+    title: { fr: "Industrie & manufacturier", en: "Industry & manufacturing" },
+    description: {
+      fr: "Pièces de précision, gabarits, structures et composants pour la production industrielle.",
+      en: "Precision parts, jigs, structures and components for industrial production.",
+    },
     href: "/solutions",
+    model: "/assets/3D/INDUSTRIEL.glb",
   },
   {
     id: "commercial",
-    title: "Commercial & institutionnel",
-    description:
-      "Signalétique, mobilier métallique et plafonds pour les espaces commerciaux et bâtiments institutionnels.",
+    title: { fr: "Commercial & institutionnel", en: "Commercial & institutional" },
+    description: {
+      fr: "Signalétique, mobilier métallique et plafonds pour les espaces commerciaux et bâtiments institutionnels.",
+      en: "Signage, metal furniture and ceilings for commercial spaces and institutional buildings.",
+    },
     href: "/solutions",
+    model: "/assets/3D/COMMERCIAL.glb",
   },
 ]
+
+const MODEL_BY_ID: Record<string, string> = Object.fromEntries(
+  sectors.map((s) => [s.id, s.model]),
+)
 
 const spring = { type: "spring" as const, stiffness: 260, damping: 30 }
 
 export function Solutions() {
+  const locale = useLocale()
   const reduce = useReducedMotion() ?? false
   const [activeId, setActiveId] = useState<string | null>(sectors[0].id)
+  // Modèle 3D courant : suit le dernier secteur cliqué (persiste même si le
+  // panneau se referme, pour ne pas vider la scène).
+  const [modelId, setModelId] = useState(sectors[0].id)
   const [panelOpen, setPanelOpen] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [isDesktop, setIsDesktop] = useState(true)
@@ -76,8 +108,11 @@ export function Solutions() {
     return () => mq.removeEventListener("change", update)
   }, [])
 
-  const toggleCard = (id: string) =>
+  const toggleCard = (id: string) => {
     setActiveId((cur) => (cur === id ? null : id))
+    setModelId(id) // affiche le GLB du secteur cliqué (même en refermant le panneau)
+  }
+  const modelSrc = MODEL_BY_ID[modelId] ?? sectors[0].model
 
   // Desktop model cedes room when the overlay panel is open; idle-spins otherwise.
   // On mobile the tabs live outside the viewer, so the model never compacts.
@@ -101,6 +136,7 @@ export function Solutions() {
         {mounted && (
           <div className="absolute inset-0 z-0">
             <SolutionsModel
+              src={modelSrc}
               hotspots={[]}
               activeId={activeId}
               onSelect={() => {}}
@@ -132,18 +168,21 @@ export function Solutions() {
         {!reduce && (
           <div className="pointer-events-none absolute left-6 top-6 z-20 flex items-center gap-2.5 font-mono text-[12px] uppercase tracking-[0.2em] text-white/55 md:left-14 md:top-12 md:text-[13px]">
             <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-accent" />
-            Glissez pour pivoter
+            {t("Glissez pour pivoter", "Drag to rotate", locale)}
           </div>
         )}
 
         {/* Title + intro overlay — bottom-left */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-6 pb-12 md:px-14 md:pb-16">
           <h2 className="max-w-[15ch] font-display text-[clamp(2rem,5vw,4rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-white">
-            Un secteur, ses exigences.
+            {t("Un secteur, ses exigences.", "Every sector, its demands.", locale)}
           </h2>
           <p className="mt-4 max-w-[42ch] leading-relaxed text-white/75">
-            De la cuisine professionnelle à la façade architecturale, chaque
-            secteur a ses contraintes. Nous les connaissons toutes.
+            {t(
+              "De la cuisine professionnelle à la façade architecturale, chaque secteur a ses contraintes. Nous les connaissons toutes.",
+              "From the professional kitchen to the architectural façade, every sector has its constraints. We know them all.",
+              locale,
+            )}
           </p>
         </div>
 
@@ -162,12 +201,12 @@ export function Solutions() {
                 >
                   <div className="mb-2 flex items-center justify-between">
                     <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">
-                      Secteurs
+                      {t("Secteurs", "Sectors", locale)}
                     </span>
                     <button
                       type="button"
                       onClick={() => setPanelOpen(false)}
-                      aria-label="Masquer les secteurs"
+                      aria-label={t("Masquer les secteurs", "Hide sectors", locale)}
                       className="grid h-8 w-8 place-items-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:text-white"
                     >
                       <CaretRight size={14} weight="bold" />
@@ -198,7 +237,7 @@ export function Solutions() {
                 >
                   <CaretLeft size={14} weight="bold" className="text-accent" />
                   <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/80">
-                    Secteurs
+                    {t("Secteurs", "Sectors", locale)}
                   </span>
                 </motion.button>
               )}
@@ -211,7 +250,7 @@ export function Solutions() {
       {!isDesktop && (
         <div className="mt-3 rounded-[1.75rem] border border-white/10 bg-ink p-5">
           <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">
-            Secteurs
+            {t("Secteurs", "Sectors", locale)}
           </span>
           <div className="mt-2">
             <SectorTabs activeId={activeId} onToggle={toggleCard} reduce={reduce} />
@@ -232,6 +271,7 @@ function SectorTabs({
   onToggle: (id: string) => void
   reduce: boolean
 }) {
+  const locale = useLocale()
   return (
     <div className="flex flex-col">
       {sectors.map((s) => {
@@ -249,7 +289,7 @@ function SectorTabs({
                   open ? "text-white" : "text-white/60 group-hover:text-white"
                 }`}
               >
-                {s.title}
+                {tr(s.title, locale)}
               </span>
               <Plus
                 size={16}
@@ -270,10 +310,10 @@ function SectorTabs({
                 >
                   <div className="pb-5 pr-2">
                     <p className="max-w-[40ch] text-[15px] leading-relaxed text-white/60">
-                      {s.description}
+                      {tr(s.description, locale)}
                     </p>
                     <ArrowLink href={s.href} dark className="mt-4">
-                      Explorer ce secteur
+                      {t("Explorer ce secteur", "Explore this sector", locale)}
                     </ArrowLink>
                   </div>
                 </motion.div>

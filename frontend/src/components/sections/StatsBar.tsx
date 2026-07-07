@@ -11,12 +11,14 @@ import {
 } from "motion/react"
 import { Marquee } from "@/components/ui/marquee"
 import { SITE_MEDIA, mediaUrl } from "@/lib/media"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { t, tr, type LocalizedText } from "@/lib/i18n"
 
-const stats = [
-  { value: "20+", label: "Années d'expertise" },
-  { value: "2 400+", label: "Projets réalisés" },
-  { value: "5", label: "Matériaux maîtrisés" },
-  { value: "100%", label: "Fabriqué au Québec" },
+const stats: { value: string; label: LocalizedText }[] = [
+  { value: "30+", label: { fr: "Années d'expertise", en: "Years of expertise" } },
+  { value: "2 400+", label: { fr: "Projets réalisés", en: "Projects completed" } },
+  { value: "5", label: { fr: "Matériaux maîtrisés", en: "Materials mastered" } },
+  { value: "100%", label: { fr: "Fabriqué au Québec", en: "Made in Québec" } },
 ]
 
 // Client / partner logos — served from Supabase Storage (christian-alain bucket,
@@ -79,19 +81,26 @@ function DrawLine() {
   )
 }
 
-// A single client logo tile. Logos are greyscale + dimmed at rest and animate
-// to full colour (with a subtle lift) on hover — the OTHER cards stay visible
-// (no inversion). Neutral, no blue.
-function ClientCard({ name, src }: { name: string; src: string }) {
+// A single client tile. When a real logo exists it is shown greyscale + dimmed
+// at rest and animates to full colour (with a subtle lift) on hover; otherwise
+// the company NAME is shown as text in the same tile — so every listed company
+// appears whether or not we have its logo. Neutral, no blue.
+function ClientCard({ name, src }: { name: string; src?: string }) {
   return (
     <figure className="group flex h-24 w-52 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface px-7 transition-all duration-300 hover:-translate-y-0.5 hover:border-foreground/25 hover:shadow-sm sm:h-28 sm:w-60 md:w-64">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={name}
-        loading="lazy"
-        className="max-h-9 w-full max-w-[150px] object-contain opacity-60 grayscale transition duration-300 group-hover:opacity-100 group-hover:grayscale-0 sm:max-h-11"
-      />
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={name}
+          loading="lazy"
+          className="max-h-9 w-full max-w-[150px] object-contain opacity-60 grayscale transition duration-300 group-hover:opacity-100 group-hover:grayscale-0 sm:max-h-11"
+        />
+      ) : (
+        <span className="text-center font-display text-base font-medium leading-tight text-foreground/55 transition-colors duration-300 group-hover:text-foreground sm:text-lg">
+          {name}
+        </span>
+      )}
     </figure>
   )
 }
@@ -111,12 +120,12 @@ function ClientsMarquee() {
       <div className="flex flex-col gap-3 md:gap-5">
         <Marquee pauseOnHover className="[--duration:42s] [--gap:0.75rem] py-0 sm:[--gap:1rem] md:[--gap:1.5rem]">
           {firstRow.map((c) => (
-            <ClientCard key={c.name} name={c.name} src={mediaUrl(c.key)} />
+            <ClientCard key={c.name} name={c.name} src={c.key ? mediaUrl(c.key) : undefined} />
           ))}
         </Marquee>
         <Marquee reverse pauseOnHover className="[--duration:42s] [--gap:0.75rem] py-0 sm:[--gap:1rem] md:[--gap:1.5rem]">
           {secondRow.map((c) => (
-            <ClientCard key={c.name} name={c.name} src={mediaUrl(c.key)} />
+            <ClientCard key={c.name} name={c.name} src={c.key ? mediaUrl(c.key) : undefined} />
           ))}
         </Marquee>
       </div>
@@ -128,6 +137,7 @@ function ClientsMarquee() {
 }
 
 export function StatsBar() {
+  const locale = useLocale()
   return (
     <section
       data-header-theme="light"
@@ -140,10 +150,10 @@ export function StatsBar() {
         {/* Stats — centered, counting up on scroll */}
         <div className="grid grid-cols-2 gap-x-8 gap-y-10 py-10 text-center md:py-14 lg:grid-cols-4">
           {stats.map((stat) => (
-            <div key={stat.label} className="flex flex-col items-center">
+            <div key={stat.value} className="flex flex-col items-center">
               <StatNumber value={stat.value} />
               <p className="mt-4 max-w-[16ch] text-sm leading-relaxed text-foreground-muted">
-                {stat.label}
+                {tr(stat.label, locale)}
               </p>
             </div>
           ))}
@@ -153,7 +163,7 @@ export function StatsBar() {
         <DrawLine />
         <div className="pt-12 md:pt-16">
           <p className="mb-10 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-foreground-muted/80">
-            Ils nous font confiance
+            {t("Ils nous font confiance", "Trusted by", locale)}
           </p>
           <ClientsMarquee />
         </div>

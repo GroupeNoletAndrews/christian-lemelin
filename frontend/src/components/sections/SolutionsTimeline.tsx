@@ -20,6 +20,8 @@ import {
 } from "framer-motion"
 import { ArrowUpRight, Plus, X } from "@phosphor-icons/react"
 import { SOLUTIONS_OVERVIEW, imageUrl, type SolutionIndexEntry } from "@/content"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { t, tr, type LocalizedText } from "@/lib/i18n"
 import { useLenis } from "@/components/providers/LenisProvider"
 import { hoverSlot } from "@/lib/sections-registry"
 import { PLACEHOLDER_SRC } from "@/lib/media"
@@ -60,8 +62,8 @@ const FADE_FULL = 0.12 // < cette distance → carte pleinement visible
 const FADE_OUT = 0.62 // > cette distance → carte invisible
 
 export type SolutionItem = SolutionIndexEntry & {
-  intro: string
-  highlights: { title: string; body?: string }[]
+  intro: LocalizedText
+  highlights: { title: LocalizedText; body?: LocalizedText }[]
 }
 
 // Résout l'image d'aperçu d'une solution en respectant, dans l'ordre : l'override
@@ -139,6 +141,7 @@ function SolutionZoom({
   reduce: boolean
   onClose: () => void
 }) {
+  const locale = useLocale()
   const closeRef = useRef<HTMLButtonElement>(null)
   const { src, style } = useHoverSrc(item, images, 2000, 1300)
   useEffect(() => {
@@ -149,7 +152,7 @@ function SolutionZoom({
     <motion.div
       role="dialog"
       aria-modal="true"
-      aria-label={item.title}
+      aria-label={tr(item.title, locale)}
       className="fixed inset-0 z-[100]"
       data-lenis-prevent
     >
@@ -202,7 +205,7 @@ function SolutionZoom({
         ref={closeRef}
         type="button"
         onClick={onClose}
-        aria-label="Fermer"
+        aria-label={t("Fermer", "Close", locale)}
         className="absolute right-5 top-5 z-10 grid size-11 place-items-center rounded-full bg-white/12 text-white backdrop-blur-md transition-colors hover:bg-white/25 sm:right-8 sm:top-8"
       >
         <X size={20} weight="bold" />
@@ -217,14 +220,14 @@ function SolutionZoom({
         className="absolute inset-x-0 bottom-0 z-10 p-7 text-white sm:p-12"
       >
         <h2 className="max-w-[18ch] font-display text-[clamp(2rem,5vw,3.75rem)] font-medium leading-[1.03] tracking-[-0.02em]">
-          {item.title}
+          {tr(item.title, locale)}
         </h2>
-        <p className="mt-4 max-w-[58ch] leading-relaxed text-white/75">{item.intro}</p>
+        <p className="mt-4 max-w-[58ch] leading-relaxed text-white/75">{tr(item.intro, locale)}</p>
         <a
           href="/contact"
           className="mt-7 inline-flex items-center gap-2 font-medium text-white underline-offset-4 hover:underline"
         >
-          Discutons de votre projet
+          {t("Discutons de votre projet", "Let's discuss your project", locale)}
           <ArrowUpRight size={20} weight="bold" />
         </a>
       </motion.div>
@@ -246,6 +249,7 @@ function SolutionCard({
   align: "left" | "right"
   onOpen: () => void
 }) {
+  const locale = useLocale()
   const end = align === "right"
   const { src, style } = useHoverSrc(item, images, 1000, 760)
   return (
@@ -282,17 +286,17 @@ function SolutionCard({
       <span
         className={`mt-5 block font-display text-[clamp(1.6rem,2.8vw,2.6rem)] font-medium leading-[1.08] tracking-[-0.02em] text-foreground ${end ? "text-right" : ""}`}
       >
-        {item.title}
+        {tr(item.title, locale)}
       </span>
       <span
         className={`mt-2 block max-w-[42ch] leading-relaxed text-foreground-muted ${end ? "ml-auto text-right" : ""}`}
       >
-        {item.tagline}
+        {tr(item.tagline, locale)}
       </span>
       <span
         className={`mt-4 inline-flex items-center gap-2 font-medium text-foreground ${end ? "flex-row-reverse" : ""}`}
       >
-        Découvrir cette solution
+        {t("Découvrir cette solution", "Explore this solution", locale)}
         <ArrowUpRight size={20} weight="bold" className="text-accent" />
       </span>
     </button>
@@ -309,6 +313,7 @@ function SimpleList({
   images: Record<string, string>
   onOpen: (i: number) => void
 }) {
+  const locale = useLocale()
   return (
     <section id="solutions" data-header-theme="light" className="bg-background">
       <div className="mx-auto grid max-w-[1100px] gap-10 px-6 py-16 sm:grid-cols-2 md:px-10">
@@ -331,8 +336,8 @@ function SimpleList({
                 className="object-cover"
               />
             </span>
-            <span className="mt-3 block font-display text-2xl font-medium text-foreground">{it.title}</span>
-            <span className="mt-1 block text-sm leading-relaxed text-foreground-muted">{it.tagline}</span>
+            <span className="mt-3 block font-display text-2xl font-medium text-foreground">{tr(it.title, locale)}</span>
+            <span className="mt-1 block text-sm leading-relaxed text-foreground-muted">{tr(it.tagline, locale)}</span>
           </button>
         ))}
       </div>

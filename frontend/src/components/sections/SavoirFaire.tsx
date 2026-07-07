@@ -6,47 +6,68 @@ import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion
 import { ArrowLink } from "@/components/ui/ArrowLink"
 import { mediaUrl, SITE_MEDIA } from "@/lib/media"
 import { SlotImage } from "@/components/sections/SlotImage"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { t, tr, type LocalizedText } from "@/lib/i18n"
 
 const SECTION = "savoir-faire"
 
-const services = [
+const services: {
+  slot: string
+  title: LocalizedText
+  description: LocalizedText
+  img: string
+  href: string
+}[] = [
   {
     slot: "mobilier",
-    title: "Mobilier hospitalier personnalisé",
-    description:
-      "Mobilier sur mesure en acier inoxydable médical, alliant ergonomie, durabilité et hygiène pour hôpitaux, cliniques et laboratoires.",
+    title: {
+      fr: "Mobilier hospitalier personnalisé",
+      en: "Custom hospital furniture",
+    },
+    description: {
+      fr: "Mobilier sur mesure en acier inoxydable médical, alliant ergonomie, durabilité et hygiène pour hôpitaux, cliniques et laboratoires.",
+      en: "Custom furniture in medical-grade stainless steel, combining ergonomics, durability and hygiene for hospitals, clinics and laboratories.",
+    },
     img: mediaUrl(SITE_MEDIA.savoirFaire.mobilier),
     href: "/solutions?s=mobilier-hospitalier",
   },
   {
     slot: "fabrication",
-    title: "Fabrication sur mesure",
-    description:
-      "Pièces uniques ou en série, réalisées selon vos plans ou développées avec notre équipe technique.",
+    title: { fr: "Fabrication sur mesure", en: "Custom fabrication" },
+    description: {
+      fr: "Pièces uniques ou en série, réalisées selon vos plans ou développées avec notre équipe technique.",
+      en: "One-off or production runs, built to your drawings or developed with our engineering team.",
+    },
     img: mediaUrl(SITE_MEDIA.savoirFaire.fabrication),
     href: "/fabrication",
   },
   {
     slot: "decoupe-laser",
-    title: "Découpe laser & Lazer tube",
-    description:
-      "Précision au dixième de millimètre sur toutes épaisseurs, du prototype à la grande série.",
+    title: { fr: "Découpe laser & Lazer tube", en: "Laser cutting & tube laser" },
+    description: {
+      fr: "Précision au dixième de millimètre sur toutes épaisseurs, du prototype à la grande série.",
+      en: "Precision to a tenth of a millimetre across all thicknesses, from prototype to high-volume production.",
+    },
     img: mediaUrl(SITE_MEDIA.savoirFaire.decoupeLaser),
     href: "/solutions",
   },
   {
     slot: "soudure",
-    title: "Soudure & assemblage",
-    description:
-      "Soudeurs certifiés MIG, TIG et structurale pour assemblages industriels et architecturaux exigeants.",
+    title: { fr: "Soudure & assemblage", en: "Welding & assembly" },
+    description: {
+      fr: "Soudeurs certifiés MIG, TIG et structurale pour assemblages industriels et architecturaux exigeants.",
+      en: "MIG, TIG and structural certified welders for demanding industrial and architectural assemblies.",
+    },
     img: mediaUrl(SITE_MEDIA.savoirFaire.soudure),
     href: "/solutions",
   },
   {
     slot: "polissage",
-    title: "Polissage & finitions",
-    description:
-      "Miroir, satiné, brossé, poudré. Chaque finition exécutée en atelier selon les standards les plus exigeants.",
+    title: { fr: "Polissage & finitions", en: "Polishing & finishes" },
+    description: {
+      fr: "Miroir, satiné, brossé, poudré. Chaque finition exécutée en atelier selon les standards les plus exigeants.",
+      en: "Mirror, satin, brushed, powder-coated. Every finish executed in-house to the most exacting standards.",
+    },
     img: mediaUrl(SITE_MEDIA.savoirFaire.polissage),
     href: "/fabrication",
   },
@@ -96,6 +117,7 @@ const imageMotionReduced: Variants = {
 }
 
 export function SavoirFaire({ images }: { images?: Record<string, string> }) {
+  const locale = useLocale()
   const [active, setActive] = useState(0)
   const reduce = useReducedMotion()
   const variants = reduce ? imageMotionReduced : imageMotion
@@ -130,7 +152,7 @@ export function SavoirFaire({ images }: { images?: Record<string, string> }) {
                 section={SECTION}
                 slot={services[active].slot}
                 src={images?.[services[active].slot] ?? services[active].img}
-                alt={services[active].title}
+                alt={tr(services[active].title, locale)}
                 priority={active === 0}
                 sizes="100vw"
                 grayscale
@@ -151,7 +173,7 @@ export function SavoirFaire({ images }: { images?: Record<string, string> }) {
           <button
             type="button"
             onClick={() => go(-1)}
-            aria-label="Savoir-faire précédent"
+            aria-label={t("Savoir-faire précédent", "Previous expertise", locale)}
             className="grid size-11 place-items-center rounded-full border border-white/20 bg-black/35 text-white/75 backdrop-blur-md transition-colors duration-200 hover:border-white/40 hover:bg-black/55 hover:text-white"
           >
             <CaretUp size={18} weight="bold" />
@@ -159,7 +181,7 @@ export function SavoirFaire({ images }: { images?: Record<string, string> }) {
           <button
             type="button"
             onClick={() => go(1)}
-            aria-label="Savoir-faire suivant"
+            aria-label={t("Savoir-faire suivant", "Next expertise", locale)}
             className="grid size-11 place-items-center rounded-full border border-white/20 bg-black/35 text-white/75 backdrop-blur-md transition-colors duration-200 hover:border-white/40 hover:bg-black/55 hover:text-white"
           >
             <CaretDown size={18} weight="bold" />
@@ -170,7 +192,11 @@ export function SavoirFaire({ images }: { images?: Record<string, string> }) {
         <div className="relative z-10 flex w-full flex-col justify-end px-6 py-16 md:px-10 md:py-20 lg:justify-center lg:px-16 lg:py-24 xl:px-24">
           <div className="w-full max-w-[36rem]">
             <h2 className="max-w-[18ch] font-display text-[clamp(2.25rem,5.5vw,4.25rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-white">
-              Voici comment nous donnons forme au métal.
+              {t(
+                "Voici comment nous donnons forme au métal.",
+                "This is how we give metal its form.",
+                locale,
+              )}
             </h2>
 
             <div className="mt-8 flex flex-col gap-2.5 md:mt-10">
@@ -178,7 +204,7 @@ export function SavoirFaire({ images }: { images?: Record<string, string> }) {
                 const isActive = i === active
                 return (
                   <button
-                    key={s.title}
+                    key={s.slot}
                     type="button"
                     onClick={() => setActive(i)}
                     aria-expanded={isActive}
@@ -205,7 +231,7 @@ export function SavoirFaire({ images }: { images?: Record<string, string> }) {
                         )}
                       </span>
                       <span className="font-display text-lg font-medium leading-tight text-white md:text-xl">
-                        {s.title}
+                        {tr(s.title, locale)}
                       </span>
                     </div>
 
@@ -218,10 +244,10 @@ export function SavoirFaire({ images }: { images?: Record<string, string> }) {
                       <div className="overflow-hidden">
                         <div className="pl-[2.375rem] pt-3">
                           <p className="max-w-[44ch] text-[15px] leading-relaxed text-white/65">
-                            {s.description}
+                            {tr(s.description, locale)}
                           </p>
                           <ArrowLink href={s.href} dark className="mt-4">
-                            En savoir plus
+                            {t("En savoir plus", "Learn more", locale)}
                           </ArrowLink>
                         </div>
                       </div>

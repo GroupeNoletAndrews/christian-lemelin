@@ -4,11 +4,19 @@ import { SOLUTIONS_OVERVIEW, getSolution } from "@/content"
 import { SolutionsTimeline, type SolutionItem } from "@/components/sections/SolutionsTimeline"
 import { SectionStyleProvider } from "@/components/sections/SectionStyle"
 import { resolveSectionImages, resolveSectionStyles } from "@/lib/server/sections"
+import { t, tr } from "@/lib/i18n"
+import { getLocale } from "@/lib/server/locale"
 
-export const metadata: Metadata = {
-  title: "Nos solutions",
-  description:
-    "Mobilier hospitalier, de laboratoire et d'accueil, prototypes, composantes architecturales et pièces sur mesure — des solutions métalliques adaptées à chaque secteur.",
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale()
+  return {
+    title: t("Nos solutions", "Our solutions", locale),
+    description: t(
+      "Mobilier hospitalier, de laboratoire et d'accueil, prototypes, composantes architecturales et pièces sur mesure — des solutions métalliques adaptées à chaque secteur.",
+      "Hospital, laboratory and reception furniture, prototypes, architectural components and custom parts — metal solutions tailored to every sector.",
+      locale,
+    ),
+  }
 }
 
 // Toute la copie des anciennes pages /solutions/[slug] est désormais consolidée
@@ -33,6 +41,7 @@ function buildItems(): SolutionItem[] {
 export const dynamic = "force-dynamic"
 
 export default async function SolutionsPage() {
+  const locale = await getLocale()
   const { hero, closing } = SOLUTIONS_OVERVIEW
   const items = buildItems()
   const [images, styles] = await Promise.all([
@@ -46,22 +55,22 @@ export default async function SolutionsPage() {
       <section data-header-theme="light" className="bg-background pb-12 pt-40 md:pb-16">
         <div className="mx-auto max-w-[1400px] px-6 md:px-12">
           <h1 className="max-w-[20ch] font-display text-[clamp(2.5rem,7vw,5rem)] font-semibold leading-[1.0] tracking-[-0.02em] text-foreground">
-            {hero.heading}
+            {tr(hero.heading, locale)}
           </h1>
           <p className="mt-6 max-w-[60ch] text-lg leading-relaxed text-foreground-muted">
-            {hero.intro}
+            {tr(hero.intro, locale)}
           </p>
           <div className="mt-12 md:mt-16">
             {hero.points.map((p) => (
               <div
-                key={p.title}
+                key={tr(p.title, locale)}
                 className="border-t border-border py-6 md:grid md:grid-cols-[1fr_1.4fr] md:gap-8"
               >
                 <h2 className="font-display text-lg font-medium text-foreground md:text-xl">
-                  {p.title}
+                  {tr(p.title, locale)}
                 </h2>
                 <p className="mt-2 max-w-[54ch] leading-relaxed text-foreground-muted md:mt-0">
-                  {p.body}
+                  {tr(p.body, locale)}
                 </p>
               </div>
             ))}
@@ -80,7 +89,7 @@ export default async function SolutionsPage() {
       <section data-header-theme="light" className="bg-background pb-28 pt-10 md:pb-40">
         <div className="mx-auto max-w-[1400px] px-6 md:px-12">
           <p className="max-w-[26ch] font-display text-[clamp(1.75rem,4vw,3rem)] font-medium leading-[1.12] tracking-[-0.01em] text-foreground">
-            {closing.heading}
+            {tr(closing.heading, locale)}
           </p>
         </div>
       </section>

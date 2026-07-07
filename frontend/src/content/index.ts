@@ -11,3 +11,11 @@ export {
 } from "./solutions"
 export { FABRICATION } from "./fabrication"
 export { INSTALLATIONS } from "./installations"
+export {
+  APROPOS_STATS,
+  APROPOS_SECTEURS,
+  APROPOS_VALEURS,
+  APROPOS_VALEURS_INTRO,
+  APROPOS_TIMELINE,
+  APROPOS_CITATION,
+} from "./apropos"

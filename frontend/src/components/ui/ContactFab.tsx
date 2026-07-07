@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { PaperPlaneTilt, ArrowUpRight } from "@phosphor-icons/react"
 import { useAdmin } from "@/lib/admin-context"
+import { useLocale } from "@/components/providers/LocaleProvider"
+import { t } from "@/lib/i18n"
 
 // Floating "Nous joindre" button, bottom-right. Collapsed = a black, icon-only
 // round button (no text, can't be dismissed). Clicking it expands a black panel
@@ -12,6 +14,7 @@ import { useAdmin } from "@/lib/admin-context"
 // page has the full ContactCTA section instead — see SiteChrome).
 export function ContactFab() {
   const reduce = useReducedMotion()
+  const locale = useLocale()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { isAuthenticated, previewEdit } = useAdmin()
@@ -57,15 +60,17 @@ export function ContactFab() {
             transition={{ duration: 0.22 }}
             className="w-[min(18rem,calc(100vw-2.5rem))] origin-bottom-right rounded-2xl bg-foreground p-5 text-white shadow-xl shadow-black/30"
           >
-            <p className="text-base font-medium leading-snug">Un projet métal en tête ?</p>
+            <p className="text-base font-medium leading-snug">
+              {t("Un projet métal en tête ?", "A metal project in mind?", locale)}
+            </p>
             <p className="mt-1.5 text-sm leading-snug text-white/60">
-              Notre équipe technique vous répond dans les 24 heures.
+              {t("Notre équipe technique vous répond dans les 24 heures.", "Our technical team replies within 24 hours.", locale)}
             </p>
             <Link
               href="/contact"
               className="group mt-4 flex items-center justify-center gap-2 rounded-full bg-white py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-white/90"
             >
-              Nous joindre
+              {t("Nous joindre", "Contact us", locale)}
               <ArrowUpRight
                 size={15}
                 weight="bold"
@@ -79,12 +84,12 @@ export function ContactFab() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Contactez-nous"
+        aria-label={t("Contactez-nous", "Contact us", locale)}
         aria-expanded={open}
         className="flex items-center gap-2.5 rounded-full bg-foreground py-3 pl-5 pr-5 text-sm font-medium text-white shadow-lg shadow-black/25 transition-transform duration-200 hover:scale-[1.03] active:scale-95"
       >
         <PaperPlaneTilt size={18} weight="fill" />
-        Contactez-nous
+        {t("Contactez-nous", "Contact us", locale)}
       </button>
     </motion.div>
   )

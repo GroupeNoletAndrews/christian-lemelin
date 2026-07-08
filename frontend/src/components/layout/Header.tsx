@@ -114,10 +114,26 @@ export function Header() {
   // dark/light section currently under the header. The <meta name="theme-color">
   // is seeded by the root layout's viewport export; we mutate it at runtime.
   useEffect(() => {
-    const meta = document.querySelector('meta[name="theme-color"]')
     // The open menu overlay is a full-screen dark panel → dark chrome too.
-    meta?.setAttribute("content", open ? CHROME_COLOR.dark : CHROME_COLOR[theme])
+    const color = open ? CHROME_COLOR.dark : CHROME_COLOR[theme]
+    // `theme-color` tints the TOP bar; iOS Safari tints the BOTTOM toolbar +
+    // safe-area + overscroll from the ROOT background colour (the <body> bg is
+    // hard-coded cream in globals.css) — so we must sync both, or the bottom
+    // bar stays white over dark sections.
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", color)
+    document.documentElement.style.backgroundColor = color
+    document.body.style.backgroundColor = color
   }, [theme, open])
+
+  // Restore the stylesheet defaults if the Header unmounts (e.g. /admin, which
+  // renders without site chrome) so the inline overrides don't leak.
+  useEffect(
+    () => () => {
+      document.documentElement.style.backgroundColor = ""
+      document.body.style.backgroundColor = ""
+    },
+    [],
+  )
 
   // Close on navigation
   useEffect(() => setOpen(false), [pathname])

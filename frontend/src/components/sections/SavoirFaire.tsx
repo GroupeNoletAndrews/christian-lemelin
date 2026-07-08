@@ -43,7 +43,7 @@ const services: {
   },
   {
     slot: "decoupe-laser",
-    title: { fr: "Découpe laser & Lazer tube", en: "Laser cutting & tube laser" },
+    title: { fr: "Découpe laser & Laser tube", en: "Laser cutting & tube laser" },
     description: {
       fr: "Précision au dixième de millimètre sur toutes épaisseurs, du prototype à la grande série.",
       en: "Precision to a tenth of a millimetre across all thicknesses, from prototype to high-volume production.",

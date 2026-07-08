@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Onest, Fragment_Mono } from "next/font/google"
 import "./globals.css"
 import { SiteChrome } from "@/components/layout/SiteChrome"
@@ -45,6 +45,15 @@ export const metadata: Metadata = {
     locale: "fr_CA",
     siteName: "Entreprises Christian Lemelin",
   },
+}
+
+// Mobile browser chrome (iOS Safari top/bottom bars, Android address bar) tint.
+// This is the first-paint default (cream = page background); the Header then
+// updates the <meta name="theme-color"> at runtime to match the dark/light
+// section currently under it (see Header.tsx). iOS has no "transparent" chrome —
+// the bars always take a solid colour, so we match it to the section instead.
+export const viewport: Viewport = {
+  themeColor: "#f3f3f1",
 }
 
 // Supabase Storage origin (photos + hero video). Pre-connecting from the HTML

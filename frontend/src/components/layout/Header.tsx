@@ -16,6 +16,13 @@ type HeaderTheme = "dark" | "light"
 
 const HEADER_MID_Y = 56
 
+// Mobile browser-chrome tint per section theme (iOS Safari top/bottom bars).
+// Matches the design tokens: ink #111111 (dark sections) / cream #f3f3f1 (light).
+const CHROME_COLOR: Record<HeaderTheme, string> = {
+  dark: "#111111",
+  light: "#f3f3f1",
+}
+
 const navLinks: { href: string; label: Localized }[] = [
   { href: "/", label: { fr: "Accueil", en: "Home" } },
   { href: "/solutions", label: { fr: "Solutions", en: "Solutions" } },
@@ -102,6 +109,15 @@ export function Header() {
     update()
     return () => window.removeEventListener("scroll", update)
   }, [])
+
+  // Tint the mobile browser chrome (iOS Safari top/bottom bars) to match the
+  // dark/light section currently under the header. The <meta name="theme-color">
+  // is seeded by the root layout's viewport export; we mutate it at runtime.
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]')
+    // The open menu overlay is a full-screen dark panel → dark chrome too.
+    meta?.setAttribute("content", open ? CHROME_COLOR.dark : CHROME_COLOR[theme])
+  }, [theme, open])
 
   // Close on navigation
   useEffect(() => setOpen(false), [pathname])

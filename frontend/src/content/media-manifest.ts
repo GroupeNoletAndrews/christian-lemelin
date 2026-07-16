@@ -3,7 +3,36 @@
 // environment this was generated against. imageUrl() (src/content/image.ts)
 // serves these and falls back to picsum for any seed not listed here.
 // Regenerate with `npm run media:manifest` (or `npm run media:sync`).
-//
-// Committed empty: it's an env-specific build artifact. `npm run media:sync`
-// regenerates it locally; the Vercel build regenerates it against prod.
-export const MEDIA_MANIFEST: string[] = []
+export const MEDIA_MANIFEST: string[] = [
+  "photos/fabrication/savoir-faire-decoupe-laser.jpg",
+  "photos/fabrication/savoir-faire-fabrication.jpg",
+  "photos/fabrication/savoir-faire-mobilier-hospitalier.jpg",
+  "photos/fabrication/savoir-faire-polissage.jpg",
+  "photos/fabrication/savoir-faire-soudure.jpg",
+  "photos/logo/clients/audi.png",
+  "photos/logo/clients/beaubois.png",
+  "photos/logo/clients/boisdaction.svg",
+  "photos/logo/clients/centre-des-congres-quebec.svg",
+  "photos/logo/clients/chocolats-favoris.svg",
+  "photos/logo/clients/chu-de-quebec.png",
+  "photos/logo/clients/deloitte.svg",
+  "photos/logo/clients/disney.png",
+  "photos/logo/clients/ford.png",
+  "photos/logo/clients/musee-civilisation.png",
+  "photos/logo/clients/polybois.png",
+  "photos/logo/clients/pomerleau.svg",
+  "photos/logo/clients/simons.jpg",
+  "photos/logo/clients/universal.png",
+  "photos/logo/clients/yuzu.png",
+  "photos/logo/logo-ecl-blanc-v2.svg",
+  "photos/logo/logo-ecl-noir-v2.svg",
+  "photos/logo/logo_eclemelin.png",
+  "photos/realisations/amenagement-de-restaurant/1.jpg",
+  "photos/realisations/bar-circulaire-en-laiton/1.jpg",
+  "photos/realisations/bar-lounge-hotellerie/1.jpg",
+  "photos/realisations/bar-lounge-hotellerie/2.jpg",
+  "photos/realisations/cuisine-exterieure-sur-mesure/1.jpg",
+  "photos/realisations/escalier-structure-d-atelier/1.jpg",
+  "photos/realisations/mobilier-hospitalier-en-inox/1.jpg",
+  "photos/realisations/mobilier-hospitalier-en-inox/2.jpg"
+]

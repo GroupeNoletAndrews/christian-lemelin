@@ -136,7 +136,11 @@ function CarouselGrid({ items, cardHref, onEdit }: GridProps) {
       <div
         ref={ref}
         className="flex snap-x snap-mandatory gap-6 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        style={{ touchAction: "pan-x" }}
+        // touchAction stays `auto`: a `pan-x` container strips vertical panning
+        // from touches that begin on it, freezing page scroll when a finger
+        // lands on a card. `auto` lets the browser pick — horizontal → carousel,
+        // vertical → page.
+        style={{ touchAction: "auto" }}
       >
         {items.map((r, i) => (
           <div

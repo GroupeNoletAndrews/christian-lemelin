@@ -24,7 +24,8 @@ export const COMPANY = {
 export const HOURS: { days: Localized; hours: Localized }[] = [
   {
     days: { fr: "Lundi – Jeudi", en: "Monday – Thursday" },
-    hours: { fr: "7 h 30 – 12 h · 12 h 30 – 16 h 15", en: "7:30 – 12 · 12:30 – 16:15" },
+    // Pas de fermeture le midi : l'atelier demeure joignable sur l'heure du dîner.
+    hours: { fr: "7 h 30 – 17 h", en: "7:30 – 17" },
   },
   { days: { fr: "Vendredi", en: "Friday" }, hours: { fr: "7 h 30 – 12 h", en: "7:30 – 12" } },
   { days: { fr: "Samedi – Dimanche", en: "Saturday – Sunday" }, hours: { fr: "Fermé", en: "Closed" } },

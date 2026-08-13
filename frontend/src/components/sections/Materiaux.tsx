@@ -320,7 +320,11 @@ export function Materiaux({
   return (
     <section id="materiaux" data-header-theme="light" className="bg-background">
       {/* Mobile: horizontal swipe carousel (scroll-snap) — cards peek so it
-          reads as swipeable; touch-pan-x lets vertical page scroll pass through. */}
+          reads as swipeable. touch-action stays `auto` (no touch-pan-x): a
+          `pan-x` ancestor strips vertical panning from every touch that starts
+          inside it, so a page-scroll swipe landing on a card image would freeze.
+          `auto` lets the browser disambiguate — horizontal → carousel, vertical
+          → page. */}
       <div className="md:hidden">
         <div className="px-6 pb-8 pt-24">
           <h2 className="font-display text-[clamp(2rem,9vw,2.75rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
@@ -334,7 +338,7 @@ export function Materiaux({
             )}
           </p>
         </div>
-        <div className="flex snap-x snap-mandatory touch-pan-x gap-4 overflow-x-auto scroll-pl-6 px-6 pb-16 [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-pl-6 px-6 pb-16 [-ms-overflow-style:none] [scrollbar-width:none]">
           {materials.map((mat) => (
             <div key={mat.code} className="w-[78vw] max-w-[320px] shrink-0 snap-start">
               <Dialog transition={MODAL_TRANSITION} morph={false}>

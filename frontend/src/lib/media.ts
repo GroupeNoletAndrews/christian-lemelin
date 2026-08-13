@@ -182,8 +182,12 @@ export const SITE_MEDIA = {
   logo: `${MEDIA_FOLDERS.logo}/logo_eclemelin.png`,
   // Navbar logos — two baked-colour SVGs (no CSS invert): black over light
   // sections, white over dark sections / the open menu.
-  logoNoir: `${MEDIA_FOLDERS.logo}/logo-ecl-noir-v2.svg`,
-  logoBlanc: `${MEDIA_FOLDERS.logo}/logo-ecl-blanc-v2.svg`,
+  // v3 = cache-bust after the « acier inoxidable » → « acier inoxydable »
+  // correction (commit « fix logo »). The fix overwrote the SVG in place, but
+  // the 1-year CDN/browser cache kept serving the old typo → bump the filename
+  // so every client re-fetches. See scripts/sync-site-media.ts (cacheControl).
+  logoNoir: `${MEDIA_FOLDERS.logo}/logo-ecl-noir-v3.svg`,
+  logoBlanc: `${MEDIA_FOLDERS.logo}/logo-ecl-blanc-v3.svg`,
   heroVideo: `${MEDIA_FOLDERS.videos}/videoLemelin.mp4`,
   savoirFaire: {
     mobilier: `${MEDIA_FOLDERS.fabrication}/savoir-faire-mobilier-hospitalier.jpg`,

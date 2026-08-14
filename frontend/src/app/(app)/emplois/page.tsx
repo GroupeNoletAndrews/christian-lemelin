@@ -116,6 +116,10 @@ export default async function EmploisPage() {
         </div>
       </section>
 
+      {/* Offres d'emploi — placées avant « Pourquoi joindre… » pour mettre les
+          postes ouverts en tête de page. */}
+      <JobAccordion />
+
       {/* Pourquoi nous joindre — 8 avantages */}
       <section className="mx-auto max-w-[1100px] px-6 pb-8 pt-10 md:pb-12 md:pt-16">
         <div className="max-w-[60ch]">
@@ -140,8 +144,6 @@ export default async function EmploisPage() {
           ))}
         </div>
       </section>
-
-      <JobAccordion />
 
       {/* Rejoignez E.C. Lemelin — bloc éditorial sombre */}
       <section data-header-theme="dark" className="bg-background px-3 py-3 md:px-4 md:py-4">

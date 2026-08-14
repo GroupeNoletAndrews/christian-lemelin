@@ -77,7 +77,7 @@ export function Installations({ images = {} }: { images?: Record<string, string>
               src={images["hero-aerial"] ?? imageUrl(hero.image, 2000, 1100)}
               alt={tr(hero.heading, locale)}
               sizes="100vw"
-              amount={12}
+              amount={5}
             />
           </div>
         </div>

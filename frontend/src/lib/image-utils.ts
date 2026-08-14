@@ -3,8 +3,13 @@
 // Images are uploaded to Supabase Storage (public bucket). Before upload each
 // picture is downscaled and re-encoded as JPEG to keep files small.
 
-const MAX_DIMENSION = 1600
-const JPEG_QUALITY = 0.82
+// Long-edge cap + JPEG quality for uploaded réalisation photos. Kept high so the
+// large cards / featured hero stay crisp (the tiles oversize the image for
+// parallax, so a low cap looked soft/"zoomed"). next/image still re-encodes a
+// smaller delivery variant per viewport, so the stored file being larger only
+// costs Storage space, not page weight.
+const MAX_DIMENSION = 2400
+const JPEG_QUALITY = 0.9
 // Accept only lightweight web image formats, and cap the raw upload size so a
 // huge file can't be selected by mistake (it's re-encoded to JPEG anyway).
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"]

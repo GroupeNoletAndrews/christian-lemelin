@@ -19,8 +19,11 @@ import { t } from "@/lib/i18n"
 const RATIOS = ["aspect-[4/3]", "aspect-[4/5]", "aspect-[4/5]", "aspect-[4/3]"]
 
 // Parallax travel as a % of the (oversized) image height — the "images lag
-// behind the scroll" feel from DESIGN.md §7.
-const PARALLAX_AMOUNT = 18
+// behind the scroll" feel from DESIGN.md §7. Kept small so the image is only
+// mildly oversized (see h-[115%] below): more travel needs more oversize, which
+// reads as the photo being "zoomed in". Must stay ≤ the per-side margin
+// (PARALLAX_AMOUNT × 1.15 ≤ 7.5) or the frame edge shows through at scroll ends.
+const PARALLAX_AMOUNT = 5
 
 /**
  * A réalisation tile with a hover image carousel and a scroll parallax (the
@@ -110,7 +113,7 @@ export function RealisationCard({
             {/* Oversized, parallax-translating image stack (carousel) */}
             <motion.div
               style={{ y: reduce ? 0 : y }}
-              className="absolute inset-x-0 -top-[35%] h-[170%] will-change-transform"
+              className="absolute inset-x-0 -top-[7.5%] h-[115%] will-change-transform"
             >
               {images.map((src, i) => {
                 if (!src) return null
@@ -121,6 +124,7 @@ export function RealisationCard({
                     src={url}
                     alt={realisation.name}
                     fill
+                    quality={90}
                     unoptimized={isUnoptimizedSrc(url)}
                     sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                     className={`object-cover transition-opacity duration-500 ${

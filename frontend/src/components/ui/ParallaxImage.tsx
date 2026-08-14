@@ -5,18 +5,18 @@ import Image from "next/image"
 import { motion, useScroll, useTransform, useReducedMotion } from "motion/react"
 
 // Parallax image (OPUS-style "image grows on scroll") — see DESIGN.md §7.
-// The image is oversized (140% of frame) and translates vertically as the
-// frame scrolls through the viewport. Place inside a `relative overflow-hidden`
-// element that defines the aspect ratio / rounded corners.
-// `amount` = how far the image travels, as a % of its own (oversized) height.
-// The image is 170% tall (35% bleed top & bottom) so it never reveals an edge
-// even at the stronger amplitude. Bump `amount` for an even more pronounced
-// "the images follow me" feel.
+// The image is only mildly oversized (115% of frame, 7.5% bleed top & bottom)
+// and translates vertically as the frame scrolls through the viewport. Place
+// inside a `relative overflow-hidden` element that defines the aspect ratio /
+// rounded corners. `amount` = how far the image travels, as a % of its own
+// (oversized) height. Keep `amount × 1.15 ≤ 7.5` (i.e. ≤ ~6) or the translation
+// reveals the frame edge at scroll ends; more travel would need more oversize,
+// which reads as the photo being "zoomed in" (the look we're avoiding).
 export function ParallaxImage({
   src,
   alt,
   sizes,
-  amount = 19,
+  amount = 5,
   unoptimized = false,
   objectPosition,
   scale,
@@ -49,7 +49,7 @@ export function ParallaxImage({
     <div ref={ref} className="absolute inset-0 overflow-hidden" style={frameStyle}>
       <motion.div
         style={{ y: reduce ? 0 : y, scale: scale && scale !== 1 ? scale : undefined }}
-        className="absolute inset-x-0 -top-[35%] h-[170%] will-change-transform"
+        className="absolute inset-x-0 -top-[7.5%] h-[115%] will-change-transform"
       >
         <Image
           src={src}

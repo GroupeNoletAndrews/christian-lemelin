@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
     // optimise images served by the LOCAL Supabase stack (127.0.0.1). Skip
     // optimisation in dev (perf there is irrelevant); prod keeps it on.
     unoptimized: process.env.NODE_ENV !== "production",
+    // Next 16 restricts optimizer quality to this allowlist (default [75]).
+    // 90 is used for réalisation photos (detailed metalwork stays sharp).
+    qualities: [75, 90],
     // Optimized variants can be cached (edge + browser) for a year: every
     // owner-editable image URL is versioned (?v=updatedAt via imgSrc), so a
     // replaced picture gets a NEW URL instead of relying on TTL expiry.

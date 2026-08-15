@@ -23,6 +23,7 @@ import { SOLUTIONS_OVERVIEW, imageUrl, type SolutionIndexEntry } from "@/content
 import { useLocale } from "@/components/providers/LocaleProvider"
 import { t, tr, type LocalizedText } from "@/lib/i18n"
 import { useLenis } from "@/components/providers/LenisProvider"
+import { lockScroll, relockScroll, unlockScroll } from "@/lib/scroll-lock"
 import { hoverSlot } from "@/lib/sections-registry"
 import { PLACEHOLDER_SRC } from "@/lib/media"
 import { useSlotOverride, useSlotStyleOverride } from "@/lib/section-preview"
@@ -124,10 +125,12 @@ function buildPath(w: number, trackH: number, cx: number, amp: number, nodeYs: n
   return d
 }
 
-// ── Zoom morphant ────────────────────────────────────────────────────────────
-// Au clic, l'image de la carte « s'ouvre » en plein cadre (morph partagé par
-// layoutId `sol-<slug>` : même nœud source dans la carte, cible ici) puis les
-// infos MINIMALES se révèlent. Pas de superflu : numéro, titre, intro, contact.
+// ── Visionneuse solution ─────────────────────────────────────────────────────
+// Au clic sur « + », la carte s'ouvre en une VISIONNEUSE (panneau centré), pas
+// en une prise plein écran : la page reste visible autour, la fermeture est
+// évidente, et le contenu tient sur mobile (le panneau est borné à 88svh et son
+// texte défile). Le morph partagé (layoutId `sol-<slug>`) est conservé : on
+// « entre » bien dans la carte cliquée.
 const SPRING = { type: "spring" as const, bounce: 0.04, duration: 0.55 }
 
 function SolutionZoom({
@@ -143,9 +146,12 @@ function SolutionZoom({
 }) {
   const locale = useLocale()
   const closeRef = useRef<HTMLButtonElement>(null)
-  const { src, style } = useHoverSrc(item, images, 2000, 1300)
+  const { src, style } = useHoverSrc(item, images, 1600, 1000)
   useEffect(() => {
+    // Restore focus to whatever opened the viewer (the card) on close.
+    const prev = document.activeElement as HTMLElement | null
     closeRef.current?.focus()
+    return () => prev?.focus?.()
   }, [])
 
   return (
@@ -153,83 +159,90 @@ function SolutionZoom({
       role="dialog"
       aria-modal="true"
       aria-label={tr(item.title, locale)}
-      className="fixed inset-0 z-[100]"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-10"
       data-lenis-prevent
     >
-      {/* Fond noir (couvre la page pendant/après le morph). */}
+      {/* Voile — cliquer à côté ferme. Volontairement PAS un <button> : il
+          serait le premier arrêt de tabulation du dialogue et annoncerait un
+          second « Fermer » en double du vrai bouton. */}
       <motion.div
         aria-hidden
-        className="absolute inset-0 bg-black"
+        onClick={onClose}
+        className="absolute inset-0 bg-ink/[0.94] backdrop-blur-md"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.25 }}
       />
 
-      {/* Image VRAIMENT plein écran. Le conteneur morphe depuis la carte
-          (layoutId) → on « entre » dans la carte ; l'image interne pousse
-          ensuite lentement (push-in = on s'enfonce dedans), à un rythme distinct
-          du texte qui monte → effet de parallaxe/profondeur. */}
+      {/* Panneau. Seule l'IMAGE porte le morph partagé (layoutId) : y inclure
+          le texte le ferait grossir/écraser pendant l'animation. */}
       <motion.div
-        layoutId={reduce ? undefined : `sol-${item.slug}`}
-        initial={reduce ? { opacity: 0 } : false}
-        animate={reduce ? { opacity: 1 } : undefined}
-        exit={reduce ? { opacity: 0 } : undefined}
-        transition={reduce ? { duration: 0.4, ease: EASE_OUT } : SPRING}
-        className="absolute inset-0 overflow-hidden"
+        initial={{ opacity: 0, scale: reduce ? 1 : 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: reduce ? 1 : 0.98 }}
+        transition={reduce ? { duration: 0.3, ease: EASE_OUT } : SPRING}
+        className="relative flex max-h-[88svh] w-full max-w-[1000px] flex-col overflow-hidden rounded-2xl bg-ink shadow-2xl shadow-black/60"
       >
-        {src ? (
-          <motion.img
-            initial={{ scale: reduce ? 1.05 : 1 }}
-            animate={{ scale: reduce ? 1 : 1.12 }}
-            transition={{ duration: reduce ? 0.4 : 9, ease: reduce ? EASE_OUT : "easeOut" }}
-            src={src}
-            alt={item.hoverImage.alt}
-            draggable={false}
-            className="h-full w-full object-cover"
-            // Only the focal point here — the cinematic push-in owns `transform`.
-            style={style?.objectPosition ? { objectPosition: style.objectPosition } : undefined}
-          />
-        ) : (
-          <ImagePlaceholder />
-        )}
-      </motion.div>
-
-      {/* Voile dégradé pour la lisibilité du texte en bas. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/40"
-      />
-
-      <button
-        ref={closeRef}
-        type="button"
-        onClick={onClose}
-        aria-label={t("Fermer", "Close", locale)}
-        className="absolute right-5 top-5 z-10 grid size-11 place-items-center rounded-full bg-white/12 text-white backdrop-blur-md transition-colors hover:bg-white/25 sm:right-8 sm:top-8"
-      >
-        <X size={20} weight="bold" />
-      </button>
-
-      {/* Infos minimales, en surimpression. */}
-      <motion.div
-        initial={{ opacity: 0, y: 56 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 24 }}
-        transition={{ duration: 0.6, ease: EASE_OUT, delay: reduce ? 0 : 0.28 }}
-        className="absolute inset-x-0 bottom-0 z-10 p-7 text-white sm:p-12"
-      >
-        <h2 className="max-w-[18ch] font-display text-[clamp(2rem,5vw,3.75rem)] font-medium leading-[1.03] tracking-[-0.02em]">
-          {tr(item.title, locale)}
-        </h2>
-        <p className="mt-4 max-w-[58ch] leading-relaxed text-white/75">{tr(item.intro, locale)}</p>
-        <a
-          href="/contact"
-          className="mt-7 inline-flex items-center gap-2 font-medium text-white underline-offset-4 hover:underline"
+        {/* max-h caps the picture so the text always keeps room inside the
+            88svh panel — with the aspect ratio alone, a wide viewport pushed
+            the intro out of view on short screens. */}
+        <motion.div
+          layoutId={reduce ? undefined : `sol-${item.slug}`}
+          transition={reduce ? undefined : SPRING}
+          className="relative aspect-[4/3] max-h-[42svh] w-full shrink-0 overflow-hidden sm:aspect-[16/10] sm:max-h-[46svh]"
         >
-          {t("Discutons de votre projet", "Let's discuss your project", locale)}
-          <ArrowUpRight size={20} weight="bold" />
-        </a>
+          {src ? (
+            <motion.img
+              initial={{ scale: reduce ? 1.03 : 1 }}
+              animate={{ scale: reduce ? 1 : 1.06 }}
+              transition={{ duration: reduce ? 0.4 : 9, ease: reduce ? EASE_OUT : "easeOut" }}
+              src={src}
+              alt={item.hoverImage.alt}
+              draggable={false}
+              className="h-full w-full object-cover"
+              // Only the focal point here — the slow push-in owns `transform`.
+              style={style?.objectPosition ? { objectPosition: style.objectPosition } : undefined}
+            />
+          ) : (
+            <ImagePlaceholder />
+          )}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink to-transparent"
+          />
+        </motion.div>
+
+        <button
+          ref={closeRef}
+          type="button"
+          onClick={onClose}
+          aria-label={t("Fermer", "Close", locale)}
+          className="absolute right-4 top-4 z-10 grid size-11 place-items-center rounded-full border border-white/20 bg-black/45 text-white backdrop-blur-md transition-colors hover:border-white/40 hover:bg-black/70"
+        >
+          <X size={18} weight="bold" />
+        </button>
+
+        {/* Texte — défile si le panneau est plus court que le contenu (mobile). */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 12 }}
+          transition={{ duration: 0.5, ease: EASE_OUT, delay: reduce ? 0 : 0.2 }}
+          className="min-h-0 flex-1 overflow-y-auto px-6 pb-7 pt-5 text-white sm:px-9 sm:pb-9"
+        >
+          <h2 className="max-w-[20ch] font-display text-[clamp(1.6rem,3.4vw,2.75rem)] font-medium leading-[1.05] tracking-[-0.02em]">
+            {tr(item.title, locale)}
+          </h2>
+          <p className="mt-3 max-w-[62ch] leading-relaxed text-white/70">{tr(item.intro, locale)}</p>
+          <a
+            href="/contact"
+            className="mt-6 inline-flex items-center gap-2 font-medium text-white underline-offset-4 hover:underline"
+          >
+            {t("Discutons de votre projet", "Let's discuss your project", locale)}
+            <ArrowUpRight size={20} weight="bold" />
+          </a>
+        </motion.div>
       </motion.div>
     </motion.div>
   )
@@ -292,12 +305,6 @@ function SolutionCard({
         className={`mt-2 block max-w-[42ch] leading-relaxed text-foreground-muted ${end ? "ml-auto text-right" : ""}`}
       >
         {tr(item.tagline, locale)}
-      </span>
-      <span
-        className={`mt-4 inline-flex items-center gap-2 font-medium text-foreground ${end ? "flex-row-reverse" : ""}`}
-      >
-        {t("Découvrir cette solution", "Explore this solution", locale)}
-        <ArrowUpRight size={20} weight="bold" className="text-accent" />
       </span>
     </button>
   )
@@ -514,18 +521,35 @@ export function SolutionsTimeline({
   useEffect(() => {
     if (selected == null) return
     lenis?.stop()
-    const prev = document.body.style.overflow
-    document.body.style.overflow = "hidden"
+    // lockScroll() compense la largeur de la barre de défilement : sans ça,
+    // masquer l'overflow élargit la page (~15 px sous Windows), le
+    // ResizeObserver de la scène se déclenche, la piste est recalculée — et en
+    // refermant, les cartes pouvaient rester à `opacity: 0` (« les solutions
+    // disparaissent ») jusqu'au prochain défilement.
+    lockScroll()
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close()
     }
+    // `?s=<slug>` ouvre la visionneuse dès le montage — pendant que le
+    // Preloader tient encore `body{overflow:hidden}`.
+    const relock = () => {
+      relockScroll()
+      lenis?.stop()
+    }
     window.addEventListener("keydown", onKey)
+    window.addEventListener("eclemelin:preloader-done", relock)
     return () => {
       lenis?.start()
-      document.body.style.overflow = prev
+      unlockScroll()
       window.removeEventListener("keydown", onKey)
+      window.removeEventListener("eclemelin:preloader-done", relock)
+      // Ceinture et bretelles : on repositionne les cartes à la fermeture. Le
+      // scrub n'est piloté que par les CHANGEMENTS de `scrollYProgress` ; si
+      // rien n'a bougé pendant que la visionneuse était ouverte, `place()` ne
+      // rejouerait jamais et un état intermédiaire resterait figé à l'écran.
+      place(scrollYProgress.get())
     }
-  }, [selected, lenis, close])
+  }, [selected, lenis, close, place, scrollYProgress])
 
   const selectedItem = selected != null ? data[selected] : null
   const modal =

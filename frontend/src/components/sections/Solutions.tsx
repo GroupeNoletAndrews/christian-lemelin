@@ -33,7 +33,6 @@ type Sector = {
   id: string
   title: LocalizedText
   description: LocalizedText
-  href: string
   /** GLB affiché dans la visionneuse quand ce secteur est sélectionné
    *  (fichiers dans public/assets/3D/ — la casse compte en production Linux). */
   model: string
@@ -47,7 +46,6 @@ const sectors: Sector[] = [
       fr: "Comptoirs, hottes et équipements en inox sur mesure pour les cuisines professionnelles les plus exigeantes.",
       en: "Custom stainless steel counters, hoods and equipment for the most demanding professional kitchens.",
     },
-    href: "/solutions",
     model: "/assets/3D/Hotelerie.glb",
   },
   {
@@ -57,7 +55,6 @@ const sectors: Sector[] = [
       fr: "Rampes, balustrades et panneaux décoratifs en inox, laiton et cuivre pour les projets d'exception.",
       en: "Railings, balustrades and decorative panels in stainless steel, brass and copper for exceptional projects.",
     },
-    href: "/solutions",
     model: "/assets/3D/ARCHITECTURE_ET_DESIGN.glb",
   },
   {
@@ -67,7 +64,6 @@ const sectors: Sector[] = [
       fr: "Pièces de précision, gabarits, structures et composants pour la production industrielle.",
       en: "Precision parts, jigs, structures and components for industrial production.",
     },
-    href: "/solutions",
     model: "/assets/3D/INDUSTRIEL.glb",
   },
   {
@@ -77,7 +73,6 @@ const sectors: Sector[] = [
       fr: "Signalétique, mobilier métallique et plafonds pour les espaces commerciaux et bâtiments institutionnels.",
       en: "Signage, metal furniture and ceilings for commercial spaces and institutional buildings.",
     },
-    href: "/solutions",
     model: "/assets/3D/COMMERCIAL.glb",
   },
 ]
@@ -184,6 +179,13 @@ export function Solutions() {
               locale,
             )}
           </p>
+          {/* ONE link for the whole section — it replaces the four identical
+              « Explorer ce secteur » that sat in each accordion panel. The
+              overlay is pointer-events-none so the model stays draggable; the
+              link opts back in. */}
+          <ArrowLink href="/solutions" dark className="pointer-events-auto mt-6">
+            {t("Voir toutes nos solutions", "See all our solutions", locale)}
+          </ArrowLink>
         </div>
 
         {/* Desktop: collapsible opaque sector panel inside the viewer */}
@@ -312,9 +314,6 @@ function SectorTabs({
                     <p className="max-w-[40ch] text-[15px] leading-relaxed text-white/60">
                       {tr(s.description, locale)}
                     </p>
-                    <ArrowLink href={s.href} dark className="mt-4">
-                      {t("Explorer ce secteur", "Explore this sector", locale)}
-                    </ArrowLink>
                   </div>
                 </motion.div>
               )}

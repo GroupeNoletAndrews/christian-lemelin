@@ -189,6 +189,11 @@ export const SITE_MEDIA = {
   logoNoir: `${MEDIA_FOLDERS.logo}/logo-ecl-noir-v3.svg`,
   logoBlanc: `${MEDIA_FOLDERS.logo}/logo-ecl-blanc-v3.svg`,
   heroVideo: `${MEDIA_FOLDERS.videos}/videoLemelin.mp4`,
+  // Photo d'un plan de travail en inox en salle clinique — sert de défaut à la
+  // section « Mobilier hospitalier » (voir sections-registry). Même source que
+  // la réalisation « Mobilier hospitalier en inox » : les doublons sont assumés,
+  // le catalogue de photos réelles est petit.
+  mobilierPlanTravail: `${MEDIA_FOLDERS.fabrication}/mobilier-hospitalier-plan-travail.jpg`,
   savoirFaire: {
     mobilier: `${MEDIA_FOLDERS.fabrication}/savoir-faire-mobilier-hospitalier.jpg`,
     fabrication: `${MEDIA_FOLDERS.fabrication}/savoir-faire-fabrication.jpg`,

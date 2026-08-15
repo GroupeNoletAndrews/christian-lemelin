@@ -1,5 +1,6 @@
 import { Hero } from "@/components/sections/Hero"
 import { SavoirFaire } from "@/components/sections/SavoirFaire"
+import { MobilierHospitalier } from "@/components/sections/MobilierHospitalier"
 import { Materiaux } from "@/components/sections/Materiaux"
 import { Solutions } from "@/components/sections/Solutions"
 import { Realisations } from "@/components/sections/Realisations"
@@ -26,14 +27,18 @@ export default async function HomePage({
   const sp = await searchParams
   const [
     savoirFaireImages,
+    mobilierImages,
     materiauxImages,
     savoirFaireStyles,
+    mobilierStyles,
     materiauxStyles,
     settings,
   ] = await Promise.all([
     resolveSectionImages("savoir-faire"),
+    resolveSectionImages("mobilier-hospitalier"),
     resolveSectionImages("materiaux"),
     resolveSectionStyles("savoir-faire"),
+    resolveSectionStyles("mobilier-hospitalier"),
     resolveSectionStyles("materiaux"),
     getSiteSettings([SETTING_KEYS.realisationsHomeLayout]),
   ])
@@ -51,6 +56,11 @@ export default async function HomePage({
       <StatsBar />
       <SectionStyleProvider styles={savoirFaireStyles}>
         <SavoirFaire images={savoirFaireImages} />
+      </SectionStyleProvider>
+      {/* Own provider: the published-style context is keyed by SLOT id only, so
+          sharing one provider between sections would cross the wires. */}
+      <SectionStyleProvider styles={mobilierStyles}>
+        <MobilierHospitalier images={mobilierImages} />
       </SectionStyleProvider>
       <Realisations layout={homeLayout} />
       <Solutions />

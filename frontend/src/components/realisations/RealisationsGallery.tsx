@@ -1,11 +1,14 @@
 "use client"
 
+import { useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { useAdmin } from "@/lib/admin-context"
 import { RealisationsGrid } from "@/components/realisations/RealisationsGrid"
+import { RealisationLightbox } from "@/components/realisations/RealisationLightbox"
 import { ArrowLink } from "@/components/ui/ArrowLink"
 import { useLocale } from "@/components/providers/LocaleProvider"
 import { t } from "@/lib/i18n"
+
 import type { RealisationsLayout } from "@/lib/layouts"
 
 // In the content-workspace preview iframe, ask the parent admin window to open
@@ -24,9 +27,15 @@ export function RealisationsGallery({ layout }: { layout: RealisationsLayout }) 
   const params = useSearchParams()
   const locale = useLocale()
   const featuredId = params.get("featured")
+  // Seeded from ?featured=<id> (a campaign / legacy deep link) so that project
+  // opens straight into the viewer. Kept as an ID, not an object: réalisations
+  // arrive asynchronously from the admin context, so the lookup below resolves
+  // whenever they land — no effect, and closing it stays closed.
+  const [openedId, setOpenedId] = useState<string | null>(featuredId)
 
   // Collection membership is independent of home pinning.
   const items = realisations.filter((r) => r.inCollection)
+  const opened = items.find((r) => r.id === openedId) ?? null
 
   if (items.length === 0) {
     return (
@@ -50,23 +59,20 @@ export function RealisationsGallery({ layout }: { layout: RealisationsLayout }) 
     )
   }
 
-  // In the editorial layout, float a deep-linked project (?featured=id, from the
-  // home page) to the featured spot. Other layouts ignore it.
-  let ordered = items
-  if (layout === "editorial" && featuredId) {
-    const lead = items.find((r) => r.id === featuredId)
-    if (lead) ordered = [lead, ...items.filter((r) => r.id !== lead.id)]
-  }
-
   return (
     <section className="bg-background pb-24 pt-4 md:pb-32">
       <div className="mx-auto max-w-[1400px] px-6 md:px-12">
+        {/* A deep-linked project no longer floats to a "featured" slot — there
+            is no featured slot any more: ?featured=<id> opens the viewer. */}
         <RealisationsGrid
           layout={layout}
-          items={ordered}
+          items={items}
+          aboveFold
+          onSelect={(r) => setOpenedId(r.id)}
           onEdit={previewEdit ? postEditRealisation : undefined}
         />
       </div>
+      <RealisationLightbox realisation={opened} onClose={() => setOpenedId(null)} />
     </section>
   )
 }

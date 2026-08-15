@@ -115,12 +115,37 @@ export const SECTION_SLOTS: SectionDef[] = [
     previewPath: "/",
     revalidate: ["/"],
     caps: FULL_CAPS,
+    // Le visuel n'est plus un fond plein cadre fortement voilé mais un panneau
+    // encadré (4/3 mobile, 4/5 desktop) : la photo se lit, donc plus de
+    // monochrome par défaut (l'admin garde la bascule via `filter`).
     slots: [
-      { id: "mobilier", label: "Mobilier hospitalier", source: "site-media", default: SITE_MEDIA.savoirFaire.mobilier, grayscale: true, aspect: "16/10" },
-      { id: "fabrication", label: "Fabrication sur mesure", source: "site-media", default: SITE_MEDIA.savoirFaire.fabrication, grayscale: true, aspect: "16/10" },
-      { id: "decoupe-laser", label: "Découpe laser", source: "site-media", default: SITE_MEDIA.savoirFaire.decoupeLaser, grayscale: true, aspect: "16/10" },
-      { id: "soudure", label: "Soudure & assemblage", source: "site-media", default: SITE_MEDIA.savoirFaire.soudure, grayscale: true, aspect: "16/10" },
-      { id: "polissage", label: "Polissage & finitions", source: "site-media", default: SITE_MEDIA.savoirFaire.polissage, grayscale: true, aspect: "16/10" },
+      { id: "fabrication", label: "Fabrication sur mesure", source: "site-media", default: SITE_MEDIA.savoirFaire.fabrication, aspect: "4/5" },
+      { id: "decoupe-laser", label: "Découpe laser", source: "site-media", default: SITE_MEDIA.savoirFaire.decoupeLaser, aspect: "4/5" },
+      { id: "soudure", label: "Soudure & assemblage", source: "site-media", default: SITE_MEDIA.savoirFaire.soudure, aspect: "4/5" },
+      { id: "polissage", label: "Polissage & finitions", source: "site-media", default: SITE_MEDIA.savoirFaire.polissage, aspect: "4/5" },
+    ],
+  },
+  {
+    // Section propre au mobilier hospitalier (accueil, entre Savoir-faire et
+    // Réalisations). Les quatre défauts pointent sur de VRAIES photos déjà
+    // présentes dans le bucket (déposées par scripts/sync-site-media.ts) plutôt
+    // que sur des seeds picsum : mieux vaut une photo d'atelier en double qu'un
+    // paysage aléatoire. Le propriétaire les remplace depuis l'atelier de
+    // contenu ; en prod, les emplacements non publiés affichent « Image à
+    // venir » (IMAGE_PLACEHOLDERS).
+    id: "mobilier-hospitalier",
+    label: "Mobilier hospitalier",
+    previewPath: "/",
+    revalidate: ["/"],
+    caps: FULL_CAPS,
+    slots: [
+      // La photo « mobilier » de Savoir-faire est déjà une photo de mobilier
+      // hospitalier : elle sert de défaut à la photo principale d'ici (elle est
+      // dans le bucket via scripts/sync-site-media.ts, donc jamais cassée).
+      { id: "poste-soins", label: "Photo principale — poste de soins", source: "site-media", default: SITE_MEDIA.savoirFaire.mobilier, aspect: "4/5" },
+      { id: "plan-travail", label: "Bande 1 — plan de travail", source: "site-media", default: SITE_MEDIA.mobilierPlanTravail, aspect: "4/3" },
+      { id: "armoire", label: "Bande 2 — armoire", source: "site-media", default: SITE_MEDIA.savoirFaire.fabrication, aspect: "4/3" },
+      { id: "chariot", label: "Bande 3 — chariot", source: "site-media", default: SITE_MEDIA.savoirFaire.polissage, aspect: "4/3" },
     ],
   },
   {

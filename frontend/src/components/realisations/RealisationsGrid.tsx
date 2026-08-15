@@ -12,8 +12,14 @@ type GridProps = {
   items: Realisation[]
   /** Where a tile links (e.g. /realisations?featured=id on home). */
   cardHref?: (r: Realisation) => string | undefined
+  /** Clicking a tile opens it (the lightbox). Ignored when cardHref is set. */
+  onSelect?: (r: Realisation) => void
   /** Content-workspace preview: pencil to edit a réalisation in place. */
   onEdit?: (id: string) => void
+  /** This grid is the page's lead content (only /realisations) — the first
+   *  tile then preloads as the LCP. On the home page the same grid sits far
+   *  below the fold, where preloading would only compete with the hero video. */
+  aboveFold?: boolean
 }
 
 export function RealisationsGrid({
@@ -24,8 +30,6 @@ export function RealisationsGrid({
   switch (layout) {
     case "uniform":
       return <UniformGrid {...props} />
-    case "editorial":
-      return <EditorialGrid {...props} />
     case "carousel":
       return <CarouselGrid {...props} />
     case "masonry":
@@ -38,7 +42,11 @@ function edit(onEdit: GridProps["onEdit"], id: string) {
   return onEdit ? () => onEdit(id) : undefined
 }
 
-function MasonryGrid({ items, cardHref, onEdit }: GridProps) {
+function select(onSelect: GridProps["onSelect"], r: Realisation) {
+  return onSelect ? () => onSelect(r) : undefined
+}
+
+function MasonryGrid({ items, cardHref, onSelect, onEdit, aboveFold }: GridProps) {
   return (
     <div className="gap-6 [column-fill:_balance] sm:columns-2 lg:columns-3">
       {items.map((r, i) => (
@@ -46,7 +54,9 @@ function MasonryGrid({ items, cardHref, onEdit }: GridProps) {
           key={r.id}
           realisation={r}
           index={i}
+          priority={!!aboveFold && i === 0}
           href={cardHref?.(r)}
+          onSelect={select(onSelect, r)}
           onEdit={edit(onEdit, r.id)}
         />
       ))}
@@ -54,7 +64,7 @@ function MasonryGrid({ items, cardHref, onEdit }: GridProps) {
   )
 }
 
-function UniformGrid({ items, cardHref, onEdit }: GridProps) {
+function UniformGrid({ items, cardHref, onSelect, onEdit, aboveFold }: GridProps) {
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((r, i) => (
@@ -63,7 +73,9 @@ function UniformGrid({ items, cardHref, onEdit }: GridProps) {
           realisation={r}
           index={i}
           ratio="aspect-[4/3]"
+          priority={!!aboveFold && i === 0}
           href={cardHref?.(r)}
+          onSelect={select(onSelect, r)}
           onEdit={edit(onEdit, r.id)}
           noMargin
         />
@@ -72,36 +84,7 @@ function UniformGrid({ items, cardHref, onEdit }: GridProps) {
   )
 }
 
-function EditorialGrid({ items, cardHref, onEdit }: GridProps) {
-  const [lead, ...rest] = items
-  return (
-    <div className="space-y-8">
-      <RealisationCard
-        realisation={lead}
-        index={0}
-        ratio="aspect-[16/10] md:aspect-[21/9]"
-        href={cardHref?.(lead)}
-        onEdit={edit(onEdit, lead.id)}
-        noMargin
-      />
-      {rest.length > 0 && (
-        <div className="gap-6 [column-fill:_balance] sm:columns-2 lg:columns-3">
-          {rest.map((r, i) => (
-            <RealisationCard
-              key={r.id}
-              realisation={r}
-              index={i + 1}
-              href={cardHref?.(r)}
-              onEdit={edit(onEdit, r.id)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function CarouselGrid({ items, cardHref, onEdit }: GridProps) {
+function CarouselGrid({ items, cardHref, onSelect, onEdit, aboveFold }: GridProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [paused, setPaused] = useState(false)
 
@@ -152,7 +135,10 @@ function CarouselGrid({ items, cardHref, onEdit }: GridProps) {
               realisation={r}
               index={i}
               ratio="aspect-[4/3]"
+              layout="carousel"
+              priority={!!aboveFold && i === 0}
               href={cardHref?.(r)}
+              onSelect={select(onSelect, r)}
               onEdit={edit(onEdit, r.id)}
               noMargin
             />

@@ -10,7 +10,7 @@
   - **Dashboard réduit aux métriques** ; **Emplois** migrés dans le workspace (`JobsEditor`, CRUD + Yup possible à ajouter) ; **jauge d'espace S3** (`StorageMeter` + `GET /api/admin/storage-usage`).
   - **Éditeur d'image non destructif** : recadrage point focal + zoom, N&B, coins/bordure, gaté par section (`SlotCaps`), via `ReframeModal` (grille règle-des-tiers + marqueur focal + puces de ratios) + **glisser-déposer** pour remplacer. Ombres admin retirées.
 - **Système de layouts** (admin-sélectionnable, **staged → aperçu → effectif à la publication seulement**) :
-  - Réalisations : 4 grilles (`masonry`, `uniform`, `editorial`, `carousel` — le carousel = boutons au survol + autoplay 2s + swipe mobile) via `RealisationsGrid`.
+  - Réalisations : 3 grilles (`masonry`, `uniform`, `carousel` — le carousel = boutons au survol + autoplay 2s + swipe mobile) via `RealisationsGrid`. (`editorial` retiré : la vedette géante faisait doublon avec la visionneuse.)
   - À-propos : 4 dispositions (`bento`, `uniform`, `editorial`, `gallery`) via `APropos.tsx`.
   - Persistance : table **`SiteSetting`** (clé/valeur) + `lib/server/site-settings.ts` + `POST/GET /api/admin/settings` + `lib/layouts.ts`. Aperçu staged via query `?layout=`/`?rlayout=` lue par les pages publiques en mode `?preview=1`.
 - **Réalisations** : appartenance indépendante **`pinned`** (accueil, max 6) + **`inCollection`** (page /realisations) ; toggles dans le workspace + le formulaire d'édition.

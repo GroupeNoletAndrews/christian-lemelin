@@ -94,6 +94,12 @@ const PAGES: PageGroup[] = [
     sections: [
       { id: "savoir-faire", label: "Savoir-faire", enabled: true, anchor: "savoir-faire" },
       {
+        id: "mobilier-hospitalier",
+        label: "Mobilier hospitalier",
+        enabled: true,
+        anchor: "mobilier-hospitalier",
+      },
+      {
         id: "realisations-home",
         label: "Réalisations",
         enabled: true,

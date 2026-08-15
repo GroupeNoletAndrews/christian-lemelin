@@ -3,14 +3,18 @@
 // SiteSetting key/value store (see lib/server/site-settings.ts) under the keys
 // below; components fall back to the defaults when unset.
 
-export const REALISATIONS_LAYOUTS = ["masonry", "uniform", "editorial", "carousel"] as const
+// « Éditorial » (une grande vedette au-dessus de la grille) a été retiré : la
+// visionneuse plein écran joue désormais ce rôle au clic, et la vedette faisait
+// doublon. asRealisationsLayout() retombe sur le défaut si la valeur enregistrée
+// en base vaut encore "editorial" — rien à migrer.
+export const REALISATIONS_LAYOUTS = ["masonry", "uniform", "carousel"] as const
 export type RealisationsLayout = (typeof REALISATIONS_LAYOUTS)[number]
 
 export const APROPOS_LAYOUTS = ["bento", "uniform", "editorial", "gallery"] as const
 export type AProposLayout = (typeof APROPOS_LAYOUTS)[number]
 
 export const DEFAULT_REALISATIONS_HOME_LAYOUT: RealisationsLayout = "masonry"
-export const DEFAULT_REALISATIONS_COLLECTION_LAYOUT: RealisationsLayout = "editorial"
+export const DEFAULT_REALISATIONS_COLLECTION_LAYOUT: RealisationsLayout = "masonry"
 export const DEFAULT_APROPOS_LAYOUT: AProposLayout = "bento"
 
 export const SETTING_KEYS = {
@@ -22,7 +26,6 @@ export const SETTING_KEYS = {
 export const REALISATIONS_LAYOUT_LABELS: Record<RealisationsLayout, string> = {
   masonry: "Masonry (colonnes)",
   uniform: "Grille uniforme",
-  editorial: "Éditorial (vedette + petites)",
   carousel: "Carrousel horizontal",
 }
 

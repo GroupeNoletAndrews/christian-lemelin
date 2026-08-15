@@ -55,6 +55,7 @@ export function SlotImage({
       src={resolved}
       alt={alt}
       fill
+      quality={90}
       unoptimized={isUnoptimizedSrc(resolved)}
       priority={priority}
       sizes={sizes}

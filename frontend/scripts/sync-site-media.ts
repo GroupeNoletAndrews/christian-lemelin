@@ -54,6 +54,7 @@ const items: Item[] = [
   { source: "assets/LOGOECLBLANC.svg", key: SITE_MEDIA.logoBlanc },
   { source: "videos/videoLemelin.mp4", key: SITE_MEDIA.heroVideo },
   { source: "assets/1780581925672-IMG_1281.jpeg", key: SITE_MEDIA.savoirFaire.mobilier },
+  { source: "assets/1780581931474-IMG_1280.jpeg", key: SITE_MEDIA.mobilierPlanTravail },
   { source: "assets/1780581858443-IMG_1292.jpeg", key: SITE_MEDIA.savoirFaire.fabrication },
   { source: "assets/1780581873317-IMG_1291.jpeg", key: SITE_MEDIA.savoirFaire.decoupeLaser },
   { source: "assets/1780581884668-IMG_1288.jpeg", key: SITE_MEDIA.savoirFaire.soudure },

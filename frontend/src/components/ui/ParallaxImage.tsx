@@ -22,6 +22,8 @@ export function ParallaxImage({
   scale,
   grayscale = false,
   frameStyle,
+  priority = false,
+  quality = 90,
 }: {
   src: string
   alt: string
@@ -36,6 +38,10 @@ export function ParallaxImage({
   grayscale?: boolean
   /** Border-radius / border applied to the clipping frame. */
   frameStyle?: CSSProperties
+  priority?: boolean
+  /** 90 by default — 75 (next/image's default) visibly softens metal texture.
+   *  Allowed values come from `images.qualities` in next.config.ts. */
+  quality?: number
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const reduce = useReducedMotion()
@@ -56,6 +62,8 @@ export function ParallaxImage({
           alt={alt}
           fill
           sizes={sizes}
+          quality={quality}
+          priority={priority}
           unoptimized={unoptimized}
           className={`object-cover${grayscale ? " grayscale" : ""}`}
           style={objectPosition ? { objectPosition } : undefined}

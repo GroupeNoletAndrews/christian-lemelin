@@ -7,7 +7,11 @@ import { Realisations } from "@/components/sections/Realisations"
 import { StatsBar } from "@/components/sections/StatsBar"
 import { ContactCTA } from "@/components/sections/ContactCTA"
 import { SectionStyleProvider } from "@/components/sections/SectionStyle"
-import { resolveSectionImages, resolveSectionStyles } from "@/lib/server/sections"
+import {
+  resolveSectionGallery,
+  resolveSectionImages,
+  resolveSectionStyles,
+} from "@/lib/server/sections"
 import { getSiteSettings } from "@/lib/server/site-settings"
 import {
   SETTING_KEYS,
@@ -28,6 +32,7 @@ export default async function HomePage({
   const [
     savoirFaireImages,
     mobilierImages,
+    mobilierPhotos,
     materiauxImages,
     savoirFaireStyles,
     mobilierStyles,
@@ -36,6 +41,8 @@ export default async function HomePage({
   ] = await Promise.all([
     resolveSectionImages("savoir-faire"),
     resolveSectionImages("mobilier-hospitalier"),
+    // Owner-controlled count + order — a record keyed by slot cannot carry it.
+    resolveSectionGallery("mobilier-hospitalier"),
     resolveSectionImages("materiaux"),
     resolveSectionStyles("savoir-faire"),
     resolveSectionStyles("mobilier-hospitalier"),
@@ -60,7 +67,7 @@ export default async function HomePage({
       {/* Own provider: the published-style context is keyed by SLOT id only, so
           sharing one provider between sections would cross the wires. */}
       <SectionStyleProvider styles={mobilierStyles}>
-        <MobilierHospitalier images={mobilierImages} />
+        <MobilierHospitalier images={mobilierImages} photos={mobilierPhotos} />
       </SectionStyleProvider>
       <Realisations layout={homeLayout} />
       <Solutions />

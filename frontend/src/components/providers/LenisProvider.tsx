@@ -24,6 +24,18 @@ export function LenisProvider({ children }: { children: ReactNode }) {
       smoothWheel: true,
       wheelMultiplier: 1,
       touchMultiplier: 1.5,
+      // Hand the gesture back to the browser when it starts on something that
+      // can scroll ITSELF in that direction (the matériaux / réalisations
+      // carousels, the scrollable text inside an overlay).
+      //
+      // Lenis ignores a PURELY horizontal wheel (`deltaY === 0`), but a real
+      // trackpad swipe is never pure — there is always a little vertical drift.
+      // Those diagonal events were being treated as page scroll and
+      // `preventDefault()`-ed, which cancels the carousel's native horizontal
+      // scroll halfway through the gesture. That is what made horizontal
+      // scrolling feel like it snapped or stuck, and why it only happened
+      // "sometimes": it depended on how straight the swipe was.
+      allowNestedScroll: true,
     })
     setLenis(instance)
 

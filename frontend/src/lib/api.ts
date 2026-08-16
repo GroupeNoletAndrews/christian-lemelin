@@ -94,12 +94,21 @@ export interface SectionSlotState {
   style: SlotStyle | null
 }
 
+/** Set when the owner controls how many photos a section has — the editor then
+ *  offers add / remove / reorder instead of a fixed slot list. */
+export interface SectionGalleryInfo {
+  label: string
+  aspect: string
+  min: number
+}
+
 export interface SectionAdminState {
   section: string
   label: string
   previewPath: string
   /** Which per-image controls are allowed for this section. */
   caps: SlotCaps
+  gallery: SectionGalleryInfo | null
   slots: SectionSlotState[]
 }
 
@@ -178,10 +187,12 @@ export const api = {
     static: {
       get: (section: string) =>
         request<SectionAdminState>(`/admin/sections/${section}`),
-      publish: (section: string, changes: SectionSlotChange[]) =>
+      // `order` only for gallery sections: the full ordered slot-id list that
+      // should become live (adds, removals and moves all ride on it).
+      publish: (section: string, changes: SectionSlotChange[], order?: string[]) =>
         request<{ ok: true }>(`/admin/sections/${section}/publish`, {
           method: "POST",
-          body: JSON.stringify({ changes }),
+          body: JSON.stringify(order ? { changes, order } : { changes }),
         }),
     },
   },

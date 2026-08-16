@@ -1,15 +1,18 @@
 // Page scroll lock for full-screen overlays (réalisation viewer, solution
 // viewer). Two things it does that a bare `body{overflow:hidden}` does not:
 //
-//  1. **Compensates the scrollbar width.** On a platform with classic
-//     scrollbars (Windows Chrome, ~15 px) hiding the overflow removes the
-//     scrollbar, so `document.documentElement.clientWidth` GROWS while an
-//     overlay is open and shrinks again on close. Every layout jumps sideways,
-//     and — worse — any ResizeObserver refires. SolutionsTimeline measures its
-//     scene that way and re-places the cards from the scroll progress on each
-//     resize, which is how closing a solution viewer could leave the whole
-//     timeline faded out. Padding the body by the missing width keeps the
-//     layout width constant, so nothing reflows.
+//  1. **Compensates the scrollbar width.** Where the native scrollbar takes
+//     layout space, hiding the overflow removes it, so
+//     `document.documentElement.clientWidth` GROWS while an overlay is open and
+//     shrinks again on close: every layout jumps sideways and any
+//     ResizeObserver refires. Padding the body by the missing width keeps the
+//     layout width constant, so nothing reflows. Today this measures 0 and is
+//     a no-op — `globals.css` hides the native scrollbar everywhere
+//     (`scrollbar-width: none`, replaced by CustomScrollbar.tsx) — so it is
+//     kept only as insurance for if that ever changes. It is NOT what made the
+//     solutions timeline fade out on close; that was the route tree being
+//     hidden for a frame by a router transition, fixed in
+//     SolutionsTimeline's `syncUrl`.
 //
 //  2. **Counts locks.** Overlays overlap: AnimatePresence keeps the outgoing
 //     one mounted while the incoming one mounts, so a naive "restore on

@@ -338,7 +338,12 @@ export function Materiaux({
             )}
           </p>
         </div>
-        <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-pl-6 px-6 pb-16 [-ms-overflow-style:none] [scrollbar-width:none]">
+        {/* `snap-proximity`, not `snap-mandatory`: mandatory forces the browser
+            to land on a snap point after EVERY layout change or interrupted
+            gesture, so the strip yanked sideways when the section animated in
+            or when a swipe was cut short. Proximity keeps the same feel when
+            you release near a card and stays put otherwise. */}
+        <div className="flex snap-x snap-proximity gap-4 overflow-x-auto scroll-pl-6 px-6 pb-16 [-ms-overflow-style:none] [scrollbar-width:none]">
           {materials.map((mat) => (
             <div key={mat.code} className="w-[78vw] max-w-[320px] shrink-0 snap-start">
               <Dialog transition={MODAL_TRANSITION} morph={false}>

@@ -27,6 +27,27 @@ export interface SlotDef {
   aspect: string
 }
 
+/**
+ * Marks a section whose photo count is OWNER-CONTROLLED rather than fixed by
+ * the layout: the admin adds and removes photos, so `slots` below is only the
+ * starting set. The live, ordered list of slot ids is stored in `SiteSetting`
+ * under `settingKey` (a JSON array); absence of that row means "use the
+ * registry order", which is what keeps already-published photos in place.
+ *
+ * Each photo is still an ordinary SectionImage row, so replace / reframe /
+ * style / live preview all keep working with no special casing — only the
+ * MEMBERSHIP and ORDER are dynamic.
+ */
+export interface GalleryDef {
+  settingKey: string
+  /** Row label in the admin; numbered per position ("Photo 1", "Photo 2"…). */
+  label: string
+  /** Crop hint for added photos — they all render in the same frame. */
+  aspect: string
+  /** The gallery must never be emptied to nothing. */
+  min: number
+}
+
 export interface SectionDef {
   id: string
   label: string
@@ -37,6 +58,8 @@ export interface SectionDef {
   /** which per-image controls the admin may use here (gated per section) */
   caps: SlotCaps
   slots: SlotDef[]
+  /** Set when the owner controls how MANY photos this section has. */
+  gallery?: GalleryDef
 }
 
 // ---- Shared slot-id helpers (generators AND components use these, no drift) ----
@@ -138,14 +161,20 @@ export const SECTION_SLOTS: SectionDef[] = [
     previewPath: "/",
     revalidate: ["/"],
     caps: FULL_CAPS,
+    // Le NOMBRE de photos appartient au propriétaire (voir GalleryDef) : les
+    // quatre ci-dessous ne sont que le point de départ. Elles partagent UN
+    // cadre 4/5 qu'on fait défiler (plus de bande de trois sous le texte).
+    gallery: { settingKey: "mobilier-hospitalier.photos", label: "Photo", aspect: "4/5", min: 1 },
     slots: [
       // La photo « mobilier » de Savoir-faire est déjà une photo de mobilier
-      // hospitalier : elle sert de défaut à la photo principale d'ici (elle est
+      // hospitalier : elle sert de défaut à la première photo d'ici (elle est
       // dans le bucket via scripts/sync-site-media.ts, donc jamais cassée).
-      { id: "poste-soins", label: "Photo principale — poste de soins", source: "site-media", default: SITE_MEDIA.savoirFaire.mobilier, aspect: "4/5" },
-      { id: "plan-travail", label: "Bande 1 — plan de travail", source: "site-media", default: SITE_MEDIA.mobilierPlanTravail, aspect: "4/3" },
-      { id: "armoire", label: "Bande 2 — armoire", source: "site-media", default: SITE_MEDIA.savoirFaire.fabrication, aspect: "4/3" },
-      { id: "chariot", label: "Bande 3 — chariot", source: "site-media", default: SITE_MEDIA.savoirFaire.polissage, aspect: "4/3" },
+      // Les `id` ne changent pas — ils sont la moitié de la clé primaire
+      // SectionImage et le nom du fichier stocké.
+      { id: "poste-soins", label: "Poste de soins", source: "site-media", default: SITE_MEDIA.savoirFaire.mobilier, aspect: "4/5" },
+      { id: "plan-travail", label: "Plan de travail", source: "site-media", default: SITE_MEDIA.mobilierPlanTravail, aspect: "4/5" },
+      { id: "armoire", label: "Armoire", source: "site-media", default: SITE_MEDIA.savoirFaire.fabrication, aspect: "4/5" },
+      { id: "chariot", label: "Chariot", source: "site-media", default: SITE_MEDIA.savoirFaire.polissage, aspect: "4/5" },
     ],
   },
   {
@@ -157,10 +186,15 @@ export const SECTION_SLOTS: SectionDef[] = [
     // changement de format).
     caps: REFRAME_ONLY_CAPS,
     slots: [
-      { id: "atelier-large", label: "Atelier (grande)", source: "seed-manifest", default: "ecl-about-atelier-large", aspect: "3/4" },
+      // La disposition par défaut (« bento ») n'affiche plus qu'UNE photo par
+      // colonne : « Atelier » à gauche, « Finitions & polissage » à droite, en
+      // 4/3 pleine largeur de colonne. Les trois autres restent éditables et
+      // s'affichent dans les dispositions « uniform », « editorial » et
+      // « gallery » (apropos.layout) — d'où leur format de recadrage inchangé.
+      { id: "atelier-large", label: "Atelier (gauche, disposition par défaut)", source: "seed-manifest", default: "ecl-about-atelier-large", aspect: "4/3" },
       { id: "soudure-tig", label: "Soudure TIG", source: "seed-manifest", default: "ecl-about-soudure-tig", aspect: "1/1" },
       { id: "decoupe-laser", label: "Découpe laser", source: "seed-manifest", default: "ecl-about-decoupe-laser", aspect: "1/1" },
-      { id: "finitions-poli", label: "Finitions & polissage", source: "seed-manifest", default: "ecl-about-finitions-poli", aspect: "3/4" },
+      { id: "finitions-poli", label: "Finitions & polissage (droite, disposition par défaut)", source: "seed-manifest", default: "ecl-about-finitions-poli", aspect: "4/3" },
       { id: "equipe-plancher", label: "Équipe au plancher", source: "seed-manifest", default: "ecl-about-equipe-plancher", aspect: "1/1" },
       { id: "pdg-portrait", label: "Portrait du PDG", source: "seed-manifest", default: "ecl-about-pdg-portrait", aspect: "4/5" },
     ],
@@ -220,6 +254,32 @@ export function getSection(id: string): SectionDef | undefined {
 
 export function getSlot(section: string, slot: string): SlotDef | undefined {
   return getSection(section)?.slots.find((s) => s.id === slot)
+}
+
+/** Slot id for a photo ADDED to a gallery section. Random, never positional:
+ *  the id is also the storage filename, so reusing "photo-3" after a delete
+ *  would resurrect the deleted photo's object. `crypto.randomUUID` exists in
+ *  both the browser (admin) and node (server). */
+export function newGallerySlotId(): string {
+  return `photo-${crypto.randomUUID().slice(0, 8)}`
+}
+
+/** A synthetic SlotDef for a gallery photo the registry has never seen (added
+ *  by the owner). Falls back to the section's first slot for the code default,
+ *  which only matters in dev — a photo the owner added always has a real
+ *  published image behind it. */
+export function gallerySlotDef(def: SectionDef, id: string, index: number): SlotDef {
+  const known = def.slots.find((s) => s.id === id)
+  if (known) return { ...known, label: `${def.gallery?.label ?? "Photo"} ${index + 1} — ${known.label}` }
+  const seed = def.slots[0]
+  return {
+    id,
+    label: `${def.gallery?.label ?? "Photo"} ${index + 1}`,
+    source: seed?.source ?? "site-media",
+    default: seed?.default ?? "",
+    grayscale: seed?.grayscale,
+    aspect: def.gallery?.aspect ?? seed?.aspect ?? "4/5",
+  }
 }
 
 /** Storage key a published override for a slot is written to (overwrite in place).

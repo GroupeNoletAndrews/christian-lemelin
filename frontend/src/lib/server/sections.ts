@@ -1,10 +1,17 @@
 import { revalidatePath } from "next/cache"
 import { prisma } from "./prisma"
-import { existingMediaValues } from "./storage"
+import { deleteMediaObjects, existingMediaValues } from "./storage"
 import { AppError } from "./http"
 import { mediaUrl, imgSrc, PLACEHOLDER_SRC } from "@/lib/media"
 import { imageUrl } from "@/content/image"
-import { getSection, getSlot, type SlotDef } from "@/lib/sections-registry"
+import {
+  gallerySlotDef,
+  getSection,
+  getSlot,
+  sectionSlotKey,
+  type SectionDef,
+  type SlotDef,
+} from "@/lib/sections-registry"
 import { cleanSlotStyle, type SlotStyle } from "@/lib/section-style"
 
 // Build a SlotStyle from a SectionImage row's transform columns (null if none).
@@ -67,6 +74,40 @@ async function getPublishedKeys(section: string): Promise<Record<string, Overrid
   )
 }
 
+// ---------------------------------------------------------------------------
+// Gallery sections — the owner decides HOW MANY photos (see GalleryDef).
+// ---------------------------------------------------------------------------
+
+/**
+ * The ordered slot ids of a gallery section. The stored list wins; if it is
+ * missing or unusable we fall back to the registry order, so a section that has
+ * never been edited (and every photo already published against it) behaves
+ * exactly as before this became a gallery.
+ */
+async function galleryOrder(def: SectionDef): Promise<string[]> {
+  if (!def.gallery) return def.slots.map((s) => s.id)
+  const row = await prisma.siteSetting.findUnique({
+    where: { key: def.gallery.settingKey },
+  })
+  if (!row) return def.slots.map((s) => s.id)
+  try {
+    const parsed: unknown = JSON.parse(row.value)
+    const ids = Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : []
+    // An empty stored list would silently blank the section; treat it as unset.
+    return ids.length ? ids : def.slots.map((s) => s.id)
+  } catch {
+    return def.slots.map((s) => s.id)
+  }
+}
+
+/** The slots a section actually renders, in order — the registry's fixed list,
+ *  or the owner's list for a gallery section. */
+async function orderedSlots(def: SectionDef): Promise<SlotDef[]> {
+  if (!def.gallery) return def.slots
+  const ids = await galleryOrder(def)
+  return ids.map((id, i) => gallerySlotDef(def, id, i))
+}
+
 function resolveSlotUrl(slot: SlotDef, override: Override | undefined): string {
   if (override) return imgSrc(override.key, override.v)
   // No override + placeholders on → empty, so the admin slot row shows its
@@ -94,7 +135,7 @@ export async function resolveSectionImages(
   const published = await getPublishedKeys(section)
   const placeholders = placeholdersEnabled()
   const out: Record<string, string> = {}
-  for (const slot of def.slots) {
+  for (const slot of await orderedSlots(def)) {
     const ov = published[slot.id]
     if (ov) out[slot.id] = imgSrc(ov.key, ov.v)
     // No owner override: in prod, emit the placeholder sentinel so the slot
@@ -103,6 +144,27 @@ export async function resolveSectionImages(
     else if (placeholders) out[slot.id] = PLACEHOLDER_SRC
   }
   return out
+}
+
+/**
+ * A gallery section's photos, IN ORDER, for the public page. A plain record
+ * keyed by slot cannot carry order, and the count is no longer known to the
+ * component — so the page passes this straight through.
+ */
+export async function resolveSectionGallery(
+  section: string,
+): Promise<{ slot: string; url: string }[]> {
+  const def = getSection(section)
+  if (!def) return []
+  const published = await getPublishedKeys(section)
+  const placeholders = placeholdersEnabled()
+  const slots = await orderedSlots(def)
+  return slots.map((slot) => {
+    const ov = published[slot.id]
+    if (ov) return { slot: slot.id, url: imgSrc(ov.key, ov.v) }
+    if (placeholders) return { slot: slot.id, url: PLACEHOLDER_SRC }
+    return { slot: slot.id, url: resolveSlotUrl(slot, undefined) }
+  })
 }
 
 /**
@@ -134,7 +196,7 @@ export async function getSectionAdminState(section: string) {
   // shows the placeholder (and can re-upload), matching the public page.
   const present = await existingMediaValues(rows.map((r) => r.key))
   const bySlot = new Map(rows.map((r) => [r.slot, r]))
-  const slots = def.slots.map((slot) => {
+  const slots = (await orderedSlots(def)).map((slot) => {
     const row = bySlot.get(slot.id)
     const has = !!row && present.has(row.key)
     const override = has ? { key: row!.key, v: row!.updatedAt.getTime() } : undefined
@@ -154,6 +216,9 @@ export async function getSectionAdminState(section: string) {
     label: def.label,
     previewPath: def.previewPath,
     caps: def.caps,
+    // Present only for gallery sections — the editor shows add/remove/reorder
+    // controls when it is, and the fixed slot list when it is not.
+    gallery: def.gallery ? { label: def.gallery.label, aspect: def.gallery.aspect, min: def.gallery.min } : null,
     slots,
   }
 }
@@ -180,11 +245,28 @@ function styleCols(style?: SlotStyle | null) {
 export async function publishSectionImages(
   section: string,
   changes: { slot: string; key?: string; style?: SlotStyle | null }[],
+  /** Gallery sections only: the owner's new ordered slot-id list. */
+  order?: string[],
 ): Promise<void> {
   const def = getSection(section)
   if (!def) throw new AppError(400, "Section inconnue")
+  // A gallery's slot ids are minted by the admin, so they are NOT in the
+  // registry — validate them against the incoming order instead (which is the
+  // list about to become live), falling back to what is already stored.
+  const allowed = def.gallery
+    ? new Set(order ?? (await galleryOrder(def)))
+    : null
   for (const c of changes) {
-    if (!getSlot(section, c.slot)) throw new AppError(400, `Slot inconnu: ${c.slot}`)
+    const ok = allowed ? allowed.has(c.slot) : !!getSlot(section, c.slot)
+    if (!ok) throw new AppError(400, `Slot inconnu: ${c.slot}`)
+  }
+  if (def.gallery && order) {
+    if (order.length < def.gallery.min) {
+      throw new AppError(400, `Il faut au moins ${def.gallery.min} photo(s).`)
+    }
+    if (new Set(order).size !== order.length) {
+      throw new AppError(400, "Photos en double dans l'ordre envoyé.")
+    }
   }
   // `style === undefined` means "image only, leave presentation untouched";
   // `null` means "reset presentation"; an object sets it.
@@ -208,5 +290,28 @@ export async function publishSectionImages(
     })
     .filter((w): w is NonNullable<typeof w> => w !== null)
   if (writes.length) await prisma.$transaction(writes)
+
+  if (def.gallery && order) {
+    const gone = (await galleryOrder(def)).filter((id) => !order.includes(id))
+    // Order first: it is what the public page reads, so the dropped photos stop
+    // rendering even if the cleanup below fails.
+    await prisma.siteSetting.upsert({
+      where: { key: def.gallery.settingKey },
+      create: { key: def.gallery.settingKey, value: JSON.stringify(order) },
+      update: { value: JSON.stringify(order) },
+    })
+    if (gone.length) {
+      await prisma.sectionImage.deleteMany({ where: { section, slot: { in: gone } } })
+      // Best-effort: drop the storage objects too, so a removed photo does not
+      // keep eating the bucket quota. A failure here is not worth failing the
+      // publish over — the photo is already off the site.
+      try {
+        await deleteMediaObjects(gone.map((slot) => sectionSlotKey(section, slot)))
+      } catch (e) {
+        console.warn("Nettoyage du stockage impossible:", e)
+      }
+    }
+  }
+
   for (const path of def.revalidate) revalidatePath(path)
 }

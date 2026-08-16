@@ -137,10 +137,10 @@ function Viewer({
         const inTrap = !!activeEl && list.includes(activeEl)
         if (e.shiftKey && (!inTrap || activeEl === first)) {
           e.preventDefault()
-          last.focus()
+          last.focus({ preventScroll: true })
         } else if (!e.shiftKey && (!inTrap || activeEl === last)) {
           e.preventDefault()
-          first.focus()
+          first.focus({ preventScroll: true })
         }
         return
       }
@@ -159,10 +159,15 @@ function Viewer({
 
   // Focus into the panel, restored to the tile that opened it. (The scroll lock
   // is owned by the host component — see the note there.)
+  // `preventScroll` because focusing otherwise asks the browser to scroll the
+  // element into view, which moves the page *behind* the overlay — the same
+  // thing that rewound the solutions timeline (see SolutionsZoom). The overlay
+  // is `position: fixed` and the tile is already where it was, so there is
+  // nothing to bring into view either way.
   useEffect(() => {
     const prevFocus = document.activeElement as HTMLElement | null
-    panelRef.current?.focus()
-    return () => prevFocus?.focus?.()
+    panelRef.current?.focus({ preventScroll: true })
+    return () => prevFocus?.focus?.({ preventScroll: true })
   }, [])
 
   // Horizontal swipe. We do NOT set touch-action: pan-x — that strips vertical

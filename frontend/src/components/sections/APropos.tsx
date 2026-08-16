@@ -15,11 +15,14 @@ import { getLocale } from "@/lib/server/locale"
 import { t, tr } from "@/lib/i18n"
 
 // Page /a-propos — the image arrangement is admin-selectable (apropos.layout):
-//   • bento     — asymmetric two-column editorial (default, text interleaved)
+//   • bento     — asymmetric two-column editorial (default, text interleaved),
+//                 ONE large picture per column: atelier-large + finitions-poli
 //   • uniform   — equal tiles in a grid
 //   • editorial — centered single column of stacked images
 //   • gallery   — full-width stacked images
-// All variants keep the same 5 editable slots and are fully responsive.
+// All 5 slots stay editable in every variant; bento is the one that shows a
+// chosen two of them (soudure-tig / decoupe-laser / equipe-plancher appear in
+// the other three layouts). All variants are fully responsive.
 
 const SECTION = "a-propos"
 
@@ -104,28 +107,24 @@ export async function APropos({
     >
       <div className="mx-auto max-w-[1400px] px-6 md:px-12">
         {layout === "bento" ? (
-          // Two staggered editorial columns with the text interleaved (default).
+          // Two staggered editorial columns with the text interleaved (default),
+          // ONE picture per column, each filling its column: the left side used
+          // to stack three (a tall 3/4 beside two squares) and the right two, so
+          // five thumbnails competed with the text and none of them was big
+          // enough to show the work. The two remaining frames are the widest
+          // photos on the page. The three slots dropped here are NOT deleted —
+          // they stay editable and still render in the uniform / editorial /
+          // gallery layouts (see the note in sections-registry.ts).
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
             <div className="flex flex-col gap-10">
               <div>
                 {heading}
                 <p className="mt-6 max-w-[48ch] leading-relaxed text-foreground-muted">{INTRO}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Frame s={SLOTS.atelier} src={src(SLOTS.atelier)} ratio="aspect-[3/4]" sizes="(min-width:1024px) 25vw, 45vw" />
-                <div className="flex flex-col gap-4">
-                  <Frame s={SLOTS.soudure} src={src(SLOTS.soudure)} ratio="aspect-square" sizes="(min-width:1024px) 25vw, 45vw" />
-                  <Frame s={SLOTS.decoupe} src={src(SLOTS.decoupe)} ratio="aspect-square" sizes="(min-width:1024px) 25vw, 45vw" />
-                </div>
-              </div>
+              <Frame s={SLOTS.atelier} src={src(SLOTS.atelier)} ratio="aspect-[4/3]" sizes="(min-width:1024px) 44vw, calc(100vw - 48px)" />
             </div>
             <div className="flex flex-col gap-10 lg:mt-32">
-              <div className="grid grid-cols-2 gap-4">
-                <Frame s={SLOTS.finitions} src={src(SLOTS.finitions)} ratio="aspect-[3/4]" sizes="(min-width:1024px) 25vw, 45vw" />
-                <div className="flex flex-col gap-4">
-                  <Frame s={SLOTS.equipe} src={src(SLOTS.equipe)} ratio="aspect-square" sizes="(min-width:1024px) 25vw, 45vw" />
-                </div>
-              </div>
+              <Frame s={SLOTS.finitions} src={src(SLOTS.finitions)} ratio="aspect-[4/3]" sizes="(min-width:1024px) 44vw, calc(100vw - 48px)" />
               {atelier}
             </div>
           </div>

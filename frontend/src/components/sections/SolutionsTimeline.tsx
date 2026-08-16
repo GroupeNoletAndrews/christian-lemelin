@@ -18,7 +18,7 @@ import {
   useReducedMotion,
   useScroll,
 } from "framer-motion"
-import { ArrowUpRight, Plus, X } from "@phosphor-icons/react"
+import { Plus, X } from "@phosphor-icons/react"
 import { SOLUTIONS_OVERVIEW, imageUrl, type SolutionIndexEntry } from "@/content"
 import { useLocale } from "@/components/providers/LocaleProvider"
 import { t, tr, type LocalizedText } from "@/lib/i18n"
@@ -149,9 +149,16 @@ function SolutionZoom({
   const { src, style } = useHoverSrc(item, images, 1600, 1000)
   useEffect(() => {
     // Restore focus to whatever opened the viewer (the card) on close.
+    // `preventScroll` on BOTH moves: focusing normally asks the browser to
+    // scroll the element into view, and here that yanked the page behind the
+    // viewer by ~1500 px (2400 → 886). The timeline reads its cards' opacity
+    // from the scroll progress, so reopening onto that offset showed a scene
+    // rewound to its start — every card faded out, only the line left. Nothing
+    // needs scrolling into view anyway: the viewer is `position: fixed`, and
+    // the card we hand focus back to is exactly where it was.
     const prev = document.activeElement as HTMLElement | null
-    closeRef.current?.focus()
-    return () => prev?.focus?.()
+    closeRef.current?.focus({ preventScroll: true })
+    return () => prev?.focus?.({ preventScroll: true })
   }, [])
 
   return (
@@ -234,14 +241,12 @@ function SolutionZoom({
           <h2 className="max-w-[20ch] font-display text-[clamp(1.6rem,3.4vw,2.75rem)] font-medium leading-[1.05] tracking-[-0.02em]">
             {tr(item.title, locale)}
           </h2>
+          {/* Aucun lien ici : la visionneuse ne sert qu'à REGARDER une solution.
+              Le « Discutons de votre projet » qui s'y trouvait envoyait vers
+              /contact, donc fermait la page pendant qu'on la parcourait — et
+              la page porte déjà son appel au contact. Fermer reste la seule
+              sortie (X, voile, Échap). */}
           <p className="mt-3 max-w-[62ch] leading-relaxed text-white/70">{tr(item.intro, locale)}</p>
-          <a
-            href="/contact"
-            className="mt-6 inline-flex items-center gap-2 font-medium text-white underline-offset-4 hover:underline"
-          >
-            {t("Discutons de votre projet", "Let's discuss your project", locale)}
-            <ArrowUpRight size={20} weight="bold" />
-          </a>
         </motion.div>
       </motion.div>
     </motion.div>
@@ -497,12 +502,25 @@ export function SolutionsTimeline({
   })
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false)
 
+  // Next remplace `window.history.replaceState` par une version qui pousse
+  // l'URL dans le routeur (ACTION_RESTORE, dans une transition). Le routeur
+  // re-rend alors la route et MASQUE son arbre le temps d'une frame (React
+  // déconnecte puis reconnecte les effets) : la scène de 532vh quitte le flux,
+  // le document retombe à « héros + clôture » (~1786 px) et le navigateur
+  // BORNE le défilement (2400 → 886 px). L'arbre revient avec sa hauteur mais
+  // pas l'offset : on refermait la visionneuse sur une timeline ramenée à son
+  // début, toutes cartes fondues — « les solutions disparaissent, il ne reste
+  // que le trait ». Cette URL n'est que cosmétique (un `?s=` partageable), donc
+  // on l'écrit directement via la méthode du prototype, restée intacte : la
+  // barre d'adresse suit, le routeur ne bouge pas. On repasse
+  // `window.history.state` pour que Next garde son entrée d'historique (un
+  // popstate sans elle provoquerait un rechargement complet).
   const syncUrl = useCallback(
     (next: number | null) => {
       const url = new URL(window.location.href)
       if (next == null) url.searchParams.delete("s")
       else url.searchParams.set("s", data[next].slug)
-      window.history.replaceState(null, "", url)
+      History.prototype.replaceState.call(window.history, window.history.state, "", url)
     },
     [data],
   )
@@ -520,12 +538,14 @@ export function SolutionsTimeline({
 
   useEffect(() => {
     if (selected == null) return
+    // Position de lecture à la seconde où la visionneuse s'ouvre. La page ne
+    // peut plus défiler ensuite (Lenis arrêté + overflow verrouillé), donc tout
+    // écart constaté à la fermeture est SUBI — typiquement un arbre de route
+    // masqué une frame qui fait retomber la hauteur du document et pousse le
+    // navigateur à borner l'offset (voir syncUrl). Filet de sécurité : on
+    // remet la page où elle était avant de replacer les cartes.
+    const restoreY = window.scrollY
     lenis?.stop()
-    // lockScroll() compense la largeur de la barre de défilement : sans ça,
-    // masquer l'overflow élargit la page (~15 px sous Windows), le
-    // ResizeObserver de la scène se déclenche, la piste est recalculée — et en
-    // refermant, les cartes pouvaient rester à `opacity: 0` (« les solutions
-    // disparaissent ») jusqu'au prochain défilement.
     lockScroll()
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close()
@@ -543,6 +563,10 @@ export function SolutionsTimeline({
       unlockScroll()
       window.removeEventListener("keydown", onKey)
       window.removeEventListener("eclemelin:preloader-done", relock)
+      if (Math.abs(window.scrollY - restoreY) > 1) {
+        if (lenis) lenis.scrollTo(restoreY, { immediate: true, force: true })
+        else window.scrollTo(0, restoreY)
+      }
       // Ceinture et bretelles : on repositionne les cartes à la fermeture. Le
       // scrub n'est piloté que par les CHANGEMENTS de `scrollYProgress` ; si
       // rien n'a bougé pendant que la visionneuse était ouverte, `place()` ne

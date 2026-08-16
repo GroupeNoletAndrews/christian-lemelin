@@ -22,7 +22,9 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowUp,
   ArrowsClockwise,
   CaretDown,
   CheckCircle,
@@ -39,7 +41,7 @@ import {
 import { useAdmin } from "@/lib/admin-context"
 import { api, type SectionAdminState, type SectionSlotChange } from "@/lib/api"
 import { imgSrc } from "@/lib/media"
-import { sectionSlotKey } from "@/lib/sections-registry"
+import { newGallerySlotId, sectionSlotKey } from "@/lib/sections-registry"
 import { fileToCompressedBlob } from "@/lib/image-utils"
 import { uploadImageToKey } from "@/lib/uploads"
 import {
@@ -1307,6 +1309,10 @@ function StaticSectionEditor({
   const [publishing, setPublishing] = useState(false)
   const [discarding, setDiscarding] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  // Gallery sections only: the owner's working slot-id list (adds, removals and
+  // moves all land here). `null` = untouched, so publish leaves it alone.
+  const [order, setOrder] = useState<string[] | null>(null)
+  const addRef = useRef<HTMLInputElement>(null)
 
   // À-propos has a selectable page layout (other sections don't). It is STAGED:
   // the picker previews via ?layout, and only goes live on Publish.
@@ -1341,9 +1347,16 @@ function StaticSectionEditor({
     })()
   }, [load])
 
+  // The gallery's live order, or the owner's staged one.
+  const savedOrder = useMemo(() => state?.slots.map((s) => s.id) ?? [], [state])
+  const workingOrder = order ?? savedOrder
+  const orderChanged =
+    order !== null && (order.length !== savedOrder.length || order.some((id, i) => id !== savedOrder[i]))
+
   const dirty =
     Object.keys(staged).length > 0 ||
     Object.keys(stagedStyle).length > 0 ||
+    orderChanged ||
     (hasLayout && aproposLayout !== savedAproposLayout)
 
   // Report dirtiness up so the page can guard navigation away from the editor;
@@ -1357,6 +1370,7 @@ function StaticSectionEditor({
     (
       stagedMap: Record<string, { file: File; dataUrl: string }>,
       styleMap: Record<string, SlotStyle | null>,
+      orderList?: string[] | null,
     ) => {
       const overrides: Record<string, string> = {}
       for (const [slot, v] of Object.entries(stagedMap)) overrides[slot] = v.dataUrl
@@ -1364,7 +1378,16 @@ function StaticSectionEditor({
       const styles: Record<string, SlotStyle> = {}
       for (const [slot, v] of Object.entries(styleMap)) styles[slot] = v ?? {}
       iframeRef.current?.contentWindow?.postMessage(
-        { source: "cl-content-admin", type: "preview-section", section, overrides, styles },
+        {
+          source: "cl-content-admin",
+          type: "preview-section",
+          section,
+          overrides,
+          styles,
+          // Gallery sections: the staged list, so a photo the owner just added
+          // shows in the preview before anything is uploaded.
+          ...(orderList ? { order: orderList } : {}),
+        },
         window.location.origin,
       )
     },
@@ -1388,8 +1411,8 @@ function StaticSectionEditor({
   }, [anchor])
 
   useEffect(() => {
-    if (!loading) pushPreview(staged, stagedStyle)
-  }, [staged, stagedStyle, loading, pushPreview])
+    if (!loading) pushPreview(staged, stagedStyle, order)
+  }, [staged, stagedStyle, order, loading, pushPreview])
 
   const handleReplace = async (slot: string, file: File) => {
     let dataUrl: string
@@ -1400,6 +1423,69 @@ function StaticSectionEditor({
       return
     }
     setStaged((p) => ({ ...p, [slot]: { file, dataUrl } }))
+  }
+
+  // ---- Gallery sections: the owner decides how many photos there are --------
+
+  /** Add one row per picked file — this is the "upload a list of pictures" path.
+   *  Each gets a fresh random slot id (never positional: the id is also the
+   *  storage filename, so a recycled one would resurrect a deleted photo).
+   *  Takes a File[] rather than the input's FileList on purpose: the caller
+   *  clears `input.value` to allow re-picking the same file, and that empties
+   *  the LIVE FileList before this async body ever reads it. */
+  const handleAddPhotos = async (picked: File[]) => {
+    if (!picked.length) return
+    const added: string[] = []
+    const nextStaged: Record<string, { file: File; dataUrl: string }> = {}
+    for (const file of picked) {
+      try {
+        const dataUrl = await readAsDataUrl(await fileToCompressedBlob(file))
+        const id = newGallerySlotId()
+        added.push(id)
+        nextStaged[id] = { file, dataUrl }
+      } catch (e) {
+        toast(
+          e instanceof Error ? e.message : `« ${file.name} » est invalide et a été ignorée.`,
+          "error",
+        )
+      }
+    }
+    if (!added.length) return
+    setStaged((p) => ({ ...p, ...nextStaged }))
+    setOrder((p) => [...(p ?? savedOrder), ...added])
+    toast(`${added.length} photo${added.length > 1 ? "s" : ""} ajoutée${added.length > 1 ? "s" : ""}.`)
+  }
+
+  const handleRemovePhoto = async (slot: string) => {
+    const min = state?.gallery?.min ?? 1
+    if (workingOrder.length <= min) {
+      toast(`Il faut garder au moins ${min} photo${min > 1 ? "s" : ""}.`, "error")
+      return
+    }
+    const ok = await confirm({
+      title: "Retirer cette photo ?",
+      message:
+        "Elle disparaîtra de la section à la publication, et son fichier sera supprimé du stockage.",
+      confirmLabel: "Retirer",
+      cancelLabel: "Annuler",
+      tone: "danger",
+    })
+    if (!ok) return
+    setOrder((p) => (p ?? savedOrder).filter((id) => id !== slot))
+    // Drop any staged edits for a photo that is on its way out.
+    setStaged((p) => Object.fromEntries(Object.entries(p).filter(([id]) => id !== slot)))
+    setStagedStyle((p) => Object.fromEntries(Object.entries(p).filter(([id]) => id !== slot)))
+  }
+
+  const handleMovePhoto = (slot: string, dir: -1 | 1) => {
+    setOrder((p) => {
+      const list = [...(p ?? savedOrder)]
+      const i = list.indexOf(slot)
+      const j = i + dir
+      if (i < 0 || j < 0 || j >= list.length) return p ?? savedOrder
+      ;[list[i], list[j]] = [list[j], list[i]]
+      return list
+    })
   }
 
   const handleApplyStyle = (slot: string, style: SlotStyle | null) => {
@@ -1414,6 +1500,8 @@ function StaticSectionEditor({
       const slotIds = new Set([...Object.keys(staged), ...Object.keys(stagedStyle)])
       const changes: SectionSlotChange[] = []
       for (const slot of slotIds) {
+        // A photo staged and then removed again must not be uploaded.
+        if (state?.gallery && !workingOrder.includes(slot)) continue
         const change: SectionSlotChange = { slot }
         const file = staged[slot]?.file
         if (file) {
@@ -1425,7 +1513,11 @@ function StaticSectionEditor({
         if (slot in stagedStyle) change.style = stagedStyle[slot]
         changes.push(change)
       }
-      await api.sections.static.publish(section, changes)
+      await api.sections.static.publish(
+        section,
+        changes,
+        state?.gallery && orderChanged ? workingOrder : undefined,
+      )
       // Persist the staged à-propos layout only now (Publish makes it live).
       if (hasLayout && aproposLayout !== savedAproposLayout) {
         await api.settings.set({ [SETTING_KEYS.aproposLayout]: aproposLayout })
@@ -1433,6 +1525,7 @@ function StaticSectionEditor({
       }
       setStaged({})
       setStagedStyle({})
+      setOrder(null)
       await load()
       // Reload the iframe so the server re-renders with the published images.
       const path = state?.previewPath ?? "/"
@@ -1462,6 +1555,7 @@ function StaticSectionEditor({
     try {
       setStaged({})
       setStagedStyle({})
+      setOrder(null)
       setAproposLayout(savedAproposLayout)
       toast("Modifications annulées.")
     } finally {
@@ -1476,7 +1570,29 @@ function StaticSectionEditor({
     ? `${previewPath}?preview=1&layout=${aproposLayout}`
     : `${previewPath}?preview=1`
   const caps = state?.caps ?? { reframe: false, filter: false, style: false }
-  const modalSlotState = modalSlot ? state?.slots.find((s) => s.id === modalSlot) : undefined
+  const gallery = state?.gallery ?? null
+
+  // The rows to render. For a fixed section that is just the server's slots; for
+  // a gallery it follows the owner's working order, and a photo they just added
+  // has no server row yet — hence the synthetic entry.
+  const rows = useMemo(() => {
+    const bySlot = new Map((state?.slots ?? []).map((s) => [s.id, s]))
+    if (!gallery) return state?.slots ?? []
+    return workingOrder.map(
+      (id) =>
+        bySlot.get(id) ?? {
+          id,
+          label: gallery.label,
+          aspect: gallery.aspect,
+          grayscaleDefault: false,
+          publishedKey: null,
+          url: "",
+          style: null,
+        },
+    )
+  }, [state, gallery, workingOrder])
+
+  const modalSlotState = modalSlot ? rows.find((s) => s.id === modalSlot) : undefined
   const modalCurrentStyle = modalSlot
     ? modalSlot in stagedStyle
       ? stagedStyle[modalSlot]
@@ -1522,33 +1638,77 @@ function StaticSectionEditor({
             <div className="flex flex-1 items-center justify-center text-foreground-muted">
               <CircleNotch size={24} className="animate-spin" />
             </div>
-          ) : !state || state.slots.length === 0 ? (
+          ) : !state || rows.length === 0 ? (
             <p className="p-5 font-sans text-sm text-foreground-muted">
               Aucune image éditable dans cette section.
             </p>
           ) : (
-            <ul className="divide-y divide-border">
-              {state.slots.map((slot) => {
-                const styleChanged = slot.id in stagedStyle
-                const currentStyle = styleChanged ? stagedStyle[slot.id] : slot.style
-                return (
-                  <StaticSlotRow
-                    key={slot.id}
-                    label={slot.label}
-                    aspect={slot.aspect}
-                    url={staged[slot.id]?.dataUrl ?? slot.url}
-                    imageChanged={!!staged[slot.id]}
-                    styleChanged={styleChanged}
-                    currentStyle={currentStyle}
-                    grayscaleDefault={slot.grayscaleDefault}
-                    // Reframe needs a real image (published key or a staged file).
-                    canReframe={caps.reframe && (!!slot.publishedKey || !!staged[slot.id])}
-                    onReplace={(file) => handleReplace(slot.id, file)}
-                    onReframe={() => setModalSlot(slot.id)}
+            <>
+              {gallery && (
+                <div className="border-b border-border px-5 py-3">
+                  <button
+                    type="button"
+                    onClick={() => addRef.current?.click()}
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-border px-3 py-2 font-sans text-xs font-medium text-foreground transition-colors hover:border-foreground/30 hover:bg-surface-elevated"
+                  >
+                    <Plus size={14} />
+                    Ajouter des photos
+                  </button>
+                  <p className="mt-2 font-sans text-xs text-foreground-muted">
+                    {`Vous choisissez le nombre de photos (${workingOrder.length} pour l'instant). `}
+                    Sélectionnez-en plusieurs d&apos;un coup ; les flèches les réordonnent.
+                  </p>
+                  <input
+                    ref={addRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    multiple
+                    onChange={(e) => {
+                      // Snapshot BEFORE clearing the input: `files` is live, so
+                      // resetting `value` (needed to re-pick the same file)
+                      // would empty it under the async handler.
+                      const picked = Array.from(e.target.files ?? [])
+                      if (addRef.current) addRef.current.value = ""
+                      void handleAddPhotos(picked)
+                    }}
+                    className="hidden"
                   />
-                )
-              })}
-            </ul>
+                </div>
+              )}
+              <ul className="divide-y divide-border">
+                {rows.map((slot, i) => {
+                  const styleChanged = slot.id in stagedStyle
+                  const currentStyle = styleChanged ? stagedStyle[slot.id] : slot.style
+                  return (
+                    <StaticSlotRow
+                      key={slot.id}
+                      label={gallery ? `${gallery.label} ${i + 1}` : slot.label}
+                      aspect={slot.aspect}
+                      url={staged[slot.id]?.dataUrl ?? slot.url}
+                      imageChanged={!!staged[slot.id]}
+                      styleChanged={styleChanged}
+                      currentStyle={currentStyle}
+                      grayscaleDefault={slot.grayscaleDefault}
+                      // Reframe needs a real image (published key or a staged file).
+                      canReframe={caps.reframe && (!!slot.publishedKey || !!staged[slot.id])}
+                      onReplace={(file) => handleReplace(slot.id, file)}
+                      onReframe={() => setModalSlot(slot.id)}
+                      gallery={
+                        gallery
+                          ? {
+                              canMoveUp: i > 0,
+                              canMoveDown: i < rows.length - 1,
+                              canRemove: rows.length > gallery.min,
+                              onMove: (dir) => handleMovePhoto(slot.id, dir),
+                              onRemove: () => void handleRemovePhoto(slot.id),
+                            }
+                          : undefined
+                      }
+                    />
+                  )
+                })}
+              </ul>
+            </>
           )}
         </div>
         <PreviewFrame
@@ -1576,6 +1736,15 @@ function StaticSectionEditor({
   )
 }
 
+/** Reorder / remove controls, present only for gallery sections. */
+interface SlotGalleryControls {
+  canMoveUp: boolean
+  canMoveDown: boolean
+  canRemove: boolean
+  onMove: (dir: -1 | 1) => void
+  onRemove: () => void
+}
+
 function StaticSlotRow({
   label,
   aspect,
@@ -1587,6 +1756,7 @@ function StaticSlotRow({
   canReframe,
   onReplace,
   onReframe,
+  gallery,
 }: {
   label: string
   aspect: string
@@ -1598,6 +1768,7 @@ function StaticSlotRow({
   canReframe: boolean
   onReplace: (file: File) => void
   onReframe: () => void
+  gallery?: SlotGalleryControls
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
@@ -1669,6 +1840,38 @@ function StaticSlotRow({
           <Crop size={14} />
           Recadrer
         </button>
+        {gallery && (
+          <>
+            <button
+              type="button"
+              onClick={() => gallery.onMove(-1)}
+              disabled={!gallery.canMoveUp}
+              aria-label="Monter cette photo"
+              className="rounded-full border border-border p-1.5 text-foreground-muted transition-colors hover:border-foreground/30 hover:bg-surface-elevated hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <ArrowUp size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => gallery.onMove(1)}
+              disabled={!gallery.canMoveDown}
+              aria-label="Descendre cette photo"
+              className="rounded-full border border-border p-1.5 text-foreground-muted transition-colors hover:border-foreground/30 hover:bg-surface-elevated hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <ArrowDown size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={gallery.onRemove}
+              disabled={!gallery.canRemove}
+              title={gallery.canRemove ? undefined : "Il faut garder au moins une photo"}
+              aria-label="Retirer cette photo"
+              className="ml-auto rounded-full border border-border p-1.5 text-foreground-muted transition-colors hover:border-red-400/50 hover:bg-red-500/10 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <Trash size={14} />
+            </button>
+          </>
+        )}
       </div>
       <input
         ref={inputRef}

@@ -1,10 +1,13 @@
 "use client"
 
+import { useCallback, useState } from "react"
+import { CaretLeft, CaretRight } from "@phosphor-icons/react"
 import { motion, useReducedMotion, type Variants } from "motion/react"
 import { ArrowLink } from "@/components/ui/ArrowLink"
 import { SlotImage } from "@/components/sections/SlotImage"
 import { mediaUrl, SITE_MEDIA } from "@/lib/media"
 import { useLocale } from "@/components/providers/LocaleProvider"
+import { useSectionOrderOverride } from "@/lib/section-preview"
 import { t, tr, type LocalizedText } from "@/lib/i18n"
 
 // « Mobilier hospitalier » was a single accordion line inside Savoir-faire; it
@@ -12,14 +15,28 @@ import { t, tr, type LocalizedText } from "@/lib/i18n"
 // (dark) and Réalisations (light) — hence the light treatment here, keeping the
 // page's dark/light alternation.
 //
-// The four photos are admin-editable slots (see sections-registry.ts →
-// "mobilier-hospitalier"): one lead portrait plus a strip of three. Slot ids are
-// permanent — they are half the SectionImage primary key AND the storage
-// filename (photos/sections/mobilier-hospitalier/<slot>.jpg).
+// The photos are admin-editable slots (see sections-registry.ts →
+// "mobilier-hospitalier"). They used to be a lead portrait plus a strip of three
+// under the text; they now share ONE frame you page through.
+//
+// HOW MANY there are is the owner's call: the section is a `gallery` in the
+// registry, so the admin adds and removes photos and `photos` below arrives
+// already ordered from resolveSectionGallery(). Nothing here may assume four —
+// or any other count. Slot ids are permanent (half the SectionImage primary key
+// AND the storage filename), which is why the four originals keep theirs.
 const SECTION = "mobilier-hospitalier"
 
-const LEAD_SLOT = "poste-soins"
-const STRIP_SLOTS = ["plan-travail", "armoire", "chariot"] as const
+const FALLBACK_SLOTS = ["poste-soins", "plan-travail", "armoire", "chariot"]
+
+// Caption shown on the picture, for the four photos the site shipped with. A
+// photo the owner ADDS has no caption — we show its position instead rather
+// than invent a name for a piece we have never seen.
+const CAPTIONS: Record<string, LocalizedText> = {
+  "poste-soins": { fr: "Poste de soins", en: "Care station" },
+  "plan-travail": { fr: "Plan de travail", en: "Worktop" },
+  armoire: { fr: "Armoire", en: "Cabinet" },
+  chariot: { fr: "Chariot", en: "Cart" },
+}
 
 // Code defaults — real workshop photos already in the bucket, NOT picsum seeds.
 // Must stay identical to the registry defaults, or the admin panel and the
@@ -100,9 +117,13 @@ const VIEWPORT = { once: true, amount: 0.25 } as const
 
 export function MobilierHospitalier({
   images = {},
+  photos,
 }: {
   /** Published/staged slot overrides (resolveSectionImages). */
   images?: Record<string, string>
+  /** The owner's ordered photo list (resolveSectionGallery). Falls back to the
+   *  four shipped slots so the section still renders if a caller forgets it. */
+  photos?: { slot: string; url: string }[]
 }) {
   const locale = useLocale()
   const reduce = useReducedMotion()
@@ -110,6 +131,23 @@ export function MobilierHospitalier({
   // A block's index in its group drives its delay — the cheapest way to get a
   // cascade without a container/child variant tree.
   const step = (i: number) => ({ duration: 0.6, ease: EASE, delay: reduce ? 0 : i * 0.08 })
+
+  // In the admin preview iframe, the owner's staged list wins: adding or
+  // removing a photo changes the MEMBERSHIP, which no per-slot override could
+  // express, so the workspace posts the whole order. Staged photos have no URL
+  // yet — SlotImage picks up their data: URL from the same channel.
+  const stagedOrder = useSectionOrderOverride(SECTION)
+  const list = stagedOrder
+    ? stagedOrder.map((slot) => ({ slot, url: "" }))
+    : photos?.length
+      ? photos
+      : FALLBACK_SLOTS.map((slot) => ({ slot, url: "" }))
+  const count = list.length
+  const [active, setActive] = useState(0)
+  const go = useCallback((dir: 1 | -1) => setActive((a) => (a + dir + count) % count), [count])
+  // The owner can delete photos, so a stored index can outlive its photo.
+  const index = Math.min(active, count - 1)
+  const current = list[index]
 
   return (
     <section
@@ -119,7 +157,11 @@ export function MobilierHospitalier({
     >
       <div className="mx-auto max-w-[1400px] px-6 md:px-12">
         {/* ── Split: the story on the left, the lead photo on the right ── */}
-        <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-16">
+        {/* The picture leads: it gets the WIDER column (~57%), the text ~43%.
+            It used to be the other way round (1.15fr text / 0.85fr picture),
+            which left the photo the narrower half of a section whose subject is
+            what the furniture looks like. */}
+        <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start lg:gap-16">
           <div>
             <motion.h2
               variants={rise}
@@ -175,6 +217,10 @@ export function MobilierHospitalier({
             </motion.div>
           </div>
 
+          {/* ── The picture ── one frame, paged through. Same vocabulary as
+              Savoir-faire just above (caption bottom-left, n / total
+              bottom-right, arrows on the photo), so the two galleries on this
+              page read as one control. */}
           <motion.div
             initial={reduce ? { opacity: 0 } : { opacity: 0, y: 28, scale: 1.04 }}
             whileInView={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
@@ -182,14 +228,78 @@ export function MobilierHospitalier({
             transition={{ duration: 0.8, ease: EASE }}
             className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-border bg-surface-elevated"
           >
-            <SlotImage
-              section={SECTION}
-              slot={LEAD_SLOT}
-              src={images[LEAD_SLOT] ?? DEFAULTS[LEAD_SLOT]}
-              alt={tr(alts[LEAD_SLOT], locale)}
-              sizes="(min-width: 1024px) 38vw, (min-width: 640px) 90vw, calc(100vw - 48px)"
-              className="object-cover"
+            {/* Every photo stays MOUNTED and they crossfade, rather than
+                swapping the mounted slot: it keeps each `data-cl-slot` in the
+                DOM, so the admin's in-place editor can target and preview any
+                of them without paging to it first, and switching is instant.
+                The owner controls the count, so this is a per-photo cost —
+                fine for a handful, worth revisiting past a dozen or so. */}
+            {list.map((p, i) => (
+              <div
+                key={p.slot}
+                aria-hidden={i !== index}
+                className={`absolute inset-0 transition-opacity duration-500 ease-out motion-reduce:transition-none ${
+                  i === index ? "opacity-100" : "pointer-events-none opacity-0"
+                }`}
+              >
+                <SlotImage
+                  section={SECTION}
+                  slot={p.slot}
+                  src={p.url || images[p.slot] || DEFAULTS[p.slot] || ""}
+                  alt={tr(alts[p.slot] ?? alts["poste-soins"], locale)}
+                  priority={i === 0}
+                  sizes="(min-width: 1024px) 52vw, (min-width: 640px) 90vw, calc(100vw - 48px)"
+                  className="object-cover"
+                />
+              </div>
+            ))}
+
+            {/* Caption scrim — just enough to carry the label. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/80 via-black/25 to-transparent"
             />
+            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 md:p-5">
+              {/* aria-live so paging is announced: the arrows change a picture,
+                  which a screen reader would otherwise get nothing from. */}
+              <p
+                aria-live="polite"
+                className="font-display text-base font-medium leading-tight text-white md:text-lg"
+              >
+                {CAPTIONS[current.slot]
+                  ? tr(CAPTIONS[current.slot], locale)
+                  : t(`Photo ${index + 1}`, `Photo ${index + 1}`, locale)}
+              </p>
+              {count > 1 && (
+                <p className="shrink-0 font-mono text-[11px] uppercase tracking-[0.18em] text-white/60">
+                  {index + 1} / {count}
+                </p>
+              )}
+            </div>
+
+            {/* Prev / next — on the picture itself, so it is obvious what they
+                move. Gone when the owner has left a single photo: there would be
+                nothing to page to. */}
+            {count > 1 && (
+              <div className="absolute right-3 top-3 flex gap-2 md:right-4 md:top-4">
+                <button
+                  type="button"
+                  onClick={() => go(-1)}
+                  aria-label={t("Photo précédente", "Previous photo", locale)}
+                  className="grid size-10 place-items-center rounded-full border border-white/25 bg-black/40 text-white/80 backdrop-blur-md transition-colors duration-200 hover:border-white/50 hover:bg-black/65 hover:text-white"
+                >
+                  <CaretLeft size={16} weight="bold" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => go(1)}
+                  aria-label={t("Photo suivante", "Next photo", locale)}
+                  className="grid size-10 place-items-center rounded-full border border-white/25 bg-black/40 text-white/80 backdrop-blur-md transition-colors duration-200 hover:border-white/50 hover:bg-black/65 hover:text-white"
+                >
+                  <CaretRight size={16} weight="bold" />
+                </button>
+              </div>
+            )}
           </motion.div>
         </div>
 
@@ -215,28 +325,8 @@ export function MobilierHospitalier({
           ))}
         </div>
 
-        {/* ── Supporting strip ── */}
-        <div className="mt-10 grid gap-4 sm:grid-cols-3 sm:gap-6">
-          {STRIP_SLOTS.map((slot, i) => (
-            <motion.div
-              key={slot}
-              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 1.03 }}
-              whileInView={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-              viewport={VIEWPORT}
-              transition={{ duration: 0.7, ease: EASE, delay: reduce ? 0 : i * 0.1 }}
-              className="group relative aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border bg-surface-elevated sm:aspect-[4/3]"
-            >
-              <SlotImage
-                section={SECTION}
-                slot={slot}
-                src={images[slot] ?? DEFAULTS[slot]}
-                alt={tr(alts[slot], locale)}
-                sizes="(min-width: 1024px) 30vw, (min-width: 640px) 31vw, calc(100vw - 48px)"
-                className="object-cover transition-transform duration-700 ease-out motion-safe:group-hover:scale-[1.05]"
-              />
-            </motion.div>
-          ))}
-        </div>
+        {/* The strip of three photos that used to sit here now shares the frame
+            above — see PHOTOS. */}
       </div>
     </section>
   )

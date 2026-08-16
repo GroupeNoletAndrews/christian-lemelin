@@ -81,6 +81,10 @@ export const SectionPublishSchema = z.object({
       style: SlotStyleSchema.nullish(),
     }),
   ),
+  // Gallery sections only (the owner controls how many photos there are): the
+  // full ordered slot-id list that should become live. Absent = leave the
+  // membership and order untouched.
+  order: z.array(z.string().min(1)).optional(),
 })
 
 /** Validate `data` against `schema`, throwing AppError(400) with a readable message. */

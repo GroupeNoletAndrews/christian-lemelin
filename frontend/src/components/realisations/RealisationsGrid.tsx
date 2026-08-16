@@ -96,18 +96,57 @@ function CarouselGrid({ items, cardHref, onSelect, onEdit, aboveFold }: GridProp
     el.scrollBy({ left: dir * step, behavior: "smooth" })
   }
 
-  // Auto-advance one card every 2s; pause on hover / touch.
+  // Only auto-advance while the strip is actually ON SCREEN. It used to run
+  // regardless, so it kept stepping through cards while you were elsewhere on
+  // the page and you arrived mid-animation — the carousel appeared to lurch the
+  // moment it came into view.
+  const [onScreen, setOnScreen] = useState(false)
   useEffect(() => {
-    if (paused || items.length <= 1) return
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting), {
+      threshold: 0.35,
+    })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  // Hold the auto-advance off while the visitor is driving the strip. Hover
+  // alone was not enough: a wheel or swipe could land between the mouseenter
+  // and the effect that clears the timer, and the interval's smooth scrollBy
+  // then fought the gesture — the strip appeared to snap as you started or
+  // finished scrolling it. Any user-driven scroll now buys 2.5s of quiet.
+  const holdUntil = useRef(0)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const hold = () => {
+      holdUntil.current = performance.now() + 2500
+    }
+    el.addEventListener("wheel", hold, { passive: true })
+    el.addEventListener("touchmove", hold, { passive: true })
+    el.addEventListener("pointerdown", hold)
+    return () => {
+      el.removeEventListener("wheel", hold)
+      el.removeEventListener("touchmove", hold)
+      el.removeEventListener("pointerdown", hold)
+    }
+  }, [])
+
+  // Auto-advance one card every 2s; pause on hover / touch, off screen, or
+  // while the tab is hidden (a backgrounded tab freezes timers unevenly, so it
+  // would otherwise fire a burst of steps on return).
+  useEffect(() => {
+    if (paused || !onScreen || items.length <= 1) return
     const id = window.setInterval(() => {
       const el = ref.current
-      if (!el) return
+      if (!el || document.hidden || performance.now() < holdUntil.current) return
       const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8
       if (atEnd) el.scrollTo({ left: 0, behavior: "smooth" })
       else scrollByCard(1)
     }, 2000)
     return () => window.clearInterval(id)
-  }, [paused, items.length])
+  }, [paused, onScreen, items.length])
 
   return (
     <div
@@ -118,7 +157,11 @@ function CarouselGrid({ items, cardHref, onSelect, onEdit, aboveFold }: GridProp
     >
       <div
         ref={ref}
-        className="flex snap-x snap-mandatory gap-6 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        // `snap-proximity`, not `snap-mandatory`: mandatory makes the browser
+        // land on a snap point after every layout change or interrupted
+        // gesture, which yanked the strip sideways mid-swipe. Proximity snaps
+        // when you release near a card and leaves it alone otherwise.
+        className="flex snap-x snap-proximity gap-6 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         // touchAction stays `auto`: a `pan-x` container strips vertical panning
         // from touches that begin on it, freezing page scroll when a finger
         // lands on a card. `auto` lets the browser pick — horizontal → carousel,

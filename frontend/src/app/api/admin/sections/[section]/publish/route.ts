@@ -14,8 +14,8 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   try {
     await requireAdmin()
     const { section } = await ctx.params
-    const { changes } = parseBody(SectionPublishSchema, await readJson(req))
-    await publishSectionImages(section, changes)
+    const { changes, order } = parseBody(SectionPublishSchema, await readJson(req))
+    await publishSectionImages(section, changes, order)
     return NextResponse.json({ ok: true })
   } catch (err) {
     return errorResponse(err)

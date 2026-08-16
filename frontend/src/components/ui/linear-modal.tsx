@@ -193,11 +193,13 @@ export function DialogContent({
   const ref = useRef<HTMLDivElement>(null)
 
   // Move focus into the panel on open, restore it to the previously focused
-  // element on close.
+  // element on close. `preventScroll` so neither move drags the page behind the
+  // dialog: a plain focus() asks the browser to scroll the element into view,
+  // which is how the solutions timeline lost its scroll offset on open.
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null
-    ref.current?.focus()
-    return () => prev?.focus?.()
+    ref.current?.focus({ preventScroll: true })
+    return () => prev?.focus?.({ preventScroll: true })
   }, [])
 
   return (

@@ -19,6 +19,13 @@ export function LenisProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
 
   useEffect(() => {
+    // Mobile browsers fire a `resize` every time the URL bar slides in or out —
+    // which happens *while you scroll*. ScrollTrigger's default reaction is a
+    // full `refresh()` (re-measure every trigger, re-lay-out every pin spacer),
+    // landing a long synchronous task right in the middle of the gesture.
+    // Ignoring height-only mobile resizes is GSAP's own remedy for this.
+    ScrollTrigger.config({ ignoreMobileResize: true })
+
     const instance = new Lenis({
       lerp: 0.1,
       smoothWheel: true,

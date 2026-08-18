@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect } from "react"
+import { useRef, useEffect, useState } from "react"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import {
@@ -267,6 +267,21 @@ function CardInner({
   )
 }
 
+// Nuances travaillées, en légende sous la photo d'une carte — le SEUL endroit
+// où elles apparaissent : la liste récap du panneau d'intro reste un index (nom
+// + code) et le modal raconte la matière, pas sa fiche technique. Rien à
+// afficher pour une matière sans `grades` — le cuivre.
+function CardGrades({ mat, className }: { mat: MaterialDetail; className?: string }) {
+  if (!mat.grades?.length) return null
+  return (
+    <p
+      className={`font-mono text-[11px] tracking-[0.12em] text-foreground-muted ${className ?? ""}`}
+    >
+      {mat.grades.join(" · ")}
+    </p>
+  )
+}
+
 export function Materiaux({
   images = {},
 }: {
@@ -277,9 +292,24 @@ export function Materiaux({
   const trackRef = useRef<HTMLDivElement>(null)
   const reduce = useReducedMotion()
   const locale = useLocale()
+  // The pinned carousel further down is `hidden md:block`, but the pin was set
+  // up on every viewport. Below md that meant pinning a `display:none` element
+  // whose track has zero width (so `distance()` went negative) AND keeping a
+  // live ScrollTrigger that re-measures the document on any viewport change —
+  // which mobile browsers fire every time the URL bar slides, i.e. mid-scroll.
+  // Build it only where the carousel actually exists.
+  const [isDesktop, setIsDesktop] = useState(false)
 
   useEffect(() => {
-    if (reduce || !wrapRef.current || !trackRef.current) return
+    const mq = window.matchMedia("(min-width: 768px)")
+    const sync = () => setIsDesktop(mq.matches)
+    sync()
+    mq.addEventListener("change", sync)
+    return () => mq.removeEventListener("change", sync)
+  }, [])
+
+  useEffect(() => {
+    if (reduce || !isDesktop || !wrapRef.current || !trackRef.current) return
     const ctx = gsap.context(() => {
       // Functions (not a captured number) so `invalidateOnRefresh` recomputes
       // both the scroll length AND the track translation on every refresh.
@@ -315,7 +345,7 @@ export function Materiaux({
       window.removeEventListener("eclemelin:preloader-done", refresh)
       ctx.revert()
     }
-  }, [reduce])
+  }, [reduce, isDesktop])
 
   return (
     <section id="materiaux" data-header-theme="light" className="bg-background">
@@ -355,6 +385,7 @@ export function Materiaux({
                   />
                 </DialogTrigger>
                 <p className="mt-3 text-sm text-foreground-muted">{tr(mat.fullName, locale)}</p>
+                <CardGrades mat={mat} className="mt-1.5" />
                 <MaterialModal mat={mat} images={images} />
               </Dialog>
             </div>
@@ -405,6 +436,7 @@ export function Materiaux({
                   />
                 </DialogTrigger>
                 <p className="mt-4 text-sm text-foreground-muted">{tr(mat.fullName, locale)}</p>
+                <CardGrades mat={mat} className="mt-2" />
                 <MaterialModal mat={mat} images={images} />
               </Dialog>
             </div>

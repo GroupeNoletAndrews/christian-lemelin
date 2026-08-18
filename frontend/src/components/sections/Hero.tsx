@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useRef } from "react"
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr"
 import { mediaUrl, SITE_MEDIA } from "@/lib/media"
 import { useLocale } from "@/components/providers/LocaleProvider"
@@ -13,6 +14,26 @@ import { t } from "@/lib/i18n"
 export function Hero() {
   const locale = useLocale()
 
+  // A looping full-bleed video keeps decoding + uploading a texture every frame
+  // for as long as it plays, even once the hero has scrolled away — on mobile
+  // that is a permanent tax on every other section's scrolling. Pause it once
+  // it leaves the viewport and resume on the way back. Nothing visible changes:
+  // the only frames we skip are frames nobody can see.
+  const videoRef = useRef<HTMLVideoElement>(null)
+  useEffect(() => {
+    const el = videoRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) void el.play().catch(() => {})
+        else el.pause()
+      },
+      { rootMargin: "100px 0px" },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
   return (
     <section
       data-header-theme="dark"
@@ -20,6 +41,7 @@ export function Hero() {
     >
       {/* Looping background video — no controls, no interaction */}
       <video
+        ref={videoRef}
         autoPlay
         muted
         loop

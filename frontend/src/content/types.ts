@@ -82,6 +82,9 @@ export interface SolutionDetail {
 export interface MaterialDetail {
   slug: string
   code: string
+  /** Nuances / alliages réellement travaillés en atelier — ex. ["316", "304-4"].
+   *  Affichées dans la liste récap du carousel matériaux et dans son modal. */
+  grades?: string[]
   /** Canonical name (footer, detail hero, cross-links) — e.g. "Acier inoxydable". */
   name: LocalizedText
   /** Compact label (home carousel, switcher list) — e.g. "Inox". */

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import dynamic from "next/dynamic"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { Plus, CaretRight, CaretLeft } from "@phosphor-icons/react/dist/ssr"
@@ -93,6 +93,21 @@ export function Solutions() {
   const [panelOpen, setPanelOpen] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [isDesktop, setIsDesktop] = useState(true)
+  // The 3D viewer is a live WebGL loop; park it while it is off screen so it
+  // stops stealing frames from the rest of the page (see FrameloopGate).
+  const viewerRef = useRef<HTMLDivElement>(null)
+  const [viewerOnScreen, setViewerOnScreen] = useState(false)
+
+  useEffect(() => {
+    const el = viewerRef.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => setViewerOnScreen(e.isIntersecting), {
+      // Wake a little early so the first frame is already drawn on arrival.
+      rootMargin: "250px 0px",
+    })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
 
   useEffect(() => {
     setMounted(true)
@@ -120,7 +135,10 @@ export function Solutions() {
     >
       {/* Rounded inset viewer — the cream page background shows around the
           corners, matching the SavoirFaire block. Everything lives inside it. */}
-      <div className="relative h-[58vh] min-h-[420px] w-full overflow-hidden rounded-[1.75rem] bg-ink md:h-[92vh] md:rounded-[2.5rem]">
+      <div
+        ref={viewerRef}
+        className="relative h-[58vh] min-h-[420px] w-full overflow-hidden rounded-[1.75rem] bg-ink md:h-[92vh] md:rounded-[2.5rem]"
+      >
         {/* depth glow */}
         <div
           aria-hidden
@@ -141,6 +159,7 @@ export function Solutions() {
               liftFactor={isDesktop ? 0.1 : 0.1}
               autoRotate={!compact}
               reduce={reduce}
+              active={viewerOnScreen}
             />
           </div>
         )}

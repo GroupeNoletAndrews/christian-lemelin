@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useEffect, useMemo, useRef } from "react"
-import { Canvas, useFrame, useThree } from "@react-three/fiber"
+import { Canvas, useFrame, useStore, useThree } from "@react-three/fiber"
 import {
   useGLTF,
   Environment,
@@ -128,6 +128,31 @@ function HotspotMarker({
   )
 }
 
+/* ── Render-loop gate ───────────────────────────────────────────────────────
+   A WebGL canvas renders at 60 fps for as long as it is mounted — and with
+   `autoRotate` there is always something to draw, so it never idles. The
+   viewer sits in the middle of the home page, which meant the GPU + main
+   thread were busy compositing this scene the entire time you scrolled the
+   rest of the page; on mobile that alone drags the whole document down to
+   ~30 fps. We park the loop (`frameloop: "never"`) whenever the viewer is off
+   screen and restart it when it comes back.
+
+   `invalidate()` is a no-op while the loop is parked, so it MUST be called
+   after `setFrameloop("always")` — that call is what re-arms the rAF. Purely a
+   scheduling change: an on-screen frame renders exactly as it did before. */
+function FrameloopGate({ active }: { active: boolean }) {
+  // `useStore` (not `useThree`) — we want the store handle, not a subscription:
+  // reading state through a selector here would re-render this component on the
+  // very state change it writes.
+  const store = useStore()
+  useEffect(() => {
+    const want = active ? "always" : "never"
+    if (store.getState().frameloop !== want) store.getState().setFrameloop(want)
+    if (active) store.getState().invalidate()
+  }, [active, store])
+  return null
+}
+
 function Model({ src, hotspots, activeId, onSelect, compact, shiftX, fitScale, reduce }: SceneProps) {
   const { scene } = useGLTF(src)
   const groupRef = useRef<THREE.Group>(null!)
@@ -221,6 +246,7 @@ export function SolutionsModel({
   liftFactor = 0.18,
   autoRotate = true,
   reduce = false,
+  active = true,
 }: {
   /** GLB URL to display (swaps per selected sector). */
   src: string
@@ -237,14 +263,20 @@ export function SolutionsModel({
   /** Gentle idle spin — disable while a side panel is being read. */
   autoRotate?: boolean
   reduce?: boolean
+  /** false parks the render loop (viewer off screen) — see FrameloopGate. */
+  active?: boolean
 }) {
   return (
     <Canvas
       camera={{ position: [2.6, 1.85, 3.65], fov: 36 }}
       gl={{ antialias: true, alpha: true, preserveDrawingBuffer: false }}
       dpr={[1, 2]}
+      // Kept in sync with the gate below: <Canvas> re-applies this prop on every
+      // re-render, so leaving it at the default would un-park the loop.
+      frameloop={active ? "always" : "never"}
       style={{ width: "100%", height: "100%" }}
     >
+      <FrameloopGate active={active} />
       <ambientLight intensity={0.6} />
       <directionalLight position={[4, 7, 3]} intensity={1.7} />
       <directionalLight position={[-5, 2, -3]} intensity={0.45} color="#9db4ff" />

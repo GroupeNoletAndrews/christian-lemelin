@@ -12,6 +12,7 @@ export const MATERIALS: MaterialDetail[] = [
   {
     slug: "acier-inoxydable",
     code: "316L",
+    grades: ["316", "304-4", "304-8"],
     name: { fr: "Acier inoxydable", en: "Stainless steel" },
     shortName: { fr: "Inox", en: "Stainless" },
     fullName: { fr: "Inox 304 / 316L", en: "304 / 316L stainless" },
@@ -122,6 +123,7 @@ export const MATERIALS: MaterialDetail[] = [
   {
     slug: "acier",
     code: "A36",
+    grades: ["A1008", "A1010", "A1011"],
     name: { fr: "Acier", en: "Steel" },
     shortName: { fr: "Acier", en: "Steel" },
     fullName: { fr: "Acier structurel A36", en: "A36 structural steel" },
@@ -235,6 +237,7 @@ export const MATERIALS: MaterialDetail[] = [
   {
     slug: "aluminium",
     code: "6061",
+    grades: ["3003", "5052", "6061"],
     name: { fr: "Aluminium", en: "Aluminium" },
     shortName: { fr: "Aluminium", en: "Aluminium" },
     fullName: { fr: "Aluminium série 6000", en: "6000-series aluminium" },
@@ -315,6 +318,7 @@ export const MATERIALS: MaterialDetail[] = [
   {
     slug: "laiton",
     code: "C360",
+    grades: ["280", "385"],
     name: { fr: "Laiton", en: "Brass" },
     shortName: { fr: "Laiton", en: "Brass" },
     fullName: { fr: "Laiton & bronze", en: "Brass & bronze" },

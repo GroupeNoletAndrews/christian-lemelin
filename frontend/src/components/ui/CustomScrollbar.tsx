@@ -15,6 +15,19 @@ export function CustomScrollbar() {
   const [m, setM] = useState({ thumbH: 0, thumbTop: 0, show: false })
   // Offset between the cursor and the thumb's top at grab time (null = not dragging).
   const grabOffset = useRef<number | null>(null)
+  // The bar is `hidden md:block` — but the metrics below still ran on phones,
+  // reading `scrollHeight` (a forced layout) and re-rendering on every single
+  // scroll event to move a thumb nobody can see. Gate the whole thing on the
+  // same breakpoint the CSS uses so touch scrolling pays nothing for it.
+  const [enabled, setEnabled] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)")
+    const sync = () => setEnabled(mq.matches)
+    sync()
+    mq.addEventListener("change", sync)
+    return () => mq.removeEventListener("change", sync)
+  }, [])
 
   // Live metrics — read on demand so drag/click math always uses fresh values.
   const metrics = () => {
@@ -26,7 +39,10 @@ export function CustomScrollbar() {
   }
 
   useEffect(() => {
+    if (!enabled) return
+    let frame = 0
     const compute = () => {
+      frame = 0
       const { winH, limit, thumbH } = metrics()
       const scroll = lenis ? lenis.scroll : window.scrollY
       if (limit <= 1) {
@@ -34,24 +50,33 @@ export function CustomScrollbar() {
         return
       }
       const thumbTop = (Math.min(Math.max(scroll, 0), limit) / limit) * (winH - thumbH)
-      setM({ thumbH, thumbTop, show: true })
+      // Same object when nothing moved → React skips the re-render entirely.
+      setM((p) =>
+        p.show && p.thumbH === thumbH && p.thumbTop === thumbTop
+          ? p
+          : { thumbH, thumbTop, show: true },
+      )
+    }
+    // One layout read + at most one render per painted frame, not per event.
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(compute)
     }
 
-    const onScroll = () => compute()
-    if (lenis) lenis.on("scroll", onScroll)
-    else window.addEventListener("scroll", onScroll, { passive: true })
-    window.addEventListener("resize", compute)
-    const ro = new ResizeObserver(compute)
+    if (lenis) lenis.on("scroll", schedule)
+    else window.addEventListener("scroll", schedule, { passive: true })
+    window.addEventListener("resize", schedule)
+    const ro = new ResizeObserver(schedule)
     ro.observe(document.body)
     compute()
 
     return () => {
-      if (lenis) lenis.off("scroll", onScroll)
-      else window.removeEventListener("scroll", onScroll)
-      window.removeEventListener("resize", compute)
+      if (frame) cancelAnimationFrame(frame)
+      if (lenis) lenis.off("scroll", schedule)
+      else window.removeEventListener("scroll", schedule)
+      window.removeEventListener("resize", schedule)
       ro.disconnect()
     }
-  }, [lenis])
+  }, [lenis, enabled])
 
   // Scroll the page to an absolute Y (immediate while dragging so the thumb
   // tracks the cursor 1:1; the scroll event then re-syncs the thumb position).
@@ -100,7 +125,7 @@ export function CustomScrollbar() {
     scrollToY(thumbTopToScroll(desired))
   }
 
-  if (!m.show) return null
+  if (!enabled || !m.show) return null
 
   return (
     <div

@@ -83,8 +83,15 @@ export function Header() {
   const [hidden, setHidden] = useState(false)
   const lastY = useRef(0)
 
+  // Scroll listener, rAF-coalesced. It reads geometry (`getBoundingClientRect`
+  // on every themed section) and pushes React state, and a touch scroll fires
+  // far more `scroll` events than there are frames — so running it raw meant
+  // several forced layouts and several renders per painted frame. Batching to
+  // one run per frame keeps the behaviour identical and does the work once.
   useEffect(() => {
+    let frame = 0
     const update = () => {
+      frame = 0
       const y = window.scrollY
       setScrolled(y > 24)
 
@@ -105,9 +112,17 @@ export function Header() {
       })
       setTheme(detected)
     }
-    window.addEventListener("scroll", update, { passive: true })
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update)
+    }
+    window.addEventListener("scroll", schedule, { passive: true })
+    window.addEventListener("resize", schedule, { passive: true })
     update()
-    return () => window.removeEventListener("scroll", update)
+    return () => {
+      if (frame) cancelAnimationFrame(frame)
+      window.removeEventListener("scroll", schedule)
+      window.removeEventListener("resize", schedule)
+    }
   }, [])
 
   // Tint the mobile browser chrome (iOS Safari top/bottom bars) to match the

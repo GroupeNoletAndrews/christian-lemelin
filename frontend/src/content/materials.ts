@@ -12,10 +12,10 @@ export const MATERIALS: MaterialDetail[] = [
   {
     slug: "acier-inoxydable",
     code: "316L",
-    grades: ["316", "304-4", "304-8"],
+    grades: ["304-4", "304-8"],
     name: { fr: "Acier inoxydable", en: "Stainless steel" },
     shortName: { fr: "Inox", en: "Stainless" },
-    fullName: { fr: "Inox 304 / 316L", en: "304 / 316L stainless" },
+    fullName: { fr: "Acier inoxydable", en: "Stainless steel" },
     metaDescription: {
       fr: "Transformation de l'acier inoxydable sur mesure à Québec — hygiène, résistance à la corrosion et longévité pour le médical, l'agroalimentaire et l'architecture.",
       en: "Custom stainless steel fabrication in Québec — hygiene, corrosion resistance and longevity for the medical, food-processing and architectural sectors.",
@@ -126,7 +126,7 @@ export const MATERIALS: MaterialDetail[] = [
     grades: ["A1008", "A1010", "A1011"],
     name: { fr: "Acier", en: "Steel" },
     shortName: { fr: "Acier", en: "Steel" },
-    fullName: { fr: "Acier structurel A36", en: "A36 structural steel" },
+    fullName: { fr: "Acier structurel", en: "Structural steel" },
     metaDescription: {
       fr: "Transformation de l'acier sur mesure à Québec — découpe, pliage et assemblage de haute précision pour structures industrielles, commerciales et institutionnelles.",
       en: "Custom steel fabrication in Québec — high-precision cutting, bending and assembly for industrial, commercial and institutional structures.",
@@ -237,10 +237,10 @@ export const MATERIALS: MaterialDetail[] = [
   {
     slug: "aluminium",
     code: "6061",
-    grades: ["3003", "5052", "6061"],
+    grades: ["3003", "5052"],
     name: { fr: "Aluminium", en: "Aluminium" },
     shortName: { fr: "Aluminium", en: "Aluminium" },
-    fullName: { fr: "Aluminium série 6000", en: "6000-series aluminium" },
+    fullName: { fr: "Aluminium & alliages", en: "Aluminium & alloys" },
     metaDescription: {
       fr: "Transformation de l'aluminium sur mesure à Québec — légèreté, résistance à la corrosion et précision pour l'architecture, l'aéronautique et l'industrie.",
       en: "Custom aluminium fabrication in Québec — lightness, corrosion resistance and precision for architecture, aerospace and industry.",

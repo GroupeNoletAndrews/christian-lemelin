@@ -82,14 +82,15 @@ export interface SolutionDetail {
 export interface MaterialDetail {
   slug: string
   code: string
-  /** Nuances / alliages réellement travaillés en atelier — ex. ["316", "304-4"].
-   *  Affichées dans la liste récap du carousel matériaux et dans son modal. */
+  /** Nuances travaillées en atelier EN PLUS de `code` — ne jamais y répéter le
+   *  code, le chip de la carte le porte déjà. Affichées à un seul endroit :
+   *  la légende `CardGrades` sous la photo de chaque carte matériaux. */
   grades?: string[]
   /** Canonical name (footer, detail hero, cross-links) — e.g. "Acier inoxydable". */
   name: LocalizedText
   /** Compact label (home carousel, switcher list) — e.g. "Inox". */
   shortName: LocalizedText
-  /** Descriptive subtitle — e.g. "Inox 304 / 316L". */
+  /** Descriptive subtitle, sans numéro d'alliage — e.g. "Acier structurel". */
   fullName: LocalizedText
   metaDescription: LocalizedText
   /** Short blurb reused by the fabrication switcher, home carousel & index. */

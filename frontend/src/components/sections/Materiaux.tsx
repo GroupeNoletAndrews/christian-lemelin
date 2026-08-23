@@ -12,7 +12,7 @@ import {
   useMotionTemplate,
   type Variants,
 } from "motion/react"
-import { Plus } from "@phosphor-icons/react"
+import { ArrowRight, Plus } from "@phosphor-icons/react"
 import {
   MATERIALS as materials,
   imageUrl,
@@ -221,8 +221,10 @@ function MaterialModal({
   )
 }
 
-// The grayscale image + code/name overlay + "+" affordance, shared by the
-// mobile and desktop card shells (only the aspect ratio differs).
+// The grayscale image + name overlay + "+" affordance, shared by the mobile and
+// desktop card shells (only the aspect ratio differs). The photo carries the
+// `shortName` and nothing else — every alloy number lives in `CardGrades`, in
+// the caption under the photo, so one matière is never read in two places.
 function CardInner({
   mat,
   images,
@@ -257,27 +259,26 @@ function CardInner({
       </span>
       <div className="absolute inset-x-0 bottom-0 p-5">
         <DialogTitle>
-          <div className="flex items-baseline gap-3">
-            <span className="font-mono text-xs tracking-[0.2em] text-white/70">{mat.code}</span>
-            <h3 className={titleClass}>{tr(mat.shortName, locale)}</h3>
-          </div>
+          <h3 className={titleClass}>{tr(mat.shortName, locale)}</h3>
         </DialogTitle>
       </div>
     </>
   )
 }
 
-// Nuances travaillées, en légende sous la photo d'une carte — le SEUL endroit
-// où elles apparaissent : la liste récap du panneau d'intro reste un index (nom
-// + code) et le modal raconte la matière, pas sa fiche technique. Rien à
-// afficher pour une matière sans `grades` — le cuivre.
+// Fiche alliages d'une carte, en légende sous la photo : `code` (l'alliage
+// phare) puis les autres nuances travaillées. C'est le SEUL endroit de la
+// section où ces numéros apparaissent — le panneau d'intro n'a plus de
+// liste-index (elle réimprimait le code, ce qui coupait la fiche d'une matière
+// en deux : le phare à gauche, le reste sous la tuile) et le modal raconte la
+// matière, pas sa fiche technique. Le cuivre n'a pas de `grades` — il ne reste
+// que son code, donc la ligne s'affiche toujours.
 function CardGrades({ mat, className }: { mat: MaterialDetail; className?: string }) {
-  if (!mat.grades?.length) return null
   return (
     <p
       className={`font-mono text-[11px] tracking-[0.12em] text-foreground-muted ${className ?? ""}`}
     >
-      {mat.grades.join(" · ")}
+      {[mat.code, ...(mat.grades ?? [])].join(" · ")}
     </p>
   )
 }
@@ -396,29 +397,30 @@ export function Materiaux({
       {/* Desktop: horizontal scroll carousel */}
       <div ref={wrapRef} className="relative hidden overflow-hidden md:block">
         <div ref={trackRef} className="flex h-[100dvh] items-center">
-          {/* Intro panel */}
-          <div className="flex h-full w-[40vw] shrink-0 flex-col justify-center px-14 xl:px-20">
-            <h2 className="font-display text-[clamp(2.25rem,3.8vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.01em] text-foreground">
+          {/* Intro panel — il doit tenir une colonne de 40vw sur toute la
+              hauteur, seul face aux tuiles. Il la tient par le TITRE (OPUS :
+              « taille géante », §7) plutôt qu'en empilant du contenu — §1 dit
+              « privilégier la respiration au remplissage », donc on ajoute du
+              poids typographique, pas des blocs. La ligne mono en bas est une
+              affordance, pas du décor : rien n'indiquait que la bande se
+              parcourt horizontalement au scroll. Et surtout AUCUN numéro
+              d'alliage ici — la fiche d'une matière vit sous sa tuile, en un
+              seul morceau (cf. journal du 2026-08-23). */}
+          <div className="flex h-full w-[40vw] shrink-0 flex-col justify-center px-10 lg:px-14 xl:px-20">
+            <h2 className="font-display text-[clamp(2.5rem,4.8vw,4.5rem)] font-semibold leading-[1.02] tracking-[-0.02em] text-foreground">
               {t("Une maîtrise complète de la gamme.", "Complete mastery of the range.", locale)}
             </h2>
-            <p className="mt-6 max-w-[36ch] leading-relaxed text-foreground-muted">
+            <p className="mt-8 max-w-[36ch] text-lg leading-relaxed text-foreground-muted">
               {t(
                 "Inox, acier, aluminium, laiton et cuivre, travaillés avec la même exigence depuis des décennies. Cliquez une matière pour en savoir plus.",
                 "Stainless steel, steel, aluminium, brass and copper, worked with the same rigour for decades. Click a material to learn more.",
                 locale,
               )}
             </p>
-            <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6">
-              {materials.map((mat) => (
-                <div
-                  key={mat.code}
-                  className="flex items-center gap-4 font-mono text-xs tracking-[0.12em]"
-                >
-                  <span className="flex-1 text-foreground">{tr(mat.shortName, locale)}</span>
-                  <span className="text-foreground-muted">{mat.code}</span>
-                </div>
-              ))}
-            </div>
+            <p className="mt-10 flex items-center gap-3 border-t border-border pt-6 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground-muted">
+              {t("Défilez pour parcourir", "Scroll to browse", locale)}
+              <ArrowRight size={14} weight="bold" className="shrink-0" aria-hidden />
+            </p>
           </div>
 
           {/* Material cards */}

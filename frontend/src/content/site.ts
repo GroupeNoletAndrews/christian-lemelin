@@ -8,7 +8,7 @@ export const CONTACT: ContactInfo = {
   addressCity: "Québec, QC  G2N 2L3",
   phoneDisplay: "(418) 841-1220",
   phoneHref: "+14188411220",
-  email: "info@eclemelin.com",
+  email: "soumissions@eclemelin.com",
 }
 
 export const COMPANY = {

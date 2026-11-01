@@ -16,7 +16,6 @@ import { t, tr, type LocalizedText } from "@/lib/i18n"
 
 const stats: { value: string; label: LocalizedText }[] = [
   { value: "30+", label: { fr: "Années d'expertise", en: "Years of expertise" } },
-  { value: "2 400+", label: { fr: "Projets réalisés", en: "Projects completed" } },
   { value: "5", label: { fr: "Matériaux maîtrisés", en: "Materials mastered" } },
   { value: "100%", label: { fr: "Fabriqué au Québec", en: "Made in Québec" } },
 ]
@@ -148,7 +147,7 @@ export function StatsBar() {
         <DrawLine />
 
         {/* Stats — centered, counting up on scroll */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-10 py-10 text-center md:py-14 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-10 py-10 text-center sm:grid-cols-3 md:py-14">
           {stats.map((stat) => (
             <div key={stat.value} className="flex flex-col items-center">
               <StatNumber value={stat.value} />

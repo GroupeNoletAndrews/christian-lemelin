@@ -101,7 +101,8 @@ export const APROPOS_VALEURS: AProposValeur[] = [
 
 // Chronologie (jalons).
 export const APROPOS_TIMELINE: AProposJalon[] = [
-  { year: "1995", title: { fr: "Déménagement au parc industriel", en: "Move to the industrial park" } },
+  { year: "1995", title: { fr: "Fondation de l'entreprise", en: "Company founded" } },
+  { year: "2001", title: { fr: "Déménagement au parc industriel", en: "Move to the industrial park" } },
   { year: "2016", title: { fr: "Expansion des capacités de production", en: "Expansion of production capacity" } },
   { year: "2020", title: { fr: "Intégration de nouvelles technologies", en: "Integration of new technologies" } },
 ]

@@ -16,7 +16,7 @@ export const COMPANY = {
   shortName: "Entreprises Christian Lemelin",
   tagline: "Fabrication métallique sur mesure — Québec",
   // Licence de la Régie du bâtiment du Québec (mention légale obligatoire).
-  rbq: "8223-2675-1",
+  rbq: "8223-2695-01",
 }
 
 // Heures d'ouverture de l'atelier (affichées discrètement au footer).

@@ -188,7 +188,7 @@ export const SITE_MEDIA = {
   // so every client re-fetches. See scripts/sync-site-media.ts (cacheControl).
   logoNoir: `${MEDIA_FOLDERS.logo}/logo-ecl-noir-v3.svg`,
   logoBlanc: `${MEDIA_FOLDERS.logo}/logo-ecl-blanc-v3.svg`,
-  heroVideo: `${MEDIA_FOLDERS.videos}/videoLemelin.mp4`,
+  heroVideo: `${MEDIA_FOLDERS.videos}/videoLemelin-v2.mp4`,
   // Photo d'un plan de travail en inox en salle clinique — sert de défaut à la
   // section « Mobilier hospitalier » (voir sections-registry). Même source que
   // la réalisation « Mobilier hospitalier en inox » : les doublons sont assumés,

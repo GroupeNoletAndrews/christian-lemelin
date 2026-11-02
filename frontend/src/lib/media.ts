@@ -191,7 +191,7 @@ export const SITE_MEDIA = {
   heroVideo: `${MEDIA_FOLDERS.videos}/videoLemelin.mp4`,
   // Cache-bust (?v=) : le fichier est servi avec un cache d'un an, donc
   // l'écraser dans Supabase ne suffit pas. Incrémenter à chaque remplacement.
-  heroVideoVersion: 2,
+  heroVideoVersion: 3,
   // Photo d'un plan de travail en inox en salle clinique — sert de défaut à la
   // section « Mobilier hospitalier » (voir sections-registry). Même source que
   // la réalisation « Mobilier hospitalier en inox » : les doublons sont assumés,

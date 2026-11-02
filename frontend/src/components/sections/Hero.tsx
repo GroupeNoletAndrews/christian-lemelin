@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr"
-import { mediaUrl, SITE_MEDIA } from "@/lib/media"
+import { imgSrc, SITE_MEDIA } from "@/lib/media"
 import { useLocale } from "@/components/providers/LocaleProvider"
 import { t } from "@/lib/i18n"
 
@@ -50,7 +50,7 @@ export function Hero() {
         aria-hidden="true"
         className="absolute inset-0 h-full w-full object-cover"
       >
-        <source src={mediaUrl(SITE_MEDIA.heroVideo)} type="video/mp4" />
+        <source src={imgSrc(SITE_MEDIA.heroVideo, SITE_MEDIA.heroVideoVersion)} type="video/mp4" />
       </video>
 
       {/* Legibility gradient (dark at bottom for text, mild at top for the nav) */}

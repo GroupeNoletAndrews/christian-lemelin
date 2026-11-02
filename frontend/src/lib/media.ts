@@ -192,6 +192,16 @@ export const SITE_MEDIA = {
   // Cache-bust (?v=) : le fichier est servi avec un cache d'un an, donc
   // l'écraser dans Supabase ne suffit pas. Incrémenter à chaque remplacement.
   heroVideoVersion: 3,
+  // Image affichée tant que la vidéo n'a pas peint d'image (iOS ne précharge
+  // souvent pas une vidéo en pause). Extraite à heroVideoStart, car la vidéo
+  // s'ouvre sur un fondu au noir :
+  //   ffmpeg -ss 0.3 -i videoLemelin.mp4 -frames:v 1 -vf scale=1920:-2 -q:v 5 videoLemelin-poster.jpg
+  // À régénérer à chaque remplacement de la vidéo (même ?v= que la vidéo).
+  heroVideoPoster: `${MEDIA_FOLDERS.videos}/videoLemelin-poster.jpg`,
+  // Secondes : première image pleinement visible après le fondu d'ouverture
+  // (~0,27 s). Le hero s'y fige pendant l'intro et démarre de là, pour
+  // enchaîner sans flash noir depuis l'affiche.
+  heroVideoStart: 0.3,
   // Photo d'un plan de travail en inox en salle clinique — sert de défaut à la
   // section « Mobilier hospitalier » (voir sections-registry). Même source que
   // la réalisation « Mobilier hospitalier en inox » : les doublons sont assumés,

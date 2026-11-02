@@ -26,8 +26,10 @@ export function Hero() {
   //
   // The video also waits for the Preloader: it holds on its first frame while
   // the word intro plays and the curtain slides away, lingers on that frame a
-  // beat once fully revealed, then starts from 0 — so the opening of the clip
-  // isn't spent hidden behind the intro.
+  // beat once fully revealed, then starts — so the opening of the clip isn't
+  // spent hidden behind the intro. "First frame" is heroVideoStart, not 0: the
+  // clip opens with a fade from black, and the poster is taken from that point
+  // so poster → paused frame → playback never dips to black.
   const videoRef = useRef<HTMLVideoElement>(null)
   useEffect(() => {
     const el = videoRef.current
@@ -37,8 +39,14 @@ export function Hero() {
     let visible = true
     let hold: number | undefined
 
+    const toStart = () => {
+      if (el.paused) el.currentTime = SITE_MEDIA.heroVideoStart
+    }
+    if (el.readyState >= 1) toStart()
+    else el.addEventListener("loadedmetadata", toStart, { once: true })
+
     const play = () => {
-      el.currentTime = 0
+      el.currentTime = SITE_MEDIA.heroVideoStart
       if (visible) void el.play().catch(() => {})
     }
     const start = () => {
@@ -60,6 +68,7 @@ export function Hero() {
     io.observe(el)
     return () => {
       io.disconnect()
+      el.removeEventListener("loadedmetadata", toStart)
       window.removeEventListener("eclemelin:preloader-revealed", start)
       window.clearTimeout(fallback)
       window.clearTimeout(hold)
@@ -78,6 +87,7 @@ export function Hero() {
         loop
         playsInline
         preload="auto"
+        poster={imgSrc(SITE_MEDIA.heroVideoPoster, SITE_MEDIA.heroVideoVersion)}
         aria-hidden="true"
         className="absolute inset-0 h-full w-full object-cover"
       >

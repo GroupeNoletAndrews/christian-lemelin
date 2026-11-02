@@ -96,16 +96,7 @@ export function Preloader() {
   }
 
   return (
-    <AnimatePresence
-      mode="wait"
-      // Fired once the curtain has fully slid off screen (≈1s after
-      // preloader-done) — the Hero video waits for this so its opening frame
-      // is actually seen. Sticky flag for late subscribers, as above.
-      onExitComplete={() => {
-        document.documentElement.dataset.preloaderRevealed = ""
-        window.dispatchEvent(new Event("eclemelin:preloader-revealed"))
-      }}
-    >
+    <AnimatePresence mode="wait">
       {isLoading && (
         <motion.div
           data-cl-preloader

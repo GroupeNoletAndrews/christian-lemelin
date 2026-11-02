@@ -6,9 +6,11 @@ import { imgSrc, SITE_MEDIA } from "@/lib/media"
 import { useLocale } from "@/components/providers/LocaleProvider"
 import { t } from "@/lib/i18n"
 
-// How long the video's first frame stays on screen after the intro curtain
-// has fully cleared, before playback starts.
-const FIRST_FRAME_HOLD_MS = 600
+// When playback starts, counted from the moment the intro curtain begins to
+// lift (it takes ~1s: 0.2s delay + 0.8s slide). Mid-slide, so the video is
+// already moving as the hero comes into view — no visible freeze — while
+// little of the opening is spent behind the curtain.
+const PLAY_AFTER_INTRO_MS = 500
 
 // Full-bleed looping video hero (pointlaz-inspired) in our OPUS style.
 // The video autoplays/loops with no controls. The text is rendered statically
@@ -25,9 +27,9 @@ export function Hero() {
   // the only frames we skip are frames nobody can see.
   //
   // The video also waits for the Preloader: it holds on its first frame while
-  // the word intro plays and the curtain slides away, lingers on that frame a
-  // beat once fully revealed, then starts — so the opening of the clip isn't
-  // spent hidden behind the intro. "First frame" is heroVideoStart, not 0: the
+  // the word intro plays and starts as the curtain lifts (PLAY_AFTER_INTRO_MS)
+  // — so the opening of the clip isn't spent hidden behind the intro, even
+  // when the file is already cached. "First frame" is heroVideoStart, not 0: the
   // clip opens with a fade from black, and the poster is taken from that point
   // so poster → paused frame → playback never dips to black.
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -35,7 +37,7 @@ export function Hero() {
     const el = videoRef.current
     if (!el) return
     const root = document.documentElement
-    let started = "preloaderRevealed" in root.dataset || root.classList.contains("cl-preview")
+    let started = "preloaderDone" in root.dataset || root.classList.contains("cl-preview")
     let visible = true
     let hold: number | undefined
 
@@ -52,10 +54,10 @@ export function Hero() {
     const start = () => {
       if (started) return
       started = true
-      hold = window.setTimeout(play, FIRST_FRAME_HOLD_MS)
+      hold = window.setTimeout(play, PLAY_AFTER_INTRO_MS)
     }
-    window.addEventListener("eclemelin:preloader-revealed", start)
-    const fallback = window.setTimeout(start, 6000) // ≈ Preloader fully gone
+    window.addEventListener("eclemelin:preloader-done", start)
+    const fallback = window.setTimeout(start, 4500) // ≈ Preloader dismissal
 
     const io = new IntersectionObserver(
       ([e]) => {
@@ -69,7 +71,7 @@ export function Hero() {
     return () => {
       io.disconnect()
       el.removeEventListener("loadedmetadata", toStart)
-      window.removeEventListener("eclemelin:preloader-revealed", start)
+      window.removeEventListener("eclemelin:preloader-done", start)
       window.clearTimeout(fallback)
       window.clearTimeout(hold)
     }

@@ -6,6 +6,10 @@ import { imgSrc, SITE_MEDIA } from "@/lib/media"
 import { useLocale } from "@/components/providers/LocaleProvider"
 import { t } from "@/lib/i18n"
 
+// How long the video's first frame stays on screen after the intro curtain
+// has fully cleared, before playback starts.
+const FIRST_FRAME_HOLD_MS = 600
+
 // Full-bleed looping video hero (pointlaz-inspired) in our OPUS style.
 // The video autoplays/loops with no controls. The text is rendered statically
 // (no reveal animation) so it appears immediately and reliably on every load —
@@ -21,24 +25,29 @@ export function Hero() {
   // the only frames we skip are frames nobody can see.
   //
   // The video also waits for the Preloader: it holds on its first frame while
-  // the word intro plays, then starts from 0 as the curtain lifts, so the
-  // opening of the clip isn't spent hidden behind the intro.
+  // the word intro plays and the curtain slides away, lingers on that frame a
+  // beat once fully revealed, then starts from 0 — so the opening of the clip
+  // isn't spent hidden behind the intro.
   const videoRef = useRef<HTMLVideoElement>(null)
   useEffect(() => {
     const el = videoRef.current
     if (!el) return
     const root = document.documentElement
-    let started = "preloaderDone" in root.dataset || root.classList.contains("cl-preview")
+    let started = "preloaderRevealed" in root.dataset || root.classList.contains("cl-preview")
     let visible = true
+    let hold: number | undefined
 
-    const start = () => {
-      if (started) return
-      started = true
+    const play = () => {
       el.currentTime = 0
       if (visible) void el.play().catch(() => {})
     }
-    window.addEventListener("eclemelin:preloader-done", start)
-    const fallback = window.setTimeout(start, 4000) // ≈ Preloader dismissal
+    const start = () => {
+      if (started) return
+      started = true
+      hold = window.setTimeout(play, FIRST_FRAME_HOLD_MS)
+    }
+    window.addEventListener("eclemelin:preloader-revealed", start)
+    const fallback = window.setTimeout(start, 6000) // ≈ Preloader fully gone
 
     const io = new IntersectionObserver(
       ([e]) => {
@@ -51,8 +60,9 @@ export function Hero() {
     io.observe(el)
     return () => {
       io.disconnect()
-      window.removeEventListener("eclemelin:preloader-done", start)
+      window.removeEventListener("eclemelin:preloader-revealed", start)
       window.clearTimeout(fallback)
+      window.clearTimeout(hold)
     }
   }, [])
 

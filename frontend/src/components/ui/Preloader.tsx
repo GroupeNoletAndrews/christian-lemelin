@@ -63,6 +63,9 @@ export function Preloader() {
       document.body.style.overflow = ""
       // Scroll just got unlocked and the page reflowed — let pinned
       // ScrollTriggers (e.g. Materiaux) re-measure against the real layout.
+      // The data flag is sticky, so late subscribers (the Hero video, client
+      // navigations back to home) can tell the intro already finished.
+      document.documentElement.dataset.preloaderDone = ""
       window.dispatchEvent(new Event("eclemelin:preloader-done"))
     }
     // Always restore scroll on cleanup/unmount — never leave Lenis stopped

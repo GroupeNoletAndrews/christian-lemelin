@@ -19,19 +19,41 @@ export function Hero() {
   // that is a permanent tax on every other section's scrolling. Pause it once
   // it leaves the viewport and resume on the way back. Nothing visible changes:
   // the only frames we skip are frames nobody can see.
+  //
+  // The video also waits for the Preloader: it holds on its first frame while
+  // the word intro plays, then starts from 0 as the curtain lifts, so the
+  // opening of the clip isn't spent hidden behind the intro.
   const videoRef = useRef<HTMLVideoElement>(null)
   useEffect(() => {
     const el = videoRef.current
     if (!el) return
+    const root = document.documentElement
+    let started = "preloaderDone" in root.dataset || root.classList.contains("cl-preview")
+    let visible = true
+
+    const start = () => {
+      if (started) return
+      started = true
+      el.currentTime = 0
+      if (visible) void el.play().catch(() => {})
+    }
+    window.addEventListener("eclemelin:preloader-done", start)
+    const fallback = window.setTimeout(start, 4000) // ≈ Preloader dismissal
+
     const io = new IntersectionObserver(
       ([e]) => {
-        if (e.isIntersecting) void el.play().catch(() => {})
+        visible = e.isIntersecting
+        if (visible && started) void el.play().catch(() => {})
         else el.pause()
       },
       { rootMargin: "100px 0px" },
     )
     io.observe(el)
-    return () => io.disconnect()
+    return () => {
+      io.disconnect()
+      window.removeEventListener("eclemelin:preloader-done", start)
+      window.clearTimeout(fallback)
+    }
   }, [])
 
   return (
@@ -42,7 +64,6 @@ export function Hero() {
       {/* Looping background video — no controls, no interaction */}
       <video
         ref={videoRef}
-        autoPlay
         muted
         loop
         playsInline

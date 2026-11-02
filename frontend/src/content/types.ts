@@ -149,4 +149,6 @@ export interface ContactInfo {
   phoneDisplay: string
   phoneHref: string
   email: string
+  /** Courriel des demandes de soumission (footer + /contact, pas le menu). */
+  quoteEmail: string
 }

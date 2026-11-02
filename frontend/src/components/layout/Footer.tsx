@@ -37,10 +37,16 @@ const columns: { title: Localized; links: { label: Localized; href: string }[] }
   },
 ]
 
-const contactCells: { label: Localized; lines?: string[]; href?: string; value?: string }[] = [
+const contactCells: { label: Localized; lines?: string[]; links?: { href: string; value: string }[] }[] = [
   { label: { fr: "Atelier", en: "Workshop" }, lines: [CONTACT.addressLine, CONTACT.addressCity] },
-  { label: { fr: "Courriel", en: "Email" }, href: `mailto:${CONTACT.email}`, value: CONTACT.email },
-  { label: { fr: "Téléphone", en: "Phone" }, href: `tel:${CONTACT.phoneHref}`, value: CONTACT.phoneDisplay },
+  {
+    label: { fr: "Courriel", en: "Email" },
+    links: [
+      { href: `mailto:${CONTACT.email}`, value: CONTACT.email },
+      { href: `mailto:${CONTACT.quoteEmail}`, value: CONTACT.quoteEmail },
+    ],
+  },
+  { label: { fr: "Téléphone", en: "Phone" }, links: [{ href: `tel:${CONTACT.phoneHref}`, value: CONTACT.phoneDisplay }] },
 ]
 
 const socials = [
@@ -79,14 +85,15 @@ export function Footer() {
                       {line}
                     </p>
                   ))
-                : (
+                : c.links?.map((link) => (
                     <a
-                      href={c.href}
-                      className="mt-2 inline-block text-white/85 underline decoration-white/30 underline-offset-4 transition-colors hover:decoration-white"
+                      key={link.href}
+                      href={link.href}
+                      className="mt-2 block w-fit text-white/85 underline decoration-white/30 underline-offset-4 transition-colors hover:decoration-white"
                     >
-                      {c.value}
+                      {link.value}
                     </a>
-                  )}
+                  ))}
             </div>
           ))}
         </div>

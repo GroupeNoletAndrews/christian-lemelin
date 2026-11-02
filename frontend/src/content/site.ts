@@ -9,6 +9,7 @@ export const CONTACT: ContactInfo = {
   phoneDisplay: "(418) 841-1220",
   phoneHref: "+14188411220",
   email: "info@eclemelin.com",
+  quoteEmail: "soumissions@eclemelin.com",
 }
 
 export const COMPANY = {

@@ -82,6 +82,12 @@ export default async function ContactPage() {
                   >
                     {CONTACT.email}
                   </a>
+                  <a
+                    href={`mailto:${CONTACT.quoteEmail}`}
+                    className="mt-1 block text-lg text-foreground underline decoration-border underline-offset-4 transition-colors hover:decoration-foreground"
+                  >
+                    {CONTACT.quoteEmail}
+                  </a>
                 </div>
               </div>
             </div>

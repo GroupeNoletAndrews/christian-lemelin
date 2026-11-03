@@ -191,7 +191,10 @@ export const SITE_MEDIA = {
   heroVideo: `${MEDIA_FOLDERS.videos}/videoLemelin.mp4`,
   // Cache-bust (?v=) : le fichier est servi avec un cache d'un an, donc
   // l'écraser dans Supabase ne suffit pas. Incrémenter à chaque remplacement.
-  heroVideoVersion: 3,
+  // Toujours exporter avec l'index en tête de fichier, sans quoi le navigateur
+  // doit d'abord aller chercher la fin du fichier avant de pouvoir démarrer :
+  //   ffmpeg -i source.mp4 -map 0 -c copy -movflags +faststart videoLemelin.mp4
+  heroVideoVersion: 4,
   // Image affichée tant que la vidéo n'a pas peint d'image (iOS ne précharge
   // souvent pas une vidéo en pause). Extraite à heroVideoStart, car la vidéo
   // s'ouvre sur un fondu au noir :

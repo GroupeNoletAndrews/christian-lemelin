@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useLayoutEffect, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useLenis } from "@/components/providers/LenisProvider"
 import { useLocale } from "@/components/providers/LocaleProvider"
@@ -32,6 +32,22 @@ const opacity = {
   enter: { opacity: 0.85, transition: { duration: 0.8, delay: 0.2 } },
 }
 
+// How far the curtain has lifted (vh) when the page behind it starts to show —
+// the moment the Hero video starts. Read from the animation itself rather than a
+// timer: it stays right whatever the easing, and it can't fire in a background
+// tab, where the curtain doesn't move.
+const REVEAL_AT_VH = 10
+
+/** The page behind the curtain starts to show. Safe to call repeatedly. */
+function announceReveal() {
+  const root = document.documentElement
+  if ("preloaderRevealed" in root.dataset) return
+  // Sticky, so the Hero can tell when it mounts after this (client navigation
+  // back to home) that there is no curtain left to wait for.
+  root.dataset.preloaderRevealed = ""
+  window.dispatchEvent(new Event("eclemelin:preloader-reveal"))
+}
+
 export function Preloader() {
   const locale = useLocale()
   const lenis = useLenis()
@@ -43,6 +59,12 @@ export function Preloader() {
 
   useEffect(() => {
     setDim({ w: window.innerWidth, h: window.innerHeight })
+  }, [])
+
+  // A new curtain is up (SiteChrome remounts this on a client navigation out of
+  // /admin). Layout effect: it must clear before the Hero's effect reads the flag.
+  useLayoutEffect(() => {
+    delete document.documentElement.dataset.preloaderRevealed
   }, [])
 
   // Inside the admin content-workspace preview iframe (html.cl-preview, set by a
@@ -63,9 +85,6 @@ export function Preloader() {
       document.body.style.overflow = ""
       // Scroll just got unlocked and the page reflowed — let pinned
       // ScrollTriggers (e.g. Materiaux) re-measure against the real layout.
-      // The data flag is sticky, so late subscribers (the Hero video, client
-      // navigations back to home) can tell the intro already finished.
-      document.documentElement.dataset.preloaderDone = ""
       window.dispatchEvent(new Event("eclemelin:preloader-done"))
     }
     // Always restore scroll on cleanup/unmount — never leave Lenis stopped
@@ -96,13 +115,17 @@ export function Preloader() {
   }
 
   return (
-    <AnimatePresence mode="wait">
+    // onExitComplete backs up onUpdate, should the exit ever run without moving.
+    <AnimatePresence mode="wait" onExitComplete={announceReveal}>
       {isLoading && (
         <motion.div
           data-cl-preloader
           variants={slideUp}
           initial="initial"
           exit="exit"
+          onUpdate={(latest) => {
+            if (parseFloat(String(latest.top)) <= -REVEAL_AT_VH) announceReveal()
+          }}
           className="fixed left-0 z-[100] flex h-screen w-full items-center justify-center bg-ink"
         >
           {dim.w > 0 && (

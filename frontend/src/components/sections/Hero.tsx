@@ -6,14 +6,8 @@ import { imgSrc, SITE_MEDIA } from "@/lib/media"
 import { useLocale } from "@/components/providers/LocaleProvider"
 import { t } from "@/lib/i18n"
 
-// When playback starts, counted from the moment the intro curtain begins to
-// lift (it takes ~1s: 0.2s delay + 0.8s slide). Mid-slide, so the video is
-// already moving as the hero comes into view — no visible freeze — while
-// little of the opening is spent behind the curtain.
-const PLAY_AFTER_INTRO_MS = 500
-
 // Full-bleed looping video hero (pointlaz-inspired) in our OPUS style.
-// The video autoplays/loops with no controls. The text is rendered statically
+// The video loops with no controls. The text is rendered statically
 // (no reveal animation) so it appears immediately and reliably on every load —
 // the previous scramble/fade reveal depended on the Preloader's "done" event,
 // which raced with mount and sometimes left the title blank after a refresh.
@@ -26,43 +20,46 @@ export function Hero() {
   // it leaves the viewport and resume on the way back. Nothing visible changes:
   // the only frames we skip are frames nobody can see.
   //
-  // The video also waits for the Preloader: it holds on its first frame while
-  // the word intro plays and starts as the curtain lifts (PLAY_AFTER_INTRO_MS)
-  // — so the opening of the clip isn't spent hidden behind the intro, even
-  // when the file is already cached. "First frame" is heroVideoStart, not 0: the
-  // clip opens with a fade from black, and the poster is taken from that point
-  // so poster → paused frame → playback never dips to black.
+  // The clip's opening shot (the sign) lasts only ~2s, so it must not play out
+  // unseen behind the Preloader's curtain — never use `autoPlay` here: on a repeat
+  // visit the file is cached, so it would start ~3s before the curtain lifts.
+  // Instead the video is made ready behind the curtain, then started by the
+  // curtain itself. Same path on a first visit, a refresh, any device.
+  // heroVideoStart rather than 0: the clip opens with a fade from black, and the
+  // poster is taken from that point, so poster → video never dips to black.
   const videoRef = useRef<HTMLVideoElement>(null)
   useEffect(() => {
     const el = videoRef.current
     if (!el) return
     const root = document.documentElement
-    let started = "preloaderDone" in root.dataset || root.classList.contains("cl-preview")
+    // No curtain to wait for: client navigation back to home, or the admin preview.
+    let revealed = "preloaderRevealed" in root.dataset || root.classList.contains("cl-preview")
     let visible = true
-    let hold: number | undefined
 
-    const toStart = () => {
-      if (el.paused) el.currentTime = SITE_MEDIA.heroVideoStart
-    }
-    if (el.readyState >= 1) toStart()
-    else el.addEventListener("loadedmetadata", toStart, { once: true })
-
-    const play = () => {
+    // Play first, then park: a paused video isn't enough, iOS and data-saver modes
+    // ignore preload="auto" and buffer nothing until play() — a long freeze on the
+    // poster at reveal. If the curtain lifts before this fires (slow connection),
+    // `revealed` lets playback simply carry on from the start of the shot.
+    const park = () => {
+      if (revealed) return
+      el.pause()
       el.currentTime = SITE_MEDIA.heroVideoStart
+    }
+    const onReveal = () => {
+      revealed = true
       if (visible) void el.play().catch(() => {})
     }
-    const start = () => {
-      if (started) return
-      started = true
-      hold = window.setTimeout(play, PLAY_AFTER_INTRO_MS)
-    }
-    window.addEventListener("eclemelin:preloader-done", start)
-    const fallback = window.setTimeout(start, 4500) // ≈ Preloader dismissal
+    el.addEventListener("playing", park, { once: true })
+    window.addEventListener("eclemelin:preloader-reveal", onReveal, { once: true })
+    el.currentTime = SITE_MEDIA.heroVideoStart
+    // Rejected when autoplay is refused (iOS Low Power Mode): the poster stays.
+    void el.play().catch(() => {})
 
     const io = new IntersectionObserver(
       ([e]) => {
         visible = e.isIntersecting
-        if (visible && started) void el.play().catch(() => {})
+        if (!revealed) return
+        if (visible) void el.play().catch(() => {})
         else el.pause()
       },
       { rootMargin: "100px 0px" },
@@ -70,10 +67,8 @@ export function Hero() {
     io.observe(el)
     return () => {
       io.disconnect()
-      el.removeEventListener("loadedmetadata", toStart)
-      window.removeEventListener("eclemelin:preloader-done", start)
-      window.clearTimeout(fallback)
-      window.clearTimeout(hold)
+      el.removeEventListener("playing", park)
+      window.removeEventListener("eclemelin:preloader-reveal", onReveal)
     }
   }, [])
 

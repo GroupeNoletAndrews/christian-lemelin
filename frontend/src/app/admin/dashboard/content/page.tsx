@@ -1414,6 +1414,20 @@ function StaticSectionEditor({
     if (!loading) pushPreview(staged, stagedStyle, order)
   }, [staged, stagedStyle, order, loading, pushPreview])
 
+  // The preview (re)loaded and is listening, e.g. after a layout change: re-send
+  // what's staged, or it would disappear from the preview until the next edit.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return
+      if (e.source !== iframeRef.current?.contentWindow) return
+      if (e.data?.source === "cl-preview" && e.data?.type === "preview-ready") {
+        pushPreview(staged, stagedStyle, order)
+      }
+    }
+    window.addEventListener("message", onMessage)
+    return () => window.removeEventListener("message", onMessage)
+  }, [staged, stagedStyle, order, pushPreview])
+
   const handleReplace = async (slot: string, file: File) => {
     let dataUrl: string
     try {
@@ -1615,6 +1629,8 @@ function StaticSectionEditor({
             « Remplacer » change une image, « Recadrer » ajuste cadrage et style.
             L&apos;aperçu se met à jour à droite. Rien n&apos;est enregistré avant
             « Publier ».
+            {hasLayout &&
+              " Un emplacement sans photo n'apparaît pas sur le site : il s'ajoute à la page dès que vous y publiez une image."}
           </p>
           {hasLayout && (
             <label className="block border-b border-border px-5 py-3">
@@ -1714,10 +1730,7 @@ function StaticSectionEditor({
         <PreviewFrame
           src={previewSrc}
           iframeRef={iframeRef}
-          onLoad={() => {
-            pushPreview(staged, stagedStyle)
-            postScroll()
-          }}
+          onLoad={postScroll}
         />
       </div>
       {modalSlotState && (
@@ -1827,8 +1840,8 @@ function StaticSlotRow({
           onClick={() => inputRef.current?.click()}
           className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 font-sans text-xs font-medium text-foreground transition-colors hover:border-foreground/30 hover:bg-surface-elevated"
         >
-          <ArrowsClockwise size={14} />
-          Remplacer
+          {url ? <ArrowsClockwise size={14} /> : <Plus size={14} />}
+          {url ? "Remplacer" : "Ajouter"}
         </button>
         <button
           type="button"

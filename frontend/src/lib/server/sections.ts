@@ -111,8 +111,9 @@ async function orderedSlots(def: SectionDef): Promise<SlotDef[]> {
 function resolveSlotUrl(slot: SlotDef, override: Override | undefined): string {
   if (override) return imgSrc(override.key, override.v)
   // No override + placeholders on → empty, so the admin slot row shows its
-  // "no image, click Remplacer" state (matching the public placeholder).
-  if (placeholdersEnabled()) return ""
+  // "no image, click Ajouter" state (matching the public placeholder). Same for
+  // a slot with no default at all, whatever the environment.
+  if (placeholdersEnabled() || slot.source === "none") return ""
   if (slot.source === "site-media") return mediaUrl(slot.default)
   return imageUrl(
     { seed: slot.default, alt: "", grayscale: slot.grayscale },

@@ -1,7 +1,7 @@
+import { OptionalSlot } from "@/components/sections/OptionalSlot"
 import { SlotParallaxImage } from "@/components/sections/SlotParallaxImage"
 import { SlotImage } from "@/components/sections/SlotImage"
 import { AProposStats } from "@/components/sections/AProposStats"
-import { imageUrl } from "@/content/image"
 import {
   COMPANY,
   APROPOS_SECTEURS,
@@ -23,15 +23,19 @@ import { t, tr } from "@/lib/i18n"
 // All 5 slots stay editable in every variant; bento is the one that shows a
 // chosen two of them (soudure-tig / decoupe-laser / equipe-plancher appear in
 // the other three layouts). All variants are fully responsive.
+//
+// Every picture here is optional: a slot only renders once the owner has given
+// it a photo (see OptionalSlot), so each layout must read well with any of them
+// missing — up to all of them, which is the page's state until photos are added.
 
 const SECTION = "a-propos"
 
 const SLOTS = {
-  atelier: { slot: "atelier-large", seed: "ecl-about-atelier-large", alt: "Atelier de fabrication métallique", w: 1200, h: 1500 },
-  soudure: { slot: "soudure-tig", seed: "ecl-about-soudure-tig", alt: "Soudure TIG sur inox", w: 900, h: 900 },
-  decoupe: { slot: "decoupe-laser", seed: "ecl-about-decoupe-laser", alt: "Découpe laser de précision", w: 900, h: 900 },
-  finitions: { slot: "finitions-poli", seed: "ecl-about-finitions-poli", alt: "Finition et polissage en atelier", w: 1200, h: 1500 },
-  equipe: { slot: "equipe-plancher", seed: "ecl-about-equipe-plancher", alt: "Équipe au plancher de l'atelier", w: 900, h: 900 },
+  atelier: { slot: "atelier-large", alt: "Atelier de fabrication métallique" },
+  soudure: { slot: "soudure-tig", alt: "Soudure TIG sur inox" },
+  decoupe: { slot: "decoupe-laser", alt: "Découpe laser de précision" },
+  finitions: { slot: "finitions-poli", alt: "Finition et polissage en atelier" },
+  equipe: { slot: "equipe-plancher", alt: "Équipe au plancher de l'atelier" },
 } as const
 
 type SlotDef = (typeof SLOTS)[keyof typeof SLOTS]
@@ -48,9 +52,11 @@ function Frame({
   sizes: string
 }) {
   return (
-    <div className={`relative ${ratio} overflow-hidden rounded-2xl border border-border`}>
-      <SlotParallaxImage section={SECTION} slot={s.slot} src={src} alt={s.alt} sizes={sizes} />
-    </div>
+    <OptionalSlot section={SECTION} slot={s.slot} src={src}>
+      <div className={`relative ${ratio} overflow-hidden rounded-2xl border border-border`}>
+        <SlotParallaxImage section={SECTION} slot={s.slot} src={src} alt={s.alt} sizes={sizes} />
+      </div>
+    </OptionalSlot>
   )
 }
 
@@ -62,10 +68,7 @@ export async function APropos({
   layout?: AProposLayout
 }) {
   const locale = await getLocale()
-  const src = (s: SlotDef) => images[s.slot] ?? imageUrl({ seed: s.seed, alt: s.alt }, s.w, s.h)
-  const portraitSrc =
-    images["pdg-portrait"] ??
-    imageUrl({ seed: "ecl-about-pdg-portrait", alt: "Christian Lemelin, président-directeur général" }, 720, 900)
+  const src = (s: SlotDef) => images[s.slot] ?? ""
 
   const INTRO = t(
     "Fondée à Québec, Entreprises Christian Lemelin conçoit, fabrique et installe des ouvrages métalliques sur mesure. De la pièce unique à la grande série, nous mettons la même exigence dans chaque projet.",
@@ -135,37 +138,36 @@ export async function APropos({
               <p className="mt-6 leading-relaxed text-foreground-muted">{INTRO}</p>
             </div>
 
-            <div className="mt-12 md:mt-16">
-              {layout === "uniform" && (
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                  {Object.values(SLOTS).map((s) => (
-                    <Frame key={s.slot} s={s} src={src(s)} ratio="aspect-[4/3]" sizes="(min-width:768px) 33vw, 50vw" />
-                  ))}
-                </div>
-              )}
+            {/* empty:hidden → with no photo at all, no leftover margin. */}
+            {layout === "uniform" && (
+              <div className="mt-12 grid grid-cols-2 gap-4 empty:hidden md:mt-16 md:grid-cols-3">
+                {Object.values(SLOTS).map((s) => (
+                  <Frame key={s.slot} s={s} src={src(s)} ratio="aspect-[4/3]" sizes="(min-width:768px) 33vw, 50vw" />
+                ))}
+              </div>
+            )}
 
-              {layout === "editorial" && (
-                <div className="mx-auto flex max-w-[860px] flex-col gap-6">
-                  {Object.values(SLOTS).map((s, i) => (
-                    <Frame
-                      key={s.slot}
-                      s={s}
-                      src={src(s)}
-                      ratio={i % 2 === 0 ? "aspect-[16/10]" : "aspect-[4/3]"}
-                      sizes="(min-width:860px) 860px, 100vw"
-                    />
-                  ))}
-                </div>
-              )}
+            {layout === "editorial" && (
+              <div className="mx-auto mt-12 flex max-w-[860px] flex-col gap-6 empty:hidden md:mt-16">
+                {Object.values(SLOTS).map((s, i) => (
+                  <Frame
+                    key={s.slot}
+                    s={s}
+                    src={src(s)}
+                    ratio={i % 2 === 0 ? "aspect-[16/10]" : "aspect-[4/3]"}
+                    sizes="(min-width:860px) 860px, 100vw"
+                  />
+                ))}
+              </div>
+            )}
 
-              {layout === "gallery" && (
-                <div className="flex flex-col gap-6 md:gap-8">
-                  {Object.values(SLOTS).map((s) => (
-                    <Frame key={s.slot} s={s} src={src(s)} ratio="aspect-[16/9] md:aspect-[21/9]" sizes="100vw" />
-                  ))}
-                </div>
-              )}
-            </div>
+            {layout === "gallery" && (
+              <div className="mt-12 flex flex-col gap-6 empty:hidden md:mt-16 md:gap-8">
+                {Object.values(SLOTS).map((s) => (
+                  <Frame key={s.slot} s={s} src={src(s)} ratio="aspect-[16/9] md:aspect-[21/9]" sizes="100vw" />
+                ))}
+              </div>
+            )}
 
             <div className="mt-16 md:mt-20">{atelier}</div>
           </>
@@ -256,17 +258,23 @@ export async function APropos({
       {/* Citation du président-directeur général */}
       <section data-header-theme="light" className="bg-background">
         <div className="mx-auto max-w-[1400px] border-t border-border px-6 py-20 md:px-12 md:py-28">
-          <div className="grid gap-10 md:grid-cols-[auto_1fr] md:items-center md:gap-16">
-            <div className="relative aspect-[4/5] w-full max-w-[320px] overflow-hidden rounded-2xl border border-border">
-              <SlotImage
-                section={SECTION}
-                slot="pdg-portrait"
-                src={portraitSrc}
-                alt="Christian Lemelin, président-directeur général"
-                sizes="(min-width:768px) 320px, 80vw"
-              />
-            </div>
-            <figure>
+          {/* Flex, not a grid with an `auto` column: the frame's only content is
+              absolutely positioned, so that column collapsed to nothing on desktop.
+              Without a portrait, the quote simply takes the full width. */}
+          <div className="flex flex-col gap-10 md:flex-row md:items-center md:gap-16">
+            <OptionalSlot section={SECTION} slot="pdg-portrait" src={images["pdg-portrait"] ?? ""}>
+              <div className="relative aspect-[4/5] w-full max-w-[320px] shrink-0 overflow-hidden rounded-2xl border border-border">
+                <SlotImage
+                  section={SECTION}
+                  slot="pdg-portrait"
+                  src={images["pdg-portrait"] ?? ""}
+                  alt="Christian Lemelin, président-directeur général"
+                  sizes="(min-width:768px) 320px, 80vw"
+                  className="object-cover"
+                />
+              </div>
+            </OptionalSlot>
+            <figure className="min-w-0 flex-1">
               <blockquote className="font-display text-[clamp(1.5rem,3vw,2.5rem)] font-medium leading-[1.2] tracking-[-0.01em] text-foreground">
                 «&nbsp;{tr(APROPOS_CITATION.quote, locale)}&nbsp;»
               </blockquote>

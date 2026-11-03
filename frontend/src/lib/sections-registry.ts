@@ -11,11 +11,12 @@ const frLabel = (v: Parameters<typeof tr>[0]) => tr(v, "fr")
 // Single registry of editable image slots per static section. Client+server safe
 // (no DB, no secrets) so the admin UI, the resolver, and publish-revalidation all
 // share it. `default` is the CODE default the resolver falls back to when no
-// SectionImage override exists: a SITE_MEDIA storage KEY (source "site-media") or
-// an ImageRef SEED (source "seed-manifest"). grayscale is a design intent kept in
-// code (not user-editable).
+// SectionImage override exists: a SITE_MEDIA storage KEY (source "site-media"), an
+// ImageRef SEED (source "seed-manifest"), or nothing at all (source "none": the
+// slot stays empty until the owner publishes a photo). grayscale is a design
+// intent kept in code (not user-editable).
 
-export type SlotSource = "site-media" | "seed-manifest"
+export type SlotSource = "site-media" | "seed-manifest" | "none"
 
 export interface SlotDef {
   id: string
@@ -186,17 +187,19 @@ export const SECTION_SLOTS: SectionDef[] = [
     // changement de format).
     caps: REFRAME_ONLY_CAPS,
     slots: [
-      // La disposition par défaut (« bento ») n'affiche plus qu'UNE photo par
-      // colonne : « Atelier » à gauche, « Finitions & polissage » à droite, en
-      // 4/3 pleine largeur de colonne. Les trois autres restent éditables et
-      // s'affichent dans les dispositions « uniform », « editorial » et
-      // « gallery » (apropos.layout) — d'où leur format de recadrage inchangé.
-      { id: "atelier-large", label: "Atelier (gauche, disposition par défaut)", source: "seed-manifest", default: "ecl-about-atelier-large", aspect: "4/3" },
-      { id: "soudure-tig", label: "Soudure TIG", source: "seed-manifest", default: "ecl-about-soudure-tig", aspect: "1/1" },
-      { id: "decoupe-laser", label: "Découpe laser", source: "seed-manifest", default: "ecl-about-decoupe-laser", aspect: "1/1" },
-      { id: "finitions-poli", label: "Finitions & polissage (droite, disposition par défaut)", source: "seed-manifest", default: "ecl-about-finitions-poli", aspect: "4/3" },
-      { id: "equipe-plancher", label: "Équipe au plancher", source: "seed-manifest", default: "ecl-about-equipe-plancher", aspect: "1/1" },
-      { id: "pdg-portrait", label: "Portrait du PDG", source: "seed-manifest", default: "ecl-about-pdg-portrait", aspect: "4/5" },
+      // Aucune photo par défaut (source « none ») : un emplacement n'apparaît sur
+      // la page qu'une fois que le propriétaire y a publié une photo.
+      // La disposition par défaut (« bento ») n'affiche qu'UNE photo par colonne :
+      // « Atelier » à gauche, « Finitions & polissage » à droite, en 4/3 pleine
+      // largeur de colonne. Les trois autres s'affichent dans les dispositions
+      // « uniform », « editorial » et « gallery » (apropos.layout) — d'où leur
+      // format de recadrage inchangé.
+      { id: "atelier-large", label: "Atelier (gauche, disposition par défaut)", source: "none", default: "", aspect: "4/3" },
+      { id: "soudure-tig", label: "Soudure TIG (hors disposition par défaut)", source: "none", default: "", aspect: "1/1" },
+      { id: "decoupe-laser", label: "Découpe laser (hors disposition par défaut)", source: "none", default: "", aspect: "1/1" },
+      { id: "finitions-poli", label: "Finitions & polissage (droite, disposition par défaut)", source: "none", default: "", aspect: "4/3" },
+      { id: "equipe-plancher", label: "Équipe au plancher (hors disposition par défaut)", source: "none", default: "", aspect: "1/1" },
+      { id: "pdg-portrait", label: "Portrait du PDG", source: "none", default: "", aspect: "4/5" },
     ],
   },
   {

@@ -44,6 +44,12 @@ function start() {
     }
     listeners.forEach((l) => l())
   })
+  // This only runs at hydration, which can come after the iframe's `load`: tell
+  // the workspace we're listening so it pushes the staged edits now, instead of
+  // pushing on `load` into the void (they'd vanish from the preview on a reload).
+  if (window.parent !== window) {
+    window.parent.postMessage({ source: "cl-preview", type: "preview-ready" }, window.location.origin)
+  }
 }
 
 function subscribe(cb: () => void) {

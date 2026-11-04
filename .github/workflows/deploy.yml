@@ -1,0 +1,69 @@
+# Deploys to Vercel through the CLI (token auth) instead of the Vercel Git
+# integration, so the repo can stay PRIVATE inside the GitHub org on Vercel's
+# Hobby plan (the Git integration refuses private org repos on Hobby, and only
+# deploys commits authored by the Vercel account owner).
+#
+# The build itself still runs ON Vercel (remote build): this job only uploads
+# the source, so the project's env vars and `vercel-build` pipeline
+# (prisma migrate deploy, media manifest, next build) apply unchanged.
+#
+# Required repo secrets (GitHub → Settings → Secrets and variables → Actions),
+# all taken from the Vercel account that owns the project:
+#   VERCEL_TOKEN       — vercel.com → Account Settings → Tokens
+#   VERCEL_ORG_ID      — "orgId" in .vercel/project.json after `vercel link`
+#   VERCEL_PROJECT_ID  — "projectId" in the same file
+#                        (or Vercel → Project Settings → General → Project ID)
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: vercel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        id: check
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::warning::VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID missing — deploy skipped (see header of .github/workflows/deploy.yml)"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Push to main → production deployment (christian-lemelin.vercel.app)
+      - name: Deploy (production)
+        if: steps.check.outputs.configured == 'true' && github.event_name == 'push'
+        run: |
+          npx vercel@65 deploy --prod --yes \
+            --token "$VERCEL_TOKEN" \
+            -m githubCommitSha="$GITHUB_SHA" \
+            -m githubCommitRef="${{ github.ref_name }}" \
+            | tee deploy-url.txt
+
+      # Pull request → preview deployment (unique URL per push)
+      - name: Deploy (preview)
+        if: steps.check.outputs.configured == 'true' && github.event_name == 'pull_request'
+        run: |
+          npx vercel@65 deploy --yes \
+            --token "$VERCEL_TOKEN" \
+            -m githubCommitSha="${{ github.event.pull_request.head.sha }}" \
+            -m githubCommitRef="${{ github.head_ref }}" \
+            | tee deploy-url.txt
+
+      - name: Deployment URL
+        if: steps.check.outputs.configured == 'true'
+        run: echo "🚀 Deployed → $(tail -n1 deploy-url.txt)" >> "$GITHUB_STEP_SUMMARY"

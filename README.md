@@ -286,6 +286,15 @@ The app lives in the `frontend/` subdirectory, so the important setting is the *
 
 > Adding env vars: **Vercel Dashboard** → your project → **Settings → Environment Variables** → add name/value, pick the environments, **Save**, then **Redeploy** (env changes only apply to new deployments). Or via CLI: `vercel env add NAME production`. You can also paste a whole `.env` in the dashboard's bulk editor.
 
+### How deployments are triggered (GitHub Actions, not the Vercel Git integration)
+
+Deployments go through **[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)**, which runs `vercel deploy` with a token — **not** through Vercel's native Git integration. Reason: the project lives on a **Hobby** (free) Vercel account, and Hobby's Git integration (a) refuses **private repos owned by a GitHub org**, and (b) only deploys commits authored by the Vercel account owner. The CLI path has neither restriction, so the repo can be private and anyone's push to `main` deploys.
+
+- **Push to `main`** → production deploy (the build still runs on Vercel, with the project's env vars and the `vercel-build` script — nothing builds in GitHub Actions, the runner just uploads the source).
+- **Pull request** → preview deploy; the URL is printed in the workflow run's summary (there is no Vercel bot comment on the PR anymore).
+
+**One-time setup** (by the owner of the Vercel account): create a token (Vercel → Account Settings → Tokens), run `vercel link` in the repo to get `orgId`/`projectId` from `.vercel/project.json`, then add the three GitHub Actions secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (GitHub repo → Settings → Secrets and variables → Actions). Finally **disconnect the Git repository** in Vercel → Project Settings → Git, so the native integration never double-deploys if it comes back to life.
+
 ---
 
 ## Maintenance mode
